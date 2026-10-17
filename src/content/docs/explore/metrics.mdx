@@ -1,0 +1,80 @@
+---
+title: Metrics explorer
+description: Browse the metrics FuseScope receives, inspect their metadata and chart them.
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+Open **Metrics** in the sidebar. The page has three tabs: **Summary**, **Explorer** and
+**Views**.
+
+## Browse metrics
+
+**Summary** (`/metrics-explorer/summary`) lists every metric received in the selected
+time range. Filter the list with the search box, for example `service.name = 'api'` to
+see the metrics an API service sends, or `http.client` to match metric names.
+
+- **Proportion View** is a treemap of the top 100 metrics by **Samples** or
+  **Time Series**, sized by their share of the total.
+- **List View** is a table with **METRIC**, **DESCRIPTION**, **TYPE**, **UNIT**,
+  **SAMPLES** and **TIME SERIES**, sorted by samples by default.
+
+Click a metric to open its details.
+
+## Metric details
+
+| Section | Content |
+|---|---|
+| Highlights | **SAMPLES**, **TIME SERIES** (total and active, where active means data in the last hour) and **LAST RECEIVED** |
+| Usage | How many dashboards and alert rules use the metric |
+| **Metadata** | Description, unit, metric type, temporality and whether it is monotonic |
+| **All Attributes** | The metric's attribute keys and their values, searchable |
+
+**Open in Explorer** charts the metric in the Explorer tab. From **All Attributes**, an
+attribute opens the explorer with it, or its key or value can be copied.
+
+### Edit metadata
+
+Click **Edit** in **Metadata** to change the description, metric type or temporality
+(**Delta** or **Cumulative**), then **Save**. The unit can be set only while the metric
+has none. Correct metadata matters because it decides which aggregations the query builder
+offers.
+
+### Inspect
+
+On gauges, **Inspect** walks through how a query is computed: which series are selected
+(**Where**), how each series is aggregated over time (**AGGREGATE BY TIME**), and how the
+series are combined (**AGGREGATE BY LABELS**), with a graph or table view and a
+**POINT INSPECTOR** to see the raw values behind a point.
+
+## Metric types and temporality
+
+| Type | What it holds | Typical aggregation |
+|---|---|---|
+| Sum | A running or per-interval total, such as requests served | Rate or Increase, then Sum |
+| Gauge | A current value, such as memory in use | Avg, Latest or Max, then Avg or Sum |
+| Histogram | Counts of values per bucket, such as request durations | P50 to P99 |
+| Exponential histogram | A histogram with exponentially sized buckets | P50 to P99 |
+| Summary | Precomputed quantiles from the client | As a gauge |
+
+A Sum is **monotonic** when it only goes up, like a request counter. **Cumulative**
+temporality reports the total since the start; **Delta** reports the change since the
+last report. FuseScope handles both when computing rates. See
+[Query builder](/fusescope-docs/querying/query-builder/#aggregations) for the options per
+type.
+
+## Chart a metric
+
+The **Explorer** tab (`/metrics-explorer/explorer`) is the query builder for metrics. Pick
+a metric, filter its series, set the aggregation and group by, and click **Run Query**.
+Turn on **1 chart/query** to draw each query on its own chart.
+
+If the metric has no unit, choosing a Y-axis unit offers to save it as the metric's unit.
+
+The bar at the bottom has **Select a view**, **Save this view**, **Create an Alert** and
+**Add to Dashboard**; see [Alert rules](/fusescope-docs/alerts/alert-rules/) for alerts. The **Views** tab lists saved metric views.
+
+<Aside>
+  PromQL and ClickHouse SQL over metrics are written in dashboard panels and alert rules;
+  see [ClickHouse SQL and PromQL](/fusescope-docs/querying/clickhouse-promql/).
+</Aside>

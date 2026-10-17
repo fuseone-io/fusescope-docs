@@ -1,0 +1,168 @@
+---
+title: Query builder
+description: Build queries over traces, logs and metrics with filters, aggregations, formulas and functions.
+---
+
+import { Aside, Tabs, TabItem } from "@astrojs/starlight/components";
+
+The query builder is the same in the explorers, dashboard panels and alert rules. A query
+picks a data source, filters it, and optionally aggregates the result. For SQL or PromQL,
+see [ClickHouse SQL and PromQL](/fusescope-docs/querying/clickhouse-promql/).
+
+## Parts of a query
+
+| Part | What it does |
+|---|---|
+| Data source | Traces, logs or metrics. On metrics, pick the metric name. |
+| Search filter | A [filter expression](/fusescope-docs/querying/search-syntax/) such as `service.name = 'frontend' AND http.status_code >= 500` |
+| Aggregation | What to compute, such as `count()` or `p99(duration_nano)` |
+| **every** | The time bucket, in seconds, for time series |
+| **Group By** | Split the result into one series or row per attribute value |
+| **Having** | Keep only groups whose aggregate matches a condition |
+| **Order By** | Sort groups or rows |
+| **Limit** | Keep the first *n* groups or rows |
+| **Legend format** | How each series is named in charts |
+
+Group By, Having, Order By, Limit and Legend format are add-ons: open them below the
+aggregation when you need them.
+
+## Aggregations
+
+<Tabs>
+<TabItem label="Traces and logs">
+
+Write one or more aggregation expressions. Separate several with commas, and give each a
+name with `as`:
+
+```text
+count() as requests, p99(duration_nano) as p99_latency
+```
+
+| Function | Computes |
+|---|---|
+| `count()` | Number of spans or logs |
+| `count_distinct(key)` | Number of distinct values of up to 10 keys |
+| `sum`, `avg`, `min`, `max` | Over a numeric key, such as `avg(duration_nano)` |
+| `p05`, `p10`, `p20`, `p25`, `p50`, `p75`, `p90`, `p95`, `p99`, `p999` | Percentiles of a numeric key |
+| `rate()` | Count per second |
+| `rate_sum`, `rate_avg`, `rate_min`, `rate_max` | The aggregate of a key, per second |
+
+Except for the `rate_*` functions, each has an `If` form that takes a condition as its
+last argument, written in the [search syntax](/fusescope-docs/querying/search-syntax/):
+
+```text
+countIf(has_error = true) as errors, avgIf(duration_nano, http.method = 'GET')
+```
+
+Names are accepted in camel case or snake case: `countDistinct` or `count_distinct`.
+
+</TabItem>
+<TabItem label="Metrics">
+
+Metric queries aggregate in two steps: first within each time series over each interval
+(**AGGREGATE WITHIN TIME SERIES**), then across the series (**AGGREGATE ACROSS TIME
+SERIES**), optionally **by** some labels. The options depend on the metric type.
+
+| Metric type | Within time series | Across time series |
+|---|---|---|
+| Sum (monotonic counter) | Rate, Increase | Sum, Avg, Min, Max |
+| Gauge, non-monotonic Sum, Summary | Latest, Sum, Avg, Min, Max, Count, Count Distinct | Sum, Avg, Min, Max |
+| Histogram, Exponential histogram | none | P50, P75, P90, P95, P99 |
+
+See [Metrics explorer](/fusescope-docs/explore/metrics/) for metric types and temporality.
+
+</TabItem>
+</Tabs>
+
+## Time step
+
+**every** sets the bucket size in seconds. Leave it empty (**Auto**) to let FuseScope
+pick one:
+
+| Data source | Automatic step |
+|---|---|
+| Traces and logs | The time range divided by 300, rounded to 5 seconds, at least 5 seconds |
+| Metrics | The time range divided by 300, rounded to 60 seconds, at least 60 seconds |
+
+A step that would produce too many points is raised, and the query shows a warning.
+
+## Group by, having, order by and limit
+
+- **Group By** takes attribute keys, such as `service.name` or `http.route`. With no
+  key the result is a single series (**Everything (no breakdown)**).
+- **Having** filters groups on their aggregates. It accepts comparisons
+  (`=`, `!=`, `<`, `<=`, `>`, `>=`), `IN` lists of numbers, arithmetic, `AND`, `OR` and
+  `NOT`. Refer to an aggregation by its expression or its alias:
+
+  ```text
+  count() > 10 AND p99(duration_nano) / 1e6 > 500
+  ```
+
+- **Order By** sorts by an aggregation or a group key, ascending or descending.
+- **Limit** keeps the first *n* groups (for charts) or rows (for lists). The maximum is
+  10000.
+
+## Legend format
+
+Name series with the values of their group keys in double braces:
+
+```text
+{{service.name}} - {{http.route}}
+```
+
+## Several queries and formulas
+
+Each query has a letter: **A**, **B**, and so on, up to 26 queries. Add one with the
+**+** button (**Add New Query**). Each query has a toggle to show or hide its result, and
+a menu to clone or delete it.
+
+**Add Formula** combines queries by name, for example an error percentage:
+
+```text
+B / A * 100
+```
+
+where `A` counts all requests and `B` counts errors, both with the same group by.
+Formulas accept `+ - * /` and parentheses, and these functions: `abs`, `exp`, `log`,
+`ln`, `exp2`, `log2`, `exp10`, `log10`, `sqrt`, `cbrt`, `erf`, `erfc`, `lgamma`,
+`tgamma`, `sin`, `cos`, `tan`, `asin`, `acos`, `atan`, `degrees`, `radians` and `now`.
+When a query has several aggregations, pick one with its alias (`A.errors`) or position
+(`A.0`). A dashboard panel can have up to 20 formulas.
+
+### Trace matching
+
+On traces, **Add Trace Matching** relates queries span to span, to find traces where one
+kind of span leads to another. Write a **Trace Operator** expression over query names:
+
+| Operator | Meaning |
+|---|---|
+| `A => B` | `B` is a direct child of `A` |
+| `A -> B` | `B` is a descendant of `A` |
+| `A && B` | The trace has spans matching both |
+| `A \|\| B` | The trace has spans matching either |
+| `A NOT B` | The trace has `A` spans but no `B` spans |
+
+For example, with `A` filtering `service.name = 'frontend'` and `B` filtering
+`service.name = 'payments' AND has_error = true`, `A -> B` finds frontend requests that
+failed in the payments service.
+
+## Functions
+
+Functions transform a query's result series. A query can have up to three.
+
+| Function | Effect |
+|---|---|
+| Cut Off Min, Cut Off Max | Drop points below or above a threshold |
+| Clamp Min, Clamp Max | Raise or lower points to a threshold |
+| Absolute | Absolute value |
+| Running Diff | Difference from the previous point |
+| Log2, Log10 | Logarithm |
+| Cumulative Sum | Running total |
+| EWMA 3, EWMA 5, EWMA 7 | Exponentially weighted moving average over 3, 5 or 7 points; the optional alpha defaults to 2/(n+1) |
+| Median 3, Median 5, Median 7 | Moving median |
+| Time Shift | Shift the series by a number of seconds, for comparing with an earlier period |
+| Fill Zero | Fill missing points with 0 |
+
+<Aside>
+  Metric queries offer every function. Log queries offer Time Shift only.
+</Aside>
