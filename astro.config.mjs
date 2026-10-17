@@ -56,7 +56,25 @@ export default defineConfig({
           label: "Sending data",
           items: [
             { label: "OTLP", slug: "sending-data/otlp" },
+            { label: "Instrument applications", slug: "sending-data/instrumentation" },
             { label: "Kubernetes", slug: "sending-data/kubernetes" },
+            { label: "Log pipelines", slug: "sending-data/log-pipelines" },
+          ],
+        },
+        {
+          label: "Alerts",
+          items: [
+            { label: "Alert rules", slug: "alerts/alert-rules" },
+            { label: "Notification channels", slug: "alerts/notification-channels" },
+            { label: "Routing and planned downtime", slug: "alerts/routing-and-downtime" },
+          ],
+        },
+        {
+          label: "Administration",
+          items: [
+            { label: "Users and roles", slug: "administration/users-and-roles" },
+            { label: "Service accounts", slug: "administration/service-accounts" },
+            { label: "Data retention", slug: "administration/retention" },
           ],
         },
         {

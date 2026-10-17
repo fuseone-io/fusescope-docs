@@ -1,0 +1,67 @@
+---
+title: Data retention
+description: Set how long FuseScope keeps metrics, traces and logs, and move older data to object storage.
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+Telemetry is deleted by ClickHouse TTLs. Each signal has its own retention period, set in
+*Settings → Workspace → Retention Controls*. Everyone can see the periods; only admins can
+change them.
+
+| Signal | Default | Units |
+|---|---|---|
+| Metrics | 30 days | Hours, Days, Months |
+| Traces | 15 days | Hours, Days, Months |
+| Logs | 15 days | Days, Months |
+
+A month counts as 30 days.
+
+## Change the retention period
+
+Enter the **Total Retention Period** for a signal, click **Save** and confirm. A longer
+period needs more ClickHouse storage.
+
+Metrics and traces changes run in the background; the page shows whether the last request
+is pending, succeeded or failed, and refuses a new change while one is still running.
+
+<Aside type="caution">
+  The new TTL applies to data written after the change; parts already on disk keep the
+  previous TTL. ClickHouse removes expired data during merges, so disk usage drops
+  gradually.
+</Aside>
+
+## What changes in ClickHouse
+
+For metrics and traces, FuseScope runs `ALTER TABLE … ON CLUSTER … MODIFY TTL` on the
+tables of the signal. Logs carry their retention in a `_retention_days` column; FuseScope
+changes its default, and the table TTL deletes each row after that many days.
+
+| Signal | Tables |
+|---|---|
+| Metrics | `signoz_metrics.samples_v4`, its `_agg_5m` and `_agg_30m` aggregates, `exp_hist` and the `time_series_v4*` tables |
+| Traces | `signoz_traces.signoz_index_v3`, `traces_v3_resource`, `signoz_error_index_v2`, `trace_summary`, the dependency graph and attribute key tables |
+| Logs | `signoz_logs.logs_v2`, `logs_v2_resource` and the attribute and resource key tables |
+
+## Cold storage
+
+ClickHouse can move older data to S3 or GCS before deleting it. Enable it in the Helm
+chart, which adds an object storage disk and a `tiered` storage policy:
+
+```yaml
+clickhouse:
+  coldStorage:
+    enabled: true
+    type: s3
+    endpoint: https://<bucket-name>.s3-<region>.amazonaws.com/data/
+    accessKey: <access-key-id>
+    secretAccess: <secret-access-key>
+```
+
+On AWS, set `clickhouse.coldStorage.role.enabled: true` and the role annotation instead of
+keys to use an IAM role. For GCS, set `type: gcs` and
+`endpoint: https://storage.googleapis.com/<bucket-name>/data/`.
+
+When ClickHouse has such a disk, each signal gets a **Move to S3** field: data older than
+that period moves to object storage, and is deleted at the end of the total retention
+period. It must be shorter than the total retention period.

@@ -1,0 +1,109 @@
+---
+title: Notification channels
+description: Send alert notifications to Slack, PagerDuty, Opsgenie, Microsoft Teams, Google Chat, Jira, incident.io, webhooks and email.
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+
+A notification channel is a destination for alerts. Alert rules pick channels per
+threshold, or through [routing policies](/fusescope-docs/alerts/routing-and-downtime/#routing-policies).
+Only admins can create, edit or delete channels; editors can send test notifications.
+
+## Create a channel
+
+<Steps>
+
+1. Go to *Alerts → Notification Channels* (also under *Settings*) and click
+   **New Alert Channel**.
+2. Enter a **Name** and choose the **Type**. Neither can be changed later.
+3. Fill in the fields for the type, listed below.
+4. Leave **Send resolved alerts** on to be notified when an alert resolves.
+5. Click **Test** to send a test alert, then **Save**.
+
+</Steps>
+
+The test alert is named `Test Alert (<channel name>)`, has severity `critical` and the text
+"Test alert fired from FuseScope". Nothing is saved by a test.
+
+## Channel types
+
+Fields in bold are required. Title and description fields come prefilled with templates
+that list the firing alerts, their labels and links to related logs and traces.
+
+| Type | Fields |
+|---|---|
+| Slack | **Webhook URL** (an incoming webhook), Recipient (`#channel` or `@user`), Title, Description |
+| Webhook | **Webhook URL**, User Name and Password for basic auth, or only Password to send it as a bearer token |
+| Pagerduty | **Routing Key**, Description, Severity, Additional Information (JSON), Component, Group, Class, Client, Client URL |
+| Opsgenie | **API Key**, Message, Description, Priority |
+| Email | **To**: comma-separated addresses. Needs [SMTP](#email-and-smtp). |
+| Microsoft Teams | **Webhook URL**, Title, Description |
+| Google Chat | **Webhook URL** (`https://chat.googleapis.com/...`), Title, Description |
+| Jira | **Site URL** (`https://<site>.atlassian.net`), **Email**, **API token**, **Project key**, **Issue type** (default `Task`), Summary, Description; advanced: Priority, Labels, Resolve transition, Reopen transition, Won't-fix resolution, Reopen window (default `3d`) |
+| Jira Service Management Ops | **API key**, Message, Description; advanced: Priority, Tags (default `signoz-alert`) |
+| incident.io | **Alert source URL** (`https://.../v2/alert_events/http/<id>`), **Token**, Title, Description, Additional metadata |
+
+PagerDuty severity defaults to the alert's `severity` label. Opsgenie priority maps
+`critical` to P1, `warning` to P2, `info` to P3 and anything else to P4.
+
+<Aside type="caution">
+  Opsgenie channels ignore the **Send resolved alerts** switch.
+</Aside>
+
+## Templates
+
+Titles and descriptions use
+[Alertmanager notification templates](https://prometheus.io/docs/alerting/latest/notifications/),
+for example:
+
+```text
+[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] {{ .CommonLabels.alertname }}
+```
+
+`.Alerts`, `.CommonLabels`, `.CommonAnnotations` and each alert's `.Labels` and
+`.Annotations` are available. The rule's message is the `description` annotation.
+
+Links in notifications point to `alertmanager.signoz.external_url`
+(default `http://localhost:8080`); set it to the public URL of FuseScope.
+
+## Email and SMTP
+
+Email channels send through the SMTP settings under `alertmanager.signoz.global` in the
+[configuration file](/fusescope-docs/configuration/config-file/). These are separate from
+the `emailing` section, which only sends invitations and password resets.
+
+```yaml
+alertmanager:
+  signoz:
+    external_url: https://fusescope.example.com
+    global:
+      smtp_smarthost: smtp.example.com:587
+      smtp_from: fusescope@example.com
+      smtp_auth_username: fusescope@example.com
+      smtp_require_tls: true
+```
+
+| Key | Default | Variable |
+|---|---|---|
+| `smtp_smarthost` | `localhost:25` | `SIGNOZ_ALERTMANAGER_SIGNOZ_GLOBAL_SMTP__SMARTHOST` |
+| `smtp_from` | `alertmanager@signoz.io` | `SIGNOZ_ALERTMANAGER_SIGNOZ_GLOBAL_SMTP__FROM` |
+| `smtp_hello` | `localhost` | `SIGNOZ_ALERTMANAGER_SIGNOZ_GLOBAL_SMTP__HELLO` |
+| `smtp_auth_username` | none | `SIGNOZ_ALERTMANAGER_SIGNOZ_GLOBAL_SMTP__AUTH__USERNAME` |
+| `smtp_auth_password` | none | `SIGNOZ_ALERTMANAGER_SIGNOZ_GLOBAL_SMTP__AUTH__PASSWORD` |
+| `smtp_require_tls` | `true` | `SIGNOZ_ALERTMANAGER_SIGNOZ_GLOBAL_SMTP__REQUIRE__TLS` |
+
+Pass the password as an environment variable rather than in the file.
+
+## Grouping and repeats
+
+Alertmanager settings under `alertmanager.signoz.route` apply to every rule:
+
+| Key | `conf/example.yaml` | Description |
+|---|---|---|
+| `group_by` | `[alertname]` | Labels alerts are grouped by. |
+| `group_wait` | `1m` | Wait before the first notification of a new group. |
+| `group_interval` | `1m` | Wait before notifying about changes to a group. |
+| `repeat_interval` | `1h` | Wait before repeating a notification. |
+
+A rule's own *Group alerts by* and *Repeat notifications* settings override these for its
+alerts. See [alert rules](/fusescope-docs/alerts/alert-rules/#notification-settings).

@@ -1,0 +1,71 @@
+---
+title: Log pipelines
+description: Parse and transform logs in the collector with pipelines managed from the FuseScope UI.
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+
+Log pipelines parse and reshape logs before they are stored: extract fields from the
+body, set the timestamp and severity, link logs to traces, and add, remove, move or copy
+attributes. Pipelines are edited in the UI and run in the FuseScope collector.
+
+They are under *Logs → Pipelines*. Admins and editors can save changes; viewers can read
+and preview them.
+
+## Create a pipeline
+
+<Steps>
+
+1. Click **Enter Edit Mode**, then **New Pipeline**.
+2. Enter a **Name**, an optional **Description** and a **Filter** that selects the logs
+   the pipeline processes, such as `service_name = billing`. The form previews matching
+   logs.
+3. Expand the pipeline and click **Add Processor** for each step.
+4. Click **Save Configuration** to deploy.
+
+</Steps>
+
+Logs go through pipelines in order, and through each pipeline's processors in order. Drag
+rows to reorder them. A switch on each pipeline and processor enables or disables it.
+
+## Processors
+
+Field paths start with `body`, `attributes` or `resource`, for example
+`attributes.user_id`.
+
+| Processor | Fields | Use |
+|---|---|---|
+| Grok | Pattern, Parse From (`body`), Parse To (`attributes`), On Error (`send`) | Parse with Grok patterns, such as `%{WORD:method} %{NUMBER:status}`. |
+| Regex | Define Regex, Parse From, Parse To, On Error | Parse with a regular expression; each named group (`(?P<name>...)`) becomes a field. At least one named group is required. |
+| Json Parser | Parse From (`body`), Parse To (`attributes`), Enable Flattening, Enable Paths, Path Prefix, Enable Mapping | Parse a JSON string. Mapping promotes keys to well-known fields: environment, host, message, service, severity, span_id, trace_flags and trace_id. |
+| Trace Parser | Parse Trace Id From, Parse Span Id From, Parse Trace flags From | Set the log's trace context, to link it to its trace. |
+| Timestamp Parser | Parse Timestamp Value From (`attributes.timestamp`), Timestamp Format Type, format | Set the log timestamp. **Unix Epoch** in `s`, `ms`, `us`, `ns`, `s.ms`, `s.us` or `s.ns`, or **strptime Format** (default `%Y-%m-%dT%H:%M:%S.%f%z`). |
+| Severity Parser | Parse Severity Value From (`attributes.logLevel`), values for each level | Map values to TRACE, DEBUG, INFO, WARN, ERROR and FATAL. Each level takes a comma-separated list, such as `error, 5xx`. |
+| Add | Field, Value | Set a field to a value. |
+| Remove | Field | Delete a field. |
+| Move | From, To | Rename a field. |
+| Copy | From, To | Copy a field. |
+
+**On Error** `send` keeps a log unchanged when the processor fails on it.
+
+## Preview
+
+The preview action on a pipeline opens *Logs processing preview*: it loads recent
+matching logs (last hour by default) and **Simulate Processing** shows the output of the
+pipeline without deploying it.
+
+## Deployment
+
+Saving creates a new configuration version. The backend sends it to the FuseScope
+collectors over [OpAMP](https://opentelemetry.io/docs/specs/opamp/), and each enabled
+pipeline becomes a processor in the collector's logs pipeline. Collectors connect to the
+backend's OpAMP server on port 4320; the Helm chart configures this.
+
+The **Change History** tab lists the versions with their *Deployment Stage*
+(In Progress, Deployed, Dirty, Failed or Unknown), the last deploy message, time and
+author.
+
+<Aside>
+  Pipelines run in the FuseScope collector, so they apply to every log it receives,
+  whichever agent or SDK sent it.
+</Aside>

@@ -1,0 +1,108 @@
+---
+title: Users and roles
+description: Invite members, assign the admin, editor and viewer roles, and reset passwords.
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+
+## First user
+
+On a new installation, the sign-up page creates the first account. It becomes an admin
+and the **root user**, which cannot be deleted, have its roles changed or have its password
+reset from the UI. Sign-up closes once this account exists; everyone else joins by
+invitation or [single sign-on](/fusescope-docs/configuration/sso/).
+
+The root user can instead be provisioned from the
+[configuration file](/fusescope-docs/configuration/config-file/), which enforces its email
+and password at every startup:
+
+```yaml
+user:
+  root:
+    enabled: true
+    email: admin@example.com
+    password: <password>
+    org:
+      name: default
+```
+
+Pass the password as `SIGNOZ_USER_ROOT_PASSWORD` rather than in the file.
+
+## Roles
+
+| Role | Name in the API | Can |
+|---|---|---|
+| Viewer | `signoz-viewer` | Read telemetry, dashboards, alert rules, notification channels, log pipelines and retention settings. |
+| Editor | `signoz-editor` | Everything a viewer can, plus create, edit and delete dashboards, saved views, trace funnels, alert rules, planned downtimes and log pipelines, and send test notifications. |
+| Admin | `signoz-admin` | Everything, plus members, service accounts, notification channels, routing policies, data retention, single sign-on and organization settings. |
+
+*Settings → Roles* lists the built-in roles. A user can hold several roles.
+
+## Invite members
+
+Only admins see *Settings → Members*.
+
+<Steps>
+
+1. Click **Invite member**.
+2. Enter each person's **Email address** and pick their **Roles**. **Add another** adds a
+   row.
+3. Click **Invite Team Members**.
+
+</Steps>
+
+Each invited user is listed as **INVITED** until they accept. FuseScope emails them a link
+when [email is configured](#email); with or without email, open the member and click
+**Copy Invite Link** to share it yourself. The link opens a page where the user sets a
+password, and expires after `user.password.invite.max_token_lifetime` (default `48h`);
+**Regenerate Invite Link** issues a new one.
+
+**Revoke Invite** cancels a pending invitation.
+
+## Manage members
+
+Click a member to open *Member Details*:
+
+- change the name or roles, then **Save Member Details**. You cannot change your own
+  roles;
+- **Generate Password Reset Link** creates a one-time link to share with the user;
+- **Delete Member** removes access and ends the user's sessions. Deleted members remain
+  listed under the **Deleted** filter.
+
+## Password reset
+
+Users can also reset their own password from **Forgot password?** on the login page when
+self-service reset is allowed:
+
+```yaml
+user:
+  password:
+    reset:
+      allow_self: true
+      max_token_lifetime: 6h
+```
+
+Otherwise they are asked to contact an admin.
+
+## Email
+
+Invitations and password reset emails use the `emailing` section of the configuration
+file:
+
+```yaml
+emailing:
+  enabled: true
+  smtp:
+    address: smtp.example.com:587
+    from: fusescope@example.com
+    auth:
+      username: fusescope@example.com
+```
+
+Set the password with `SIGNOZ_EMAILING_SMTP_AUTH_PASSWORD`. Alert emails use separate
+settings; see [Notification channels](/fusescope-docs/alerts/notification-channels/#email-and-smtp).
+
+<Aside>
+  Users created at their first SSO sign-in get roles from the auth domain's role mapping.
+  See [Single sign-on](/fusescope-docs/configuration/sso/#role-mapping).
+</Aside>
