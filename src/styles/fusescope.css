@@ -35,3 +35,14 @@
   --sl-color-gray-7: #f7f8fa;
   --sl-color-black: #ffffff;
 }
+
+/* Starlight pushes the content column against the table of contents; keep it next to the sidebar. */
+@media (min-width: 72rem) {
+  :root {
+    --sl-content-width: 52rem;
+  }
+
+  [data-has-sidebar][data-has-toc] .main-pane {
+    --sl-content-margin-inline: 0 auto;
+  }
+}
