@@ -1,0 +1,116 @@
+---
+title: Dashboard variables
+description: Add dropdowns and text boxes to a dashboard and use their values in panel queries.
+---
+
+import { Aside, Tabs, TabItem } from "@astrojs/starlight/components";
+
+Variables put dropdowns or text boxes at the top of a dashboard, so one dashboard can show
+any service, environment or host. Add them in **Configure → Variables → Add variable**.
+
+## Variable types
+
+Give the variable a **Name** (no spaces, unique in the dashboard) and an optional
+**Description**, then pick a **Variable Type**:
+
+| Type | Values come from |
+|---|---|
+| **Dynamic** | The values of an attribute in your telemetry, from **All telemetry**, **Traces**, **Logs** or **Metrics** |
+| **Query** | A ClickHouse SQL query; every value it returns becomes an option, so select a single column |
+| **Custom** | A fixed list, entered as options separated by commas |
+| **Textbox** | Whatever the viewer types; set an optional **Default Value** |
+
+Dynamic, Query and Custom variables also have:
+
+- **Sort Values**: disabled, alphabetical, numerical or case-insensitive alphabetical,
+  ascending or descending.
+- **Enable multiple values to be checked** for multi-select.
+- **Include an option for ALL values**.
+- **Default Value**.
+
+**Preview of Values** shows what the dropdown will list. Click **Save Variable** when
+done; drag variables in the list to reorder them.
+
+### Dynamic variables
+
+Pick an attribute, such as `service.name`, and the signal to read it from. **All
+telemetry** reads every signal, which is slower on large data sets. **Apply to panels**
+adds `<attribute> IN $<name>` to the filter of the panels you pick, so you don't have to
+edit each one.
+
+When several dynamic variables are on a dashboard, each one's options are narrowed by the
+others' selections: picking a namespace limits the pod dropdown to pods in it.
+
+### Query variables
+
+The query runs in ClickHouse with the dashboard's time range:
+
+```sql
+SELECT DISTINCT resource_string_service$$name
+FROM signoz_traces.distributed_signoz_index_v3
+WHERE ts_bucket_start >= $start_timestamp - 1800 AND ts_bucket_start <= $end_timestamp
+```
+
+Use **Test Run Query** to check it. A query can reference another variable, as
+`{{.env}}` or `$env`; it reruns when that variable changes. The time variables available
+are `start_timestamp`, `end_timestamp` and their `_ms` and `_nano` forms. Statements that
+drop, alter or truncate are rejected.
+
+See [ClickHouse SQL and PromQL](/fusescope-docs/querying/clickhouse-promql/#tables) for
+the tables.
+
+## Use variables in queries
+
+<Tabs>
+<TabItem label="Query builder">
+
+Reference a variable with `$` in the filter:
+
+```text
+service.name IN $service AND deployment.environment = $env
+```
+
+Use `IN` with multi-select variables and `=` with single values.
+
+</TabItem>
+<TabItem label="ClickHouse SQL">
+
+Write `$service`, `{{service}}`, `[[service]]` or `{{.service}}`. Values are inserted as
+SQL literals, so don't add quotes:
+
+```sql
+WHERE resource_string_service$$name IN $service
+```
+
+A single string value comes quoted (`'checkout'`) and a multi-select value as an array
+(`['checkout', 'cart']`).
+
+</TabItem>
+<TabItem label="PromQL">
+
+Values are inserted as they are; a multi-select value is joined with `|`. Use a regex
+matcher:
+
+```text
+sum(rate({"http.server.duration.count", "service.name"=~"$service"}[5m]))
+```
+
+</TabItem>
+</Tabs>
+
+## The ALL option
+
+When **ALL** is selected:
+
+- A **Dynamic** variable removes its condition from the query: `service.name IN $service`
+  matches every service, including ones not listed yet. In PromQL, the label matcher is
+  removed.
+- A **Query** or **Custom** variable sends the full list of its values.
+
+## Variables in links
+
+The current values are kept in the dashboard URL as `?variables=` followed by a JSON
+object, for example `{"service":"checkout"}`; **ALL** is written `__ALL__`. When sharing,
+tick **Include variables** to send the link with the current selection.
+
+Renaming or deleting a variable lists the panels that use it and offers to update them.

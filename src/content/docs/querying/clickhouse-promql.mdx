@@ -1,0 +1,209 @@
+---
+title: ClickHouse SQL and PromQL
+description: Query FuseScope's ClickHouse tables directly, or metrics with PromQL.
+---
+
+import { Aside, Tabs, TabItem } from "@astrojs/starlight/components";
+
+When the [query builder](/fusescope-docs/querying/query-builder/) can't express a query,
+write it in ClickHouse SQL or PromQL. Both are available in dashboard panels and alert
+rules, on the **ClickHouse Query** and **PromQL** tabs next to **Query Builder**.
+
+| | ClickHouse SQL | PromQL |
+|---|---|---|
+| Data | Traces, logs and metrics | Metrics |
+| Dashboard panels | Time Series, Area Chart, Bar Chart, Number, Heatmap, Table, Pie Chart | Time Series, Area Chart, Bar Chart, Number, Heatmap |
+| [Alert rules](/fusescope-docs/alerts/alert-rules/) | Metric, trace, log and exception alerts | Metric alerts |
+
+List panels only take query builder queries. Both editors have a **Legend Format**
+field, written as in the query builder: `{{service.name}}`.
+
+## Variables
+
+FuseScope replaces these variables with the panel's or rule's time range before running
+the query:
+
+| Variable | Value |
+|---|---|
+| `start_timestamp`, `end_timestamp` | Unix time in seconds |
+| `start_timestamp_ms`, `end_timestamp_ms` | Unix time in milliseconds |
+| `SIGNOZ_START_TIME`, `SIGNOZ_END_TIME` | Unix time in milliseconds |
+| `start_timestamp_nano`, `end_timestamp_nano` | Unix time in nanoseconds |
+| `start_datetime`, `end_datetime` | `toDateTime(<seconds>)` |
+
+Write a variable as `$start_timestamp`, `{{start_timestamp}}`, `[[start_timestamp]]` or
+`{{.start_timestamp}}`. [Dashboard variables](/fusescope-docs/dashboards/variables/) use
+the same forms.
+
+<Aside type="caution">
+  In ClickHouse queries, dashboard variable values are inserted as SQL literals: strings
+  come quoted and lists as arrays. Write `service = $service` and `service IN $services`,
+  with no quotes of your own.
+</Aside>
+
+## Result shape
+
+How FuseScope reads the result depends on the panel:
+
+| Panel | Expected columns |
+|---|---|
+| Time Series, Area Chart, Bar Chart | One `DateTime` column for the time, one numeric value column (name it `value`), and any other columns as series labels |
+| Number, Table, Pie Chart | Numeric columns are values, other columns are groups |
+| Heatmap | `__bucket_min` and `__bucket_max` columns for the buckets |
+
+## Tables
+
+<Tabs>
+<TabItem label="Traces">
+
+Spans are in `signoz_traces.distributed_signoz_index_v3`.
+
+| Column | Content |
+|---|---|
+| `timestamp` | Span start, `DateTime64(9)` |
+| `ts_bucket_start` | Start of the row's time bucket, in seconds |
+| `resource_fingerprint` | Hash of the resource attributes |
+| `trace_id`, `span_id`, `parent_span_id` | Identifiers |
+| `name`, `kind`, `kind_string` | Span name and kind |
+| `duration_nano` | Duration in nanoseconds |
+| `status_code`, `status_code_string`, `status_message`, `has_error` | Status |
+| `http_method`, `http_url`, `response_status_code`, `db_name`, `db_operation` | Common fields |
+| `attributes_string`, `attributes_number`, `attributes_bool` | Span attributes, as maps |
+| `resources_string` | Resource attributes, as a map |
+| `events`, `links` | Span events and links |
+
+`resource_string_service$$name` is the service name. Resource fingerprints and their
+time buckets are in `signoz_traces.distributed_traces_v3_resource`.
+
+</TabItem>
+<TabItem label="Logs">
+
+Logs are in `signoz_logs.distributed_logs_v2`.
+
+| Column | Content |
+|---|---|
+| `timestamp` | Log time, nanoseconds since epoch (`UInt64`) |
+| `ts_bucket_start` | Start of the row's time bucket, in seconds |
+| `resource_fingerprint` | Hash of the resource attributes |
+| `body` | Log body |
+| `severity_text`, `severity_number` | Severity |
+| `trace_id`, `span_id`, `trace_flags` | Trace correlation |
+| `scope_name`, `scope_version`, `scope_string` | Instrumentation scope |
+| `attributes_string`, `attributes_number`, `attributes_bool` | Log attributes, as maps |
+| `resources_string` | Resource attributes, as a map |
+
+Resource fingerprints are in `signoz_logs.distributed_logs_v2_resource`.
+
+</TabItem>
+<TabItem label="Metrics">
+
+| Table | Content |
+|---|---|
+| `signoz_metrics.distributed_samples_v4` | Samples: `metric_name`, `fingerprint`, `unix_milli`, `value`, `flags` |
+| `signoz_metrics.distributed_samples_v4_agg_5m`, `_agg_30m` | Samples pre-aggregated per 5 or 30 minutes |
+| `signoz_metrics.distributed_exp_hist` | Exponential histogram samples |
+| `signoz_metrics.distributed_time_series_v4` | Series: `metric_name`, `fingerprint`, `unix_milli`, `temporality`, `type`, `is_monotonic`, `labels` |
+| `signoz_metrics.distributed_time_series_v4_6hrs`, `_1day`, `_1week` | The same series, bucketed per 6 hours, day or week |
+
+`labels` is a JSON string: read a label with `JSONExtractString(labels, 'service.name')`.
+In `distributed_time_series_v4`, `unix_milli` is rounded down to the hour. Samples with
+`bitAnd(flags, 1) = 1` carry the OpenTelemetry no-recorded-value flag; skip them.
+
+</TabItem>
+</Tabs>
+
+Restrict every query to the time range on both `timestamp` and `ts_bucket_start`, and
+filter resources through the resource table: ClickHouse then reads only the matching
+parts. Rows older than the [retention period](/fusescope-docs/administration/retention/)
+are gone.
+
+## Examples
+
+Spans per minute:
+
+```sql
+WITH __resource_filter AS (
+  SELECT fingerprint FROM signoz_traces.distributed_traces_v3_resource
+  WHERE seen_at_ts_bucket_start >= $start_timestamp - 1800
+    AND seen_at_ts_bucket_start <= $end_timestamp
+)
+SELECT toStartOfInterval(timestamp, INTERVAL 60 SECOND) AS ts, count() AS value
+FROM signoz_traces.distributed_signoz_index_v3
+WHERE resource_fingerprint GLOBAL IN (SELECT fingerprint FROM __resource_filter)
+  AND timestamp >= $start_datetime AND timestamp <= $end_datetime
+  AND ts_bucket_start >= $start_timestamp - 1800 AND ts_bucket_start <= $end_timestamp
+GROUP BY ts
+ORDER BY ts
+```
+
+Average span duration per service:
+
+```sql
+SELECT
+  toStartOfInterval(timestamp, INTERVAL 1 MINUTE) AS ts,
+  resource_string_service$$name AS `service.name`,
+  toFloat64(avg(duration_nano)) AS value
+FROM signoz_traces.distributed_signoz_index_v3
+WHERE resource_string_service$$name != ''
+  AND timestamp BETWEEN {{.start_datetime}} AND {{.end_datetime}}
+  AND ts_bucket_start BETWEEN {{.start_timestamp}} - 1800 AND {{.end_timestamp}}
+GROUP BY `service.name`, ts
+ORDER BY ts
+```
+
+The 100 latest error logs, for a Table panel:
+
+```sql
+WITH __resource_filter AS (
+  SELECT fingerprint FROM signoz_logs.distributed_logs_v2_resource
+  WHERE seen_at_ts_bucket_start >= $start_timestamp - 1800
+    AND seen_at_ts_bucket_start <= $end_timestamp
+)
+SELECT timestamp, body
+FROM signoz_logs.distributed_logs_v2
+WHERE resource_fingerprint GLOBAL IN (SELECT fingerprint FROM __resource_filter)
+  AND timestamp >= $start_timestamp_nano AND timestamp <= $end_timestamp_nano
+  AND ts_bucket_start >= $start_timestamp - 1800 AND ts_bucket_start <= $end_timestamp
+  AND severity_text = 'ERROR'
+ORDER BY timestamp DESC
+LIMIT 100
+```
+
+Average memory usage per host, from a gauge:
+
+```sql
+SELECT
+  toStartOfInterval(toDateTime(intDiv(unix_milli, 1000)), INTERVAL 60 SECOND) AS ts,
+  host,
+  avg(value) AS value
+FROM signoz_metrics.distributed_samples_v4
+INNER JOIN (
+  SELECT DISTINCT fingerprint, JSONExtractString(labels, 'host.name') AS host
+  FROM signoz_metrics.distributed_time_series_v4
+  WHERE metric_name = 'system.memory.usage'
+    AND unix_milli >= intDiv($start_timestamp_ms, 3600000) * 3600000
+    AND unix_milli < $end_timestamp_ms
+) AS series USING fingerprint
+WHERE metric_name = 'system.memory.usage'
+  AND unix_milli >= $start_timestamp_ms AND unix_milli < $end_timestamp_ms
+  AND bitAnd(flags, 1) = 0
+GROUP BY host, ts
+ORDER BY host, ts
+```
+
+## PromQL
+
+PromQL queries run against the same metrics. OpenTelemetry metric and label names often
+contain dots: write them in the quoted UTF-8 form.
+
+```text
+sum(rate({"http.server.duration.count"}[5m])) by ("service.name")
+```
+
+```text
+{"system.cpu.utilization", "host.name"="web-1"}
+```
+
+The step is the time range divided by 300, at least 60 seconds. In PromQL, a
+multi-value dashboard variable expands to its values joined with `|`, so use it with a
+regex matcher: `{"service.name"=~"$service"}`.

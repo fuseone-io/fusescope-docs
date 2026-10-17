@@ -62,6 +62,20 @@ export default defineConfig({
           ],
         },
         {
+          label: "Using FuseScope",
+          items: [
+            { label: "Query builder", slug: "querying/query-builder" },
+            { label: "Search syntax", slug: "querying/search-syntax" },
+            { label: "ClickHouse SQL and PromQL", slug: "querying/clickhouse-promql" },
+            { label: "Services", slug: "apm/services" },
+            { label: "Traces explorer", slug: "explore/traces" },
+            { label: "Logs explorer", slug: "explore/logs" },
+            { label: "Metrics explorer", slug: "explore/metrics" },
+            { label: "Dashboards", slug: "dashboards/dashboards" },
+            { label: "Dashboard variables", slug: "dashboards/variables" },
+          ],
+        },
+        {
           label: "Alerts",
           items: [
             { label: "Alert rules", slug: "alerts/alert-rules" },

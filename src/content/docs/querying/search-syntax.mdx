@@ -1,0 +1,119 @@
+---
+title: Search syntax
+description: Filter traces, logs and metrics with FuseScope's search expressions.
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+Every query builder query and every explorer has a search box that takes a filter
+expression, for example:
+
+```text
+service.name = 'frontend' AND http.status_code >= 500
+```
+
+The same syntax is used in the Traces, Logs and Metrics explorers, dashboard panels and
+alert rules. Keywords are case-insensitive.
+
+## Comparisons
+
+An expression compares an attribute key with a value: `key operator value`.
+
+| Operator | Example |
+|---|---|
+| `=` (or `==`), `!=` (or `<>`) | `service.name = 'checkout'` |
+| `<`, `<=`, `>`, `>=` | `duration_nano > 500000000` |
+| `LIKE`, `NOT LIKE` | `http.route LIKE '/api/%'` |
+| `ILIKE`, `NOT ILIKE` | `severity_text ILIKE 'err%'` |
+| `CONTAINS`, `NOT CONTAINS` | `body CONTAINS 'timeout'` |
+| `REGEXP`, `NOT REGEXP` | `http.status_code:string REGEXP '^5..$'` |
+| `IN`, `NOT IN` | `k8s.namespace.name IN ('prod', 'staging')` |
+| `BETWEEN`, `NOT BETWEEN` | `duration_nano BETWEEN 1000000 AND 5000000` |
+| `EXISTS`, `NOT EXISTS` | `http.route EXISTS` |
+
+`LIKE` and `ILIKE` use `%` for any sequence of characters and `_` for one character.
+`ILIKE` ignores case. `IN` takes a list in parentheses or square brackets:
+`user.id NOT IN [1, 2, 3]`. Both ends of `BETWEEN` must be numbers, or both strings.
+
+## Values
+
+| Type | Written as |
+|---|---|
+| String | `'single'` or `"double"` quotes; escape a quote inside with a backslash: `'it\'s'` |
+| Number | `42`, `-10.25`, `1e6` |
+| Boolean | `true`, `false` |
+| Dashboard variable | `$service` (see [Dashboard variables](/fusescope-docs/dashboards/variables/)) |
+
+An unquoted word on the right-hand side is read as a string, so `service.name = redis`
+works. Quote anything with spaces or special characters.
+
+## Combining conditions
+
+Use `AND`, `OR`, `NOT` and parentheses. `NOT` binds tighter than `AND`, and `AND`
+tighter than `OR`. Two conditions next to each other are joined with `AND`.
+
+```text
+(service.name = 'checkout' OR service.name = 'cart') AND NOT has_error = true
+```
+
+## Attribute keys
+
+Keys are attribute names as they arrive over OpenTelemetry, dots included:
+`http.method`, `k8s.pod.name`. FuseScope looks the key up in every place it can live
+(resource, attributes, span or log fields). When the same name exists in more than one
+place, prefix it with the context to pick one:
+
+| Prefix | Looks in |
+|---|---|
+| `resource.` | Resource attributes, such as `resource.service.name` |
+| `attribute.` | Span, log or data point attributes |
+| `scope.` | Instrumentation scope fields |
+| `span.` | Span fields such as `name`, `duration_nano`, `has_error` (traces) |
+| `log.` | Log fields such as `body`, `severity_text` (logs) |
+| `event.` | Span event attributes (traces) |
+
+To compare a key as a specific type, add a suffix after a colon: `:string`, `:bool`,
+`:number` (also `:int64`, `:float64` and similar). This is useful when an attribute is
+sent as a number by some services and as a string by others.
+
+The search box suggests keys and values as you type.
+
+## Functions
+
+| Function | Matches when |
+|---|---|
+| `has(key, value)` | An array attribute contains `value` |
+| `hasAny(key, ['a', 'b'])` | An array attribute contains any of the values |
+| `hasAll(key, ['a', 'b'])` | An array attribute contains all of the values |
+| `hasToken(key, 'word')` | A string attribute contains the whole token `word` |
+
+## Full-text search
+
+On logs, a quoted string on its own searches the log body:
+
+```text
+"connection refused" AND service.name != 'db'
+```
+
+The text is used as a regular expression; if it is not a valid one, it is matched as
+plain text. `search('term')` searches the term in every field, ignoring case, and
+`search('term', body)` limits it to the body.
+
+On metrics, free text matches the series labels. Traces have no full-text column: filter
+on a key instead.
+
+<Aside>
+  On traces, the search box has a scope selector with **All Spans**, **Root Spans** and
+  **Entrypoint Spans**, to filter only the first span of each trace or the spans where a
+  request enters a service.
+</Aside>
+
+## Examples
+
+```text
+service.name = 'frontend' AND http.status_code >= 500
+resource.k8s.namespace.name IN ('prod', 'staging') AND NOT has_error = true
+severity_text ILIKE 'err%' OR body CONTAINS "timeout"
+duration_nano BETWEEN 1000000 AND 5000000 AND attribute.http.route EXISTS
+hasAny(tags, ['a', 'b']) AND user.id NOT IN [1, 2, 3]
+```
