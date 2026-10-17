@@ -1,0 +1,37 @@
+/* FuseScope design tokens (fuseone-io/fuseone-brand) mapped onto Starlight. */
+
+:root {
+  --sl-font: "Inter Variable", "Inter", "Segoe UI";
+  --sl-font-mono: "JetBrains Mono Variable", "JetBrains Mono", "Fira Code", Consolas;
+
+  --sl-color-accent-low: #031f40;
+  --sl-color-accent: #3d8be0;
+  --sl-color-accent-high: #9dbbe0;
+
+  --sl-color-white: #eceef2;
+  --sl-color-gray-1: #eceef2;
+  --sl-color-gray-2: #b8bfcc;
+  --sl-color-gray-3: #8e98a8;
+  --sl-color-gray-4: #64707f;
+  --sl-color-gray-5: #1f2937;
+  --sl-color-gray-6: #111827;
+  --sl-color-black: #0a1628;
+
+  --sl-color-text: var(--sl-color-gray-1);
+}
+
+:root[data-theme="light"] {
+  --sl-color-accent-low: #e8f0fb;
+  --sl-color-accent: #0f5fb8;
+  --sl-color-accent-high: #093f7c;
+
+  --sl-color-white: #111827;
+  --sl-color-gray-1: #111827;
+  --sl-color-gray-2: #4b5563;
+  --sl-color-gray-3: #64707f;
+  --sl-color-gray-4: #8e98a8;
+  --sl-color-gray-5: #d8dce4;
+  --sl-color-gray-6: #eceef2;
+  --sl-color-gray-7: #f7f8fa;
+  --sl-color-black: #ffffff;
+}

@@ -1,0 +1,77 @@
+---
+title: FuseScope
+description: OpenTelemetry-native observability with APM, traces, metrics, logs and alerts on ClickHouse.
+template: splash
+hero:
+  tagline: OpenTelemetry-native observability. APM, distributed traces, metrics, logs and alerts on ClickHouse, in one open source platform.
+  image:
+    file: ../../assets/fusescope-mark.svg
+    alt: FuseScope
+  actions:
+    - text: Install with Helm
+      link: /fusescope-docs/install/helm/
+      icon: right-arrow
+    - text: GitHub
+      link: https://github.com/fuseone-io/fusescope
+      icon: github
+      variant: minimal
+---
+
+import { Card, CardGrid, LinkCard } from "@astrojs/starlight/components";
+
+## What you get
+
+<CardGrid>
+  <Card title="APM and tracing" icon="random">
+    Latency, error rate, throughput and Apdex per service, a trace explorer, flame
+    graphs and trace funnels.
+  </Card>
+  <Card title="Metrics, logs and dashboards" icon="analytics">
+    Log pipelines and live tail, metrics with Query Builder, PromQL or ClickHouse SQL,
+    and dashboards over all of it.
+  </Card>
+  <Card title="Alerts" icon="warning">
+    Alert on metrics, traces, logs and exceptions, with Slack, PagerDuty, Opsgenie,
+    Jira, MS Teams, webhook and email channels.
+  </Card>
+  <Card title="OpenTelemetry-native" icon="rocket">
+    Send OTLP over gRPC or HTTP from any OpenTelemetry SDK or collector. Data lands in
+    ClickHouse.
+  </Card>
+  <Card title="PostgreSQL or SQLite" icon="database">
+    Keep users, dashboards and alert rules in SQLite on a single node, or in PostgreSQL
+    to run several backend replicas.
+  </Card>
+  <Card title="Single sign-on" icon="padlock">
+    OpenID Connect with Microsoft Entra ID, Keycloak, Okta, Auth0 or any OIDC provider,
+    with group to role mapping.
+  </Card>
+</CardGrid>
+
+FuseScope is built by [FuseOne](https://github.com/fuseone-io) as a hard fork of
+[SigNoz](https://github.com/SigNoz/signoz). Its source code is MIT licensed.
+
+## Documentation
+
+<CardGrid>
+  <LinkCard
+    title="Getting started"
+    description="Install FuseScope on Kubernetes with the Helm chart."
+    href="/fusescope-docs/install/helm/"
+  />
+  <LinkCard
+    title="Configuration"
+    description="Configuration file, metadata store and single sign-on."
+    href="/fusescope-docs/configuration/config-file/"
+  />
+  <LinkCard
+    title="Sending data"
+    description="Send OTLP from applications and collect Kubernetes telemetry."
+    href="/fusescope-docs/sending-data/otlp/"
+  />
+  <LinkCard
+    title="Reference"
+    description="How the components fit together."
+    href="/fusescope-docs/reference/architecture/"
+  />
+</CardGrid>
