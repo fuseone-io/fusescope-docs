@@ -3,25 +3,7 @@ title: Architecture
 description: The components of a FuseScope installation and how data flows between them.
 ---
 
-```text
- applications, OpenTelemetry SDKs, collectors, k8s-infra
-                        │ OTLP gRPC :4317 / OTLP/HTTP :4318
-                        ▼
-          ┌─────────────────────────────┐   OpAMP :4320   ┌─────────────────────────┐
-          │ FuseScope OTel collector    │◀──────────────▶│ FuseScope backend       │◀── users :8080
-          │ (fusescope-otel-collector)  │  configuration  │ API, UI, query, alerts  │    (UI and API)
-          └──────────────┬──────────────┘                 └───────┬─────────┬───────┘
-                         │ writes                          queries │         │ metadata
-                         ▼                                         ▼         ▼
-          ┌──────────────────────────────────────────────────────────┐  ┌──────────────────┐
-          │ ClickHouse  (traces, metrics, logs, meter, metadata)     │  │ SQLite or        │
-          └──────────────┬───────────────────────────▲───────────────┘  │ PostgreSQL       │
-                         │ Replicated* tables,       │ schema           └──────────────────┘
-                         ▼ ON CLUSTER DDL            │
-                  ┌─────────────┐          ┌─────────┴──────────┐
-                  │ ZooKeeper   │          │ Schema migrator    │
-                  └─────────────┘          └────────────────────┘
-```
+![FuseScope architecture: applications, Kubernetes and collectors send OTLP to the FuseScope OTel collector, which writes to ClickHouse (coordinated by ZooKeeper, schema by the schema migrator). The FuseScope backend queries ClickHouse, keeps metadata in PostgreSQL or SQLite, configures collectors over OpAMP, signs users in through an OIDC identity provider and sends alerts to notification channels.](../../../assets/architecture.png)
 
 ## Components
 
