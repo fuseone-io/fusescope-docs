@@ -43,6 +43,6 @@
   }
 
   .main-pane .content-panel {
-    padding-inline: clamp(1.5rem, 5vw, 6.25rem);
+    padding-inline: clamp(1.5rem, 3.5vw, 4rem);
   }
 }
