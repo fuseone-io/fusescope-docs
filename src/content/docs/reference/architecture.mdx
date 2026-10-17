@@ -1,0 +1,80 @@
+---
+title: Architecture
+description: The components of a FuseScope installation and how data flows between them.
+---
+
+```text
+ applications, OpenTelemetry SDKs, collectors, k8s-infra
+                        │ OTLP gRPC :4317 / OTLP/HTTP :4318
+                        ▼
+          ┌─────────────────────────────┐   OpAMP :4320   ┌─────────────────────────┐
+          │ FuseScope OTel collector    │◀──────────────▶│ FuseScope backend       │◀── users :8080
+          │ (fusescope-otel-collector)  │  configuration  │ API, UI, query, alerts  │    (UI and API)
+          └──────────────┬──────────────┘                 └───────┬─────────┬───────┘
+                         │ writes                          queries │         │ metadata
+                         ▼                                         ▼         ▼
+          ┌──────────────────────────────────────────────────────────┐  ┌──────────────────┐
+          │ ClickHouse  (traces, metrics, logs, meter, metadata)     │  │ SQLite or        │
+          └──────────────┬───────────────────────────▲───────────────┘  │ PostgreSQL       │
+                         │ Replicated* tables,       │ schema           └──────────────────┘
+                         ▼ ON CLUSTER DDL            │
+                  ┌─────────────┐          ┌─────────┴──────────┐
+                  │ ZooKeeper   │          │ Schema migrator    │
+                  └─────────────┘          └────────────────────┘
+```
+
+## Components
+
+### Backend
+
+`fusescope server`, image `ghcr.io/fuseone-io/fusescope`. It serves the web UI and the
+API on port 8080, runs queries against ClickHouse, evaluates alert rules and sends
+notifications through its embedded Alertmanager. It keeps users, dashboards, alert rules
+and SSO domains in the [metadata store](/fusescope-docs/configuration/metadata-store/).
+
+Its OpAMP server on port 4320 pushes collector configuration managed in the UI, such as
+log pipelines, to the collectors.
+
+### OpenTelemetry collector
+
+`ghcr.io/fuseone-io/fusescope-otel-collector`, from
+[fusescope-otel-collector](https://github.com/fuseone-io/fusescope-otel-collector). It
+receives OTLP on ports 4317 (gRPC) and 4318 (HTTP), and Jaeger, computes span metrics,
+and writes traces, metrics and logs to ClickHouse. It scales horizontally.
+
+### Schema migrator
+
+The collector image also owns the ClickHouse schema. The Helm chart runs it as a Job
+(`migrate bootstrap`, `migrate sync up`, `migrate async up`) at install and as a
+pre-upgrade hook, so the schema is current before a new version starts.
+
+### ClickHouse
+
+Stores all telemetry in the `signoz_traces`, `signoz_metrics`, `signoz_logs`,
+`signoz_meter` and `signoz_metadata` databases. The chart deploys it with the Altinity
+ClickHouse operator; `clickhouse.layout` sets shards and replicas, and
+`clickhouse.coldStorage` moves older data to S3 or GCS. Use `externalClickhouse` to point
+at an existing cluster.
+
+### ZooKeeper
+
+ClickHouse uses ZooKeeper to coordinate `Replicated*` tables and to run `ON CLUSTER` DDL
+across the cluster. The chart installs it with ClickHouse (`clickhouse.zookeeper.enabled`);
+`clickhouse.externalZookeeper` points at an existing ensemble.
+
+### Metadata store
+
+SQLite on a persistent volume for a single backend replica, or PostgreSQL for several. See
+[Metadata store](/fusescope-docs/configuration/metadata-store/).
+
+## Ports
+
+| Component | Port | Use |
+|---|---|---|
+| Backend | 8080 | UI and API |
+| Backend | 4320 | OpAMP for collectors |
+| Backend | 9090 | Prometheus metrics of the backend itself |
+| Collector | 4317 | OTLP gRPC |
+| Collector | 4318 | OTLP/HTTP |
+| Collector | 14268 | Jaeger Thrift over HTTP |
+| ClickHouse | 9000 | Native protocol used by the backend and collector |

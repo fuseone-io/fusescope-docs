@@ -1,0 +1,68 @@
+---
+title: Kubernetes
+description: Collect cluster metrics, events and pod logs with the k8s-infra chart.
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+The `k8s-infra` chart, in the same Helm repository, runs OpenTelemetry collectors that
+send Kubernetes telemetry to FuseScope:
+
+| Component | Kind | Collects |
+|---|---|---|
+| `otel-agent` | DaemonSet | Pod logs, host metrics and kubelet metrics on every node |
+| `otel-deployment` | Deployment | Cluster metrics and Kubernetes events |
+
+Both add Kubernetes attributes (namespace, pod, node, cluster) to the data.
+
+## Install
+
+```yaml title="values-k8s-infra.yaml"
+global:
+  clusterName: production
+  deploymentEnvironment: production
+
+otelCollectorEndpoint: http://fusescope-otel-collector.fusescope.svc.cluster.local:4318
+otelInsecure: true
+```
+
+```bash
+helm repo add fusescope https://fuseone-io.github.io/fusescope-charts
+helm install k8s-infra fusescope/k8s-infra -n fusescope -f values-k8s-infra.yaml
+```
+
+<Aside type="caution" title="Use the OTLP/HTTP endpoint">
+  The chart exports with the `otlphttp` exporter by default
+  (`presets.otlphttpExporter.enabled: true`), so `otelCollectorEndpoint` must be an HTTP
+  URL on port 4318: `http://<collector>:4318`. A gRPC address such as `<collector>:4317`
+  does not work with it.
+</Aside>
+
+To export over gRPC instead, switch exporters and use port 4317:
+
+```yaml
+otelCollectorEndpoint: fusescope-otel-collector.fusescope.svc.cluster.local:4317
+presets:
+  otlphttpExporter:
+    enabled: false
+  otlpExporter:
+    enabled: true
+```
+
+## Key values
+
+| Value | Default | Description |
+|---|---|---|
+| `otelCollectorEndpoint` | `null` | FuseScope collector endpoint. |
+| `otelInsecure` | `true` | Plain-text connection. Set to `false` for an `https://` endpoint. |
+| `global.clusterName` | `""` | Added to every record as `k8s.cluster.name`. |
+| `global.deploymentEnvironment` | `""` | Added as `deployment.environment` when not already set. |
+| `presets.logsCollection.enabled` | `true` | Pod logs. |
+| `presets.hostMetrics.enabled` | `true` | Node CPU, load, memory, disk and more. |
+| `presets.kubeletMetrics.enabled` | `true` | Pod and container metrics from the kubelet. |
+| `presets.clusterMetrics.enabled` | `true` | Cluster-level object metrics. |
+| `presets.k8sEvents.enabled` | `true` | Kubernetes events as logs. |
+| `presets.prometheus.enabled` | `false` | Scrape pods annotated with `signoz.io/scrape` (prefix set by `presets.prometheus.annotationsPrefix`). |
+
+All values are in the chart's
+[`values.yaml`](https://github.com/fuseone-io/fusescope-charts/blob/main/charts/k8s-infra/values.yaml).

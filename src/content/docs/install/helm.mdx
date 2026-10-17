@@ -1,0 +1,163 @@
+---
+title: Install with Helm
+description: Deploy FuseScope, its OpenTelemetry collector and ClickHouse on Kubernetes with the FuseScope Helm chart.
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+
+The `fusescope` chart deploys the FuseScope backend and UI, the FuseScope OpenTelemetry
+collector, the telemetry schema migrator, ClickHouse with ZooKeeper and, optionally,
+PostgreSQL.
+
+You need a Kubernetes cluster with a default storage class, `kubectl` and Helm 3.
+
+## Install
+
+<Steps>
+
+1. Add the chart repository:
+
+   ```bash
+   helm repo add fusescope https://fuseone-io.github.io/fusescope-charts
+   helm repo update
+   ```
+
+2. Install the chart:
+
+   ```bash
+   helm install fusescope fusescope/fusescope \
+     --namespace fusescope --create-namespace \
+     -f values.yaml
+   ```
+
+   `values.yaml` is optional; see [key values](#key-values) below.
+
+3. Open the UI. Without an ingress, forward the service port:
+
+   ```bash
+   kubectl -n fusescope port-forward svc/fusescope 8080:8080
+   ```
+
+   Browse to http://localhost:8080 and create the first admin user on the sign-up page.
+
+</Steps>
+
+With the release named `fusescope`, the chart creates these services:
+
+| Service | Ports | Purpose |
+|---|---|---|
+| `fusescope` | 8080 | UI and API |
+| `fusescope-otel-collector` | 4317, 4318 | OTLP gRPC and OTLP/HTTP ingestion |
+
+## Key values
+
+| Value | Default | Description |
+|---|---|---|
+| `global.storageClass` | `null` | Storage class for every PVC. `null` uses the cluster default. |
+| `clickhouse.persistence.size` | `20Gi` | ClickHouse data volume. |
+| `clickhouse.layout.shardsCount` / `replicasCount` | `1` / `1` | ClickHouse cluster layout. |
+| `clickhouse.coldStorage.enabled` | `false` | Move older data to S3 or GCS (`type`, `endpoint`, `accessKey`, `secretAccess`). |
+| `clickhouse.enabled` | `true` | Set to `false` and fill `externalClickhouse.*` to use an existing ClickHouse. |
+| `postgresql.enabled` | `false` | Deploy PostgreSQL and use it as the [metadata store](/fusescope-docs/configuration/metadata-store/). |
+| `signoz.replicaCount` | `1` | Backend replicas. Use more than one only with PostgreSQL. |
+| `signoz.persistence.size` | `1Gi` | Volume for the SQLite database. Not created when PostgreSQL is enabled. |
+| `signoz.env` | see chart | Environment variables of the backend. |
+| `signoz.config` | `{}` | Contents of the [configuration file](/fusescope-docs/configuration/config-file/). |
+| `signoz.ingress.*` | disabled | Ingress for the UI and API. |
+| `otelCollector.ingress.*` | disabled | Ingress for OTLP/HTTP ingestion. |
+| `otelCollector.replicaCount` | `1` | Collector replicas. |
+
+The full list, with comments, is in the chart's
+[`values.yaml`](https://github.com/fuseone-io/fusescope-charts/blob/main/charts/fusescope/values.yaml).
+
+### Environment variables
+
+Keys under `signoz.env` are upper-cased, so `signoz_global_external__url` becomes
+`SIGNOZ_GLOBAL_EXTERNAL__URL`, which sets `global.external_url`. A value is either a plain
+string or a `valueFrom` reference:
+
+```yaml
+signoz:
+  env:
+    signoz_global_external__url: https://fusescope.example.com
+    MY_SECRET:
+      valueFrom:
+        secretKeyRef:
+          name: my-secret
+          key: my-key
+```
+
+See [environment variables](/fusescope-docs/configuration/config-file/#environment-variables)
+for the naming rules.
+
+### Configuration file
+
+<Aside>`signoz.config` is available from chart version 0.148.0.</Aside>
+
+The chart renders `signoz.config` into a ConfigMap, mounts it at
+`/etc/fusescope/config.yaml` and starts the backend with `--config`. Pods restart when it
+changes. Use it for settings that do not fit environment variables, such as SSO domains:
+
+```yaml
+signoz:
+  config:
+    authdomain:
+      domains:
+        - name: example.com
+          config:
+            kind: oidc
+            spec:
+              issuer: https://keycloak.example.com/realms/example
+              clientId: fusescope
+              clientSecret: ${OIDC_CLIENT_SECRET}
+  env:
+    OIDC_CLIENT_SECRET:
+      valueFrom:
+        secretKeyRef:
+          name: fusescope-oidc
+          key: client-secret
+```
+
+## Expose FuseScope
+
+A values file for a public installation with an NGINX ingress and cert-manager:
+
+```yaml
+signoz:
+  ingress:
+    enabled: true
+    className: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+    hosts:
+      - host: fusescope.example.com
+        paths:
+          - path: /
+            pathType: ImplementationSpecific
+            port: 8080
+    tls:
+      - secretName: fusescope-tls
+        hosts:
+          - fusescope.example.com
+  env:
+    signoz_global_external__url: https://fusescope.example.com
+    signoz_alertmanager_signoz_external__url: https://fusescope.example.com
+```
+
+`global.external_url` is the URL users reach FuseScope on. Set the Alertmanager external
+URL too so links in alert notifications point to it. To accept OTLP from outside the
+cluster, see [OTLP ingress](/fusescope-docs/sending-data/otlp/#from-outside-the-cluster).
+
+## Upgrade and uninstall
+
+```bash
+helm repo update
+helm upgrade fusescope fusescope/fusescope -n fusescope -f values.yaml
+```
+
+The schema migrator runs as a pre-upgrade hook and applies ClickHouse schema changes
+before the new version starts.
+
+```bash
+helm -n fusescope uninstall fusescope
+```

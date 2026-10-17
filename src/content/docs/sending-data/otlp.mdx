@@ -1,0 +1,89 @@
+---
+title: OTLP
+description: Send traces, metrics and logs to FuseScope over OTLP gRPC or OTLP/HTTP.
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+FuseScope ingests telemetry through the FuseScope OpenTelemetry collector, which listens
+for [OTLP](https://opentelemetry.io/docs/specs/otlp/) on two ports:
+
+| Protocol | Port | Endpoint inside the cluster |
+|---|---|---|
+| OTLP gRPC | 4317 | `fusescope-otel-collector.<namespace>.svc.cluster.local:4317` |
+| OTLP/HTTP | 4318 | `http://fusescope-otel-collector.<namespace>.svc.cluster.local:4318` |
+
+The service name assumes the Helm release is named `fusescope`. The collector also accepts
+Jaeger Thrift over HTTP on port 14268.
+
+## From an application
+
+OpenTelemetry SDKs read the standard
+[exporter environment variables](https://opentelemetry.io/docs/languages/sdk-configuration/otlp-exporter/):
+
+```bash
+OTEL_SERVICE_NAME=checkout
+OTEL_RESOURCE_ATTRIBUTES=deployment.environment=production
+OTEL_EXPORTER_OTLP_ENDPOINT=http://fusescope-otel-collector.fusescope.svc.cluster.local:4318
+OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+```
+
+For gRPC, use port 4317 and `OTEL_EXPORTER_OTLP_PROTOCOL=grpc`.
+
+`service.name` names the service in APM and traces; `deployment.environment` lets you
+filter by environment.
+
+## From another collector
+
+Forward from an OpenTelemetry Collector you already run with the `otlphttp` exporter:
+
+```yaml
+exporters:
+  otlphttp:
+    endpoint: http://fusescope-otel-collector.fusescope.svc.cluster.local:4318
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      exporters: [otlphttp]
+    metrics:
+      receivers: [otlp]
+      exporters: [otlphttp]
+    logs:
+      receivers: [otlp]
+      exporters: [otlphttp]
+```
+
+## From outside the cluster
+
+Expose OTLP/HTTP with the chart's collector ingress:
+
+```yaml
+otelCollector:
+  ingress:
+    enabled: true
+    className: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+    hosts:
+      - host: otlp.example.com
+        paths:
+          - path: /
+            pathType: ImplementationSpecific
+            port: 4318
+    tls:
+      - secretName: otlp-example-com-tls
+        hosts:
+          - otlp.example.com
+```
+
+Applications then use `OTEL_EXPORTER_OTLP_ENDPOINT=https://otlp.example.com`.
+
+<Aside type="caution">
+  The chart configures no authentication on the OTLP receivers. Restrict who can reach a public
+  ingress, for example with network policies or authentication at the ingress controller.
+</Aside>
+
+To expose OTLP gRPC through ingress-nginx instead, point the ingress at port 4317 and add
+the `nginx.ingress.kubernetes.io/backend-protocol: "GRPC"` annotation.
