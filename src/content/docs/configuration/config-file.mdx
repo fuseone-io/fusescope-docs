@@ -1,0 +1,94 @@
+---
+title: Configuration file
+description: Configure the FuseScope backend with YAML files and SIGNOZ_* environment variables.
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+The backend reads its settings from built-in defaults, then from YAML files passed with
+`--config`, then from environment variables. Each source overrides the previous one.
+
+```bash
+fusescope server --config /etc/fusescope/config.yaml
+```
+
+`--config` can be repeated; later files override earlier ones, key by key. A file that
+does not exist is an error.
+
+The container image runs `fusescope server`, so pass the flag as an argument. The Helm
+chart does it for you when [`signoz.config`](/fusescope-docs/install/helm/#configuration-file)
+is set.
+
+Every key, with its default, is documented in
+[`conf/example.yaml`](https://github.com/fuseone-io/fusescope/blob/main/conf/example.yaml).
+Copy only the keys you change.
+
+## Example
+
+```yaml
+global:
+  external_url: https://fusescope.example.com
+
+sqlstore:
+  provider: postgres
+  postgres:
+    dsn: postgres://fusescope:secret@postgres:5432/fusescope?sslmode=disable
+
+telemetrystore:
+  clickhouse:
+    dsn: tcp://clickhouse:9000
+    cluster: cluster
+```
+
+## Main sections
+
+| Section | What it configures |
+|---|---|
+| `global` | `external_url` (public URL, its path is the base path of every route), `allowed_origins` (allowed login redirect origins), `ingestion_url` |
+| `apiserver` | Listen address (`0.0.0.0:8080`), request timeouts, optional TLS |
+| `sqlstore` | [Metadata store](/fusescope-docs/configuration/metadata-store/): SQLite or PostgreSQL |
+| `telemetrystore` | ClickHouse `dsn`, `cluster` and query settings |
+| `cache` | `memory` or `redis` |
+| `alertmanager` | Alert routing defaults and `signoz.external_url` used in notification links |
+| `emailing` | SMTP server for invitation and password reset emails |
+| `tokenizer` | Session lifetime (`idle`, `max`) and token rotation |
+| `user` | Password reset and invites; `root` provisions a root user at startup |
+| `authdomain` | [Single sign-on](/fusescope-docs/configuration/sso/) domains managed from the file |
+| `analytics`, `statsreporter` | Usage analytics; both disabled by default |
+
+## Environment variables
+
+Any key can be set with an environment variable named after its path:
+
+- prefix `SIGNOZ_`;
+- a single `_` separates levels;
+- a double `__` stands for an underscore inside a key name.
+
+| Variable | Key |
+|---|---|
+| `SIGNOZ_SQLSTORE_PROVIDER` | `sqlstore.provider` |
+| `SIGNOZ_SQLSTORE_POSTGRES_DSN` | `sqlstore.postgres.dsn` |
+| `SIGNOZ_GLOBAL_EXTERNAL__URL` | `global.external_url` |
+| `SIGNOZ_SQLSTORE_MAX__OPEN__CONNS` | `sqlstore.max_open_conns` |
+| `SIGNOZ_TELEMETRYSTORE_CLICKHOUSE_DSN` | `telemetrystore.clickhouse.dsn` |
+
+The variable names keep the `SIGNOZ_` prefix inherited from SigNoz.
+
+<Aside type="caution" title="Secrets">
+  Values in the file are used as written. Only `authdomain.domains` expands `${NAME}`
+  references to environment variables. Pass other secrets, such as the PostgreSQL DSN or
+  SMTP password, as `SIGNOZ_*` variables.
+</Aside>
+
+### Deprecated variables
+
+These older variables still work and log a deprecation warning at startup:
+
+| Deprecated | Use instead |
+|---|---|
+| `SIGNOZ_LOCAL_DB_PATH` | `SIGNOZ_SQLSTORE_SQLITE_PATH` |
+| `ClickHouseUrl` | `SIGNOZ_TELEMETRYSTORE_CLICKHOUSE_DSN` |
+| `STORAGE` | `SIGNOZ_TELEMETRYSTORE_PROVIDER` |
+| `CONTEXT_TIMEOUT` | `SIGNOZ_APISERVER_TIMEOUT_DEFAULT` |
+| `CONTEXT_TIMEOUT_MAX_ALLOWED` | `SIGNOZ_APISERVER_TIMEOUT_MAX` |
+| `SMTP_ENABLED` | `SIGNOZ_EMAILING_ENABLED` |

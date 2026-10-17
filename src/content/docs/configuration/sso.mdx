@@ -1,0 +1,135 @@
+---
+title: Single sign-on
+description: Sign users in through any OpenID Connect provider, from the UI or the configuration file.
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+
+FuseScope signs users in through OpenID Connect: Microsoft Entra ID, Keycloak, Okta, Auth0
+or any OIDC provider. An **auth domain** ties an email domain, such as `example.com`, to a
+provider. Users whose email is in that domain sign in through it.
+
+Auth domains are created in the UI or declared in the
+[configuration file](#declare-domains-in-the-configuration-file).
+
+## Register FuseScope at the provider
+
+Create a confidential OIDC client (authorization code flow) and register this redirect
+URI:
+
+```text
+https://<fusescope-host>/api/v1/complete/oidc
+```
+
+When FuseScope is served under a path, set `global.external_url` to the full URL; its
+path goes before `/api/v1/complete/oidc`.
+
+FuseScope always requests the `openid`, `email` and `profile` scopes and adds the ones you
+configure. Okta only sends group membership when the `groups` scope is requested.
+
+## Configure in the UI
+
+<Steps>
+
+1. Go to *Settings → Single Sign-on* and add a domain.
+2. Choose **OIDC Authentication**.
+3. Pick a preset: Generic OIDC, Microsoft Entra ID, Keycloak, Okta or Auth0. Presets only
+   prefill the issuer placeholder and scopes.
+4. Fill in the domain, issuer URL, client ID and client secret, then save.
+
+</Steps>
+
+| Issuer for | Format |
+|---|---|
+| Microsoft Entra ID | `https://login.microsoftonline.com/<tenant-id>/v2.0` |
+| Keycloak | `https://<host>/realms/<realm>` |
+| Okta | `https://<your-org>.okta.com` |
+| Auth0 | `https://<tenant>.<region>.auth0.com/` |
+
+## How sign-in is checked
+
+- The ID token is verified against the issuer's discovery document and the client ID.
+- The email claim must be present and `email_verified` must be true. Turn on
+  `insecureSkipEmailVerified` only for providers that never send it.
+- The email must belong to the auth domain, compared case-insensitively.
+- With `getUserInfo`, claims missing from the ID token are read from the userinfo
+  endpoint. If that endpoint fails, sign-in continues with the ID token claims; a userinfo
+  subject that differs from the ID token is rejected.
+
+## OIDC settings
+
+| Field | Description |
+|---|---|
+| `issuer` | Issuer URL; discovery is read from `<issuer>/.well-known/openid-configuration`. Required. |
+| `issuerAlias` | Issuer to validate tokens against when it differs from the discovery URL, for example Entra ID multi-tenant. |
+| `clientId`, `clientSecret` | Client credentials. Required. |
+| `scopes` | Scopes added to `openid email profile`. |
+| `getUserInfo` | Merge claims from the userinfo endpoint. |
+| `insecureSkipEmailVerified` | Accept emails without `email_verified`. |
+| `claimMapping` | Claim names for `email`, `name`, `groups` and `role`; the defaults are those names. |
+
+## Role mapping
+
+FuseScope assigns roles when it creates the user at the first SSO sign-in. Existing users
+keep their roles.
+
+| Field | Description |
+|---|---|
+| `defaultRole` | Role when no group mapping applies. Defaults to viewer. |
+| `groupMappings` | Map of provider group to role. A user in several mapped groups gets every mapped role. |
+| `useRoleAttribute` | Use the `role` claim as the role name when it names an existing role, instead of group mappings. |
+
+Role names are `signoz-admin`, `signoz-editor` and `signoz-viewer`, or a custom role.
+`ADMIN`, `EDITOR` and `VIEWER` are accepted and converted.
+
+## Declare domains in the configuration file
+
+Domains under `authdomain.domains` are created or updated at startup, deleted when
+removed from the list, and re-applied every `reconcile_interval` (default `1m`), which
+also picks up an organization created at first sign-up. Domains created in the UI are not
+affected.
+
+```yaml
+authdomain:
+  reconcile_interval: 1m
+  domains:
+    - name: example.com
+      config:
+        kind: oidc
+        spec:
+          issuer: https://login.microsoftonline.com/<tenant-id>/v2.0
+          clientId: <application-id>
+          clientSecret: ${FUSESCOPE_ENTRA_CLIENT_SECRET}
+      role_mapping:
+        defaultRole: VIEWER
+        groupMappings:
+          <group-object-id>: ADMIN
+    - name: example.org
+      config:
+        kind: oidc
+        spec:
+          issuer: https://keycloak.example.org/realms/<realm>
+          clientId: fusescope
+          clientSecret: ${FUSESCOPE_KEYCLOAK_CLIENT_SECRET}
+          getUserInfo: true
+```
+
+| Key | Description |
+|---|---|
+| `name` | Email domain. Each domain may appear once. |
+| `org` | Organization ID or name. May be omitted when there is a single organization. |
+| `enabled` | Defaults to `true`. |
+| `config` | `kind` and `spec`, with the [OIDC settings](#oidc-settings) above. |
+| `role_mapping` | `defaultRole`, `groupMappings`, `useRoleAttribute`. |
+
+String values may reference environment variables as `${NAME}`; use this for client
+secrets. A referenced variable that is not set stops the backend at startup.
+
+Declared domains are read-only: the UI marks them **Managed by configuration**, and
+changing or deleting one through the API returns `403` with the error code
+`auth_domain_managed`. Edit the file instead.
+
+<Aside>
+  With the Helm chart, put this block under `signoz.config` and provide the secrets
+  through `signoz.env`. See [Install with Helm](/fusescope-docs/install/helm/#configuration-file).
+</Aside>

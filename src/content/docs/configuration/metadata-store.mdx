@@ -1,0 +1,108 @@
+---
+title: Metadata store
+description: Keep FuseScope metadata in SQLite or PostgreSQL.
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+Telemetry goes to ClickHouse. Everything else (organizations, users, dashboards, alert
+rules, SSO domains, authorization) lives in the metadata store, configured under
+`sqlstore`.
+
+| Provider | Use it for |
+|---|---|
+| `sqlite` (default) | A single backend replica. The database is a file on a persistent volume. |
+| `postgres` | Several backend replicas, or an existing managed PostgreSQL. |
+
+The backend creates and migrates the schema at startup on both providers. Pick the
+provider before the first start: FuseScope does not copy metadata from one store to the
+other.
+
+## SQLite
+
+```yaml
+sqlstore:
+  provider: sqlite
+  sqlite:
+    path: /var/lib/signoz/signoz.db
+    mode: wal
+    busy_timeout: 10s
+    transaction_mode: immediate
+```
+
+| Key | Default | Values |
+|---|---|---|
+| `sqlite.path` | `/var/lib/signoz/signoz.db` | Path of the database file |
+| `sqlite.mode` | `wal` | Journal mode: `delete`, `wal` |
+| `sqlite.busy_timeout` | `10s` | How long to wait for a lock |
+| `sqlite.transaction_mode` | `immediate` | `deferred`, `immediate`, `exclusive` |
+
+The Helm chart keeps the file on a PVC (`signoz.persistence.*`, 1Gi by default).
+
+## PostgreSQL
+
+```yaml
+sqlstore:
+  provider: postgres
+  postgres:
+    dsn: postgres://fusescope:secret@postgres:5432/fusescope?sslmode=disable
+```
+
+`postgres.dsn` is required with this provider. It accepts a `postgres://` URL or a
+`key=value` connection string, including `sslmode` and the other libpq parameters.
+
+Through the environment:
+
+```bash
+SIGNOZ_SQLSTORE_PROVIDER=postgres
+SIGNOZ_SQLSTORE_POSTGRES_DSN=postgres://fusescope:secret@postgres:5432/fusescope?sslmode=disable
+```
+
+## Connection pool
+
+These keys apply to both providers:
+
+| Key | Default | Description |
+|---|---|---|
+| `max_open_conns` | `100` | Maximum open connections; the PostgreSQL pool size |
+| `max_conn_lifetime` | `0` | Maximum time a connection is reused; `0` keeps connections regardless of age |
+
+## With the Helm chart
+
+### Bundled PostgreSQL
+
+```yaml
+postgresql:
+  enabled: true
+  auth:
+    existingSecret: fusescope-postgres
+signoz:
+  replicaCount: 2
+```
+
+The chart deploys PostgreSQL 15 (user and database `signoz`), sets
+`SIGNOZ_SQLSTORE_PROVIDER` and `SIGNOZ_SQLSTORE_POSTGRES_DSN` and skips the SQLite volume.
+The password comes from `postgresql.auth.password` or, with `postgresql.auth.existingSecret`,
+from the `password` key of that secret (`postgresql.auth.secretKeys.userPasswordKey`
+changes the key).
+
+<Aside type="caution">
+  Set `postgresql.auth.existingSecret` or `postgresql.auth.password`: the chart's default
+  password is public.
+</Aside>
+
+### External PostgreSQL
+
+Leave `postgresql.enabled` off and set the provider and DSN, keeping the DSN in a secret:
+
+```yaml
+signoz:
+  replicaCount: 2
+  env:
+    signoz_sqlstore_provider: postgres
+    signoz_sqlstore_postgres_dsn:
+      valueFrom:
+        secretKeyRef:
+          name: fusescope-metastore
+          key: dsn
+```
