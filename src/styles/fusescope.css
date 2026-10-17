@@ -36,13 +36,13 @@
   --sl-color-black: #ffffff;
 }
 
-/* Starlight pushes the content column against the table of contents; keep it next to the sidebar. */
+/* Fill the space between the sidebar and the table of contents, with equal side padding. */
 @media (min-width: 72rem) {
   :root {
-    --sl-content-width: 52rem;
+    --sl-content-width: 100%;
   }
 
-  [data-has-sidebar][data-has-toc] .main-pane {
-    --sl-content-margin-inline: 0 auto;
+  .main-pane .content-panel {
+    padding-inline: clamp(1.5rem, 5vw, 6.25rem);
   }
 }
