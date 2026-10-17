@@ -42,7 +42,6 @@ export default defineConfig({
           items: [
             { label: "What is FuseScope?", link: "/" },
             { label: "Install with Helm", slug: "install/helm" },
-            { label: "Lab environment", slug: "install/lab" },
           ],
         },
         {
