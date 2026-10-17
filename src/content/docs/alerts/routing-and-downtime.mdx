@@ -1,0 +1,69 @@
+---
+title: Routing and planned downtime
+description: Route alerts to channels by label with routing policies, and silence alerts during planned downtime.
+---
+
+import { Steps } from "@astrojs/starlight/components";
+
+Both features are under *Alerts → Configuration*.
+
+## Routing policies
+
+A routing policy sends every alert whose labels match an expression to a set of
+notification channels. It lets one rule notify different teams, for example by
+`service.name` or environment, without listing channels on each threshold.
+
+<Steps>
+
+1. Go to *Alerts → Configuration → Routing Policies* and click **New routing policy**.
+2. Fill in **Routing Policy Name**, an optional **Description**, the **Expression** and one
+   or more **Notification Channels**.
+3. In each alert rule that should use policies, turn on
+   **Use Routing Policies for dynamic routing** in the condition step. The rule's
+   per-threshold channel pickers are then hidden.
+
+</Steps>
+
+Expressions compare alert labels: the rule's group-by attributes and labels, plus
+`alertname`, `ruleId`, `severity` and `threshold.name`.
+
+```text
+service.name == "payment" && threshold.name == "critical"
+```
+
+Every policy is evaluated against each alert, and the channels of all matching policies
+are notified. Only admins can create, edit or delete routing policies.
+
+## Planned downtime
+
+A planned downtime silences alerts during a maintenance window. Alerts are still evaluated
+and recorded; only notifications are suppressed. Admins and editors can manage downtimes.
+
+<Steps>
+
+1. Go to *Alerts → Configuration → Planned Downtime* and click **New downtime**.
+2. Set the fields below and click **Add downtime schedule**.
+
+</Steps>
+
+| Field | Description |
+|---|---|
+| Name | For example `Upgrade downtime`. |
+| Starts from | Start date and time. |
+| Repeats every | Does not repeat, Daily, Weekly or Monthly. |
+| Weekly occurrence | Days of the week, for weekly downtimes. |
+| Duration | Length of each recurring window, in minutes or hours. |
+| Timezone | Timezone of the start and end times. |
+| Ends on | End of the window. Required for a downtime that does not repeat; for a recurring one, the date it stops repeating. |
+| Silence Alerts | **All alert rules** or **Specific alert rules**. |
+| Scope | Optional label expression; only alerts whose labels match are silenced. |
+
+Scope expressions support `=`, `AND`, `OR` and `in`:
+
+```text
+env = "prod" AND region = "us-east-1"
+env in ["production", "staging"]
+```
+
+The list shows each downtime's timeframe, recurrence, silenced alerts and who created and
+last updated it.
