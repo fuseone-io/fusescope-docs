@@ -5,9 +5,16 @@ description: Send alert notifications to Slack, PagerDuty, Opsgenie, Microsoft T
 
 import { Aside, Steps } from "@astrojs/starlight/components";
 
-A notification channel is a destination for alerts. Alert rules pick channels per
-threshold, or through [routing policies](/fusescope-docs/alerts/routing-and-downtime/#routing-policies).
-Only admins can create, edit or delete channels; editors can send test notifications.
+A [notification channel](/fusescope-docs/reference/glossary/#notification-channel) is a
+destination for alerts. Alert rules pick channels per threshold, or through
+[routing policies](/fusescope-docs/alerts/routing-and-downtime/#routing-policies).
+Creating, editing and deleting channels needs the Admin
+[role](/fusescope-docs/administration/users-and-roles/#roles); the Editor role can send
+test notifications.
+
+**Use this page when** you connect FuseScope to Slack, email, PagerDuty or another tool,
+before creating alert rules. An example with Slack is in
+[Set up your first alert](/fusescope-docs/guides/first-alert/).
 
 ## Create a channel
 
@@ -94,7 +101,8 @@ alertmanager:
 | `smtp_auth_password` | none | `SIGNOZ_ALERTMANAGER_SIGNOZ_GLOBAL_SMTP__AUTH__PASSWORD` |
 | `smtp_require_tls` | `true` | `SIGNOZ_ALERTMANAGER_SIGNOZ_GLOBAL_SMTP__REQUIRE__TLS` |
 
-Pass the password as an environment variable rather than in the file.
+Pass the password as an environment variable rather than in the file. The
+`alertmanager@signoz.io` default and the `SIGNOZ_` prefix are [internal name](/fusescope-docs/configuration/config-file/#internal-names)s.
 
 ## Grouping and repeats
 

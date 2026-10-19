@@ -5,8 +5,16 @@ description: Browse the metrics FuseScope receives, inspect their metadata and c
 
 import { Aside } from "@astrojs/starlight/components";
 
+The Metrics explorer lists the [metrics](/fusescope-docs/reference/glossary/#metric)
+FuseScope receives and charts them.
+
+**Use this page when** you want to know which metrics exist and what they look like,
+or to chart one before putting it on a dashboard or an alert. For latency and errors of
+your services, [Services](/fusescope-docs/apm/services/) needs no metrics at all.
+
 Open **Metrics** in the sidebar. The page has three tabs: **Summary**, **Explorer** and
-**Views**.
+**Views**. When metrics reduction is enabled for the workspace, a fourth tab,
+**Volume Control**, compares what is ingested with what the reduction rules keep.
 
 ## Browse metrics
 
@@ -42,6 +50,11 @@ offers.
 
 ### Inspect
 
+<Aside>
+  Inspect, and the section on metric types below, are for tuning queries. If you are
+  new to metrics, skip to [Chart a metric](#chart-a-metric).
+</Aside>
+
 On gauges, **Inspect** walks through how a query is computed: which series are selected
 (**Where**), how each series is aggregated over time (**AGGREGATE BY TIME**), and how the
 series are combined (**AGGREGATE BY LABELS**), with a graph or table view and a
@@ -68,6 +81,15 @@ type.
 The **Explorer** tab (`/metrics-explorer/explorer`) is the query builder for metrics. Pick
 a metric, filter its series, set the aggregation and group by, and click **Run Query**.
 Turn on **1 chart/query** to draw each query on its own chart.
+
+For example, to chart memory in use per host from the Kubernetes or host-metrics
+collector:
+
+1. Pick the metric `system.memory.usage`.
+2. Filter it with `state = 'used'`.
+3. Set **AGGREGATE WITHIN TIME SERIES** to **Avg**, and **AGGREGATE ACROSS TIME SERIES**
+   to **Sum** **by** `host.name`.
+4. Click **Run Query**: one line per host.
 
 If the metric has no unit, choosing a Y-axis unit offers to save it as the metric's unit.
 

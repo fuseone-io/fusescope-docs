@@ -5,9 +5,34 @@ description: Build queries over traces, logs and metrics with filters, aggregati
 
 import { Aside, Tabs, TabItem } from "@astrojs/starlight/components";
 
-The query builder is the same in the explorers, dashboard panels and alert rules. A query
-picks a data source, filters it, and optionally aggregates the result. For SQL or PromQL,
-see [ClickHouse SQL and PromQL](/fusescope-docs/querying/clickhouse-promql/).
+The query builder is the same in the explorers, dashboard panels and alert rules. A
+[query](/fusescope-docs/reference/glossary/#query) picks a data source, filters it, and
+optionally aggregates the result. For SQL or PromQL, see
+[ClickHouse SQL and PromQL](/fusescope-docs/querying/clickhouse-promql/).
+
+**Use this page when** you build a chart, a table or an alert and need more than a
+filter: counting, percentiles, splitting by an attribute, or combining queries.
+
+<Aside>
+  New to queries? Read [Parts of a query](#parts-of-a-query), [Aggregations](#aggregations)
+  and the example below. Formulas, trace matching and functions are advanced; come back
+  to them when you need them.
+</Aside>
+
+## Example: P99 latency per route
+
+To chart how slow each route of the `frontend` service is:
+
+| Part | Value |
+|---|---|
+| Data source | Traces |
+| Search filter | `service.name = 'frontend'` |
+| Aggregation | `p99(duration_nano)` |
+| **Group By** | `http.route` |
+| **Legend format** | `{{http.route}}` |
+
+The result is one line per route. Set the Y-axis unit to nanoseconds in the panel
+options to read the values in ms or s.
 
 ## Parts of a query
 

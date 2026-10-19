@@ -5,6 +5,8 @@ description: Configure the FuseScope backend with YAML files and SIGNOZ_* enviro
 
 import { Aside } from "@astrojs/starlight/components";
 
+**Use this page when** you run FuseScope yourself and change how the backend starts: database, URLs, email or single sign-on.
+
 The backend reads its settings from built-in defaults, then from YAML files passed with
 `--config`, then from environment variables. Each source overrides the previous one.
 
@@ -72,7 +74,19 @@ Any key can be set with an environment variable named after its path:
 | `SIGNOZ_SQLSTORE_MAX__OPEN__CONNS` | `sqlstore.max_open_conns` |
 | `SIGNOZ_TELEMETRYSTORE_CLICKHOUSE_DSN` | `telemetrystore.clickhouse.dsn` |
 
-The variable names keep the `SIGNOZ_` prefix inherited from SigNoz.
+The variable names keep the `SIGNOZ_` prefix; see [Internal names](#internal-names).
+
+### Internal names
+
+<Aside title="Why some names say SigNoz">
+  FuseScope is a fork of SigNoz. Identifiers that other software, scripts or saved
+  configuration depend on keep their SigNoz names, so that upgrades don't break them:
+  `SIGNOZ_*` environment variables, `signoz.*` Helm values, the `signoz.io/scrape`
+  annotation, dashboard panel kinds such as `signoz/TimeSeriesPanel`, the
+  `X-SigNoz-URL` and `SigNoz-Api-Key` headers, and defaults such as the
+  `alertmanager@signoz.io` sender and the `signoz-alert` tag. They are correct as
+  written.
+</Aside>
 
 <Aside type="caution" title="Secrets">
   Values in the file are used as written. Only `authdomain.domains` expands `${NAME}`

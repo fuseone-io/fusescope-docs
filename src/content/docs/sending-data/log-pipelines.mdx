@@ -5,12 +5,14 @@ description: Parse and transform logs in the collector with pipelines managed fr
 
 import { Aside, Steps } from "@astrojs/starlight/components";
 
+**Use this page when** your logs arrive as one long line of text and you want fields you can filter and group by, such as a status code or a user ID.
+
 Log pipelines parse and reshape logs before they are stored: extract fields from the
 body, set the timestamp and severity, link logs to traces, and add, remove, move or copy
 attributes. Pipelines are edited in the UI and run in the FuseScope collector.
 
-They are under *Logs → Pipelines*. Admins and editors can save changes; viewers can read
-and preview them.
+They are under *Logs → Pipelines*. Saving changes needs the Editor or Admin
+[role](/fusescope-docs/administration/users-and-roles/#roles); viewers can read and preview them.
 
 ## Create a pipeline
 

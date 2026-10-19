@@ -5,8 +5,11 @@ description: Send traces, metrics and logs to FuseScope over OTLP gRPC or OTLP/H
 
 import { Aside } from "@astrojs/starlight/components";
 
+**Use this page when** you point an application or a collector at FuseScope and need the address and port to send to.
+
 FuseScope ingests telemetry through the FuseScope OpenTelemetry collector, which listens
-for [OTLP](https://opentelemetry.io/docs/specs/otlp/) on two ports:
+for [OTLP](/fusescope-docs/reference/glossary/#otlp), the OpenTelemetry protocol, on two
+ports:
 
 | Protocol | Port | Endpoint inside the cluster |
 |---|---|---|

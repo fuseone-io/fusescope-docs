@@ -15,6 +15,39 @@ service.name = 'frontend' AND http.status_code >= 500
 The same syntax is used in the Traces, Logs and Metrics explorers, dashboard panels and
 alert rules. Keywords are case-insensitive.
 
+**Use this page when** you write a [filter](/fusescope-docs/reference/glossary/#filter)
+and need the right operator or quoting. Start with the recipes; the rest of the page is
+reference.
+
+## Recipes
+
+Copy one, change the names, and press **Run Query**.
+
+| To find | Write |
+|---|---|
+| Failed requests of one service | `service.name = 'checkout' AND has_error = true` |
+| Requests slower than half a second | `duration_nano > 500000000` |
+| One HTTP route | `http.route = '/api/orders'` |
+| Everything from one Kubernetes pod | `k8s.pod.name = 'checkout-7d9f8b6c4-x2kqp'` |
+| Error logs that mention a timeout | `severity_text ILIKE 'error' AND body CONTAINS 'timeout'` |
+
+## Durations
+
+Span durations are stored in nanoseconds, in `duration_nano`. Multiply to convert:
+
+| Duration | In nanoseconds |
+|---|---|
+| 1 ms | `1000000` (1e6) |
+| 10 ms | `10000000` (1e7) |
+| 100 ms | `100000000` (1e8) |
+| 500 ms (0.5 s) | `500000000` (5e8) |
+| 1 s | `1000000000` (1e9) |
+| 5 s | `5000000000` (5e9) |
+
+Scientific notation works too: `duration_nano > 5e8` is the same as
+`duration_nano > 500000000`. The **Duration** quick filter in the Traces explorer takes
+milliseconds and converts for you.
+
 ## Comparisons
 
 An expression compares an attribute key with a value: `key operator value`.

@@ -5,8 +5,14 @@ description: Latency, error rate and throughput per service, key operations, Apd
 
 import { Aside } from "@astrojs/starlight/components";
 
-FuseScope builds its APM views from traces: any service that sends spans with a
-`service.name` resource attribute appears here. No extra metrics pipeline is needed.
+FuseScope builds its APM (application performance monitoring) views from
+[traces](/fusescope-docs/reference/glossary/#trace): any service that sends spans with a
+`service.name` [resource attribute](/fusescope-docs/reference/glossary/#resource-attribute)
+appears here. No extra metrics pipeline is needed.
+
+**Use this page when** you want to know which service is slow or failing, and start
+there. For a walkthrough, see
+[Investigate a slow endpoint](/fusescope-docs/guides/slow-endpoint/).
 
 ## Service list
 
@@ -16,11 +22,26 @@ shows:
 | Column | Meaning |
 |---|---|
 | **Application** | The service name; search with **Search by service** |
-| **P99 latency (in ms)** | 99th percentile duration of the service's entry spans |
+| **P99 latency (in ms)** | 99th [percentile](/fusescope-docs/reference/glossary/#percentile) duration of the service's [entrypoint spans](/fusescope-docs/reference/glossary/#entrypoint-span) |
 | **Error Rate (% of total)** | Share of those spans with an error status |
 | **Operations Per Second** | Their throughput |
 
 ![Services list: seven HotROD services with their P99 latency, error rate and operations per second; payment and redis-manual show their error rates in red.](../../../assets/services/services-list.png)
+
+### How to read the list
+
+- **P99 latency** is the time 99 in 100 requests stay under: one request in a hundred
+  is slower than this. A P99 of 800 ms with a normal P50 of 100 ms means a slow tail
+  worth opening the service for.
+- **Error Rate** is the share of requests that failed. Some services run with a small,
+  steady rate; what matters is a change. A jump from 0% to a few percent, or any rate
+  on a service that users call directly, needs a look.
+- **Operations Per Second** tells you how busy the service is. A sudden drop can mean
+  that callers stopped reaching it.
+
+Click a column header to sort by it.
+
+### Filter the list
 
 **Select Environment/s** filters by `deployment.environment`, and the resource attribute
 filter narrows the list by any other resource attribute. Set these attributes in your SDK
@@ -28,7 +49,11 @@ with `OTEL_RESOURCE_ATTRIBUTES`; see [OTLP](/fusescope-docs/sending-data/otlp/).
 
 ## Service details
 
-Click a service to open `/services/<service-name>`. It has three tabs.
+Click a service to open `/services/<service-name>`. The header has **View logs** and
+**View traces**, which open the explorers filtered on the service, and **Settings**. Below
+the filters, a row of totals for the time range shows **Requests** (ops/s),
+**Error Rate**, **P99 Latency**, **Avg Latency**, **Calls** and **Errors**. The page has
+three tabs.
 
 ### Overview
 
