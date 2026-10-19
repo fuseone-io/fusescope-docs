@@ -74,6 +74,7 @@ export default defineConfig({
           items: [
             { label: "Services", slug: "apm/services" },
             { label: "Traces explorer", slug: "explore/traces" },
+            { label: "Trace details", slug: "explore/trace-details" },
             { label: "Logs explorer", slug: "explore/logs" },
             { label: "Metrics explorer", slug: "explore/metrics" },
             { label: "Dashboards", slug: "dashboards/dashboards" },

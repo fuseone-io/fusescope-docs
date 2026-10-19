@@ -1,6 +1,6 @@
 ---
 title: Traces explorer
-description: Search spans and traces, open a trace's flame graph and waterfall, and save views.
+description: Search spans and traces, open a trace, build funnels and save views.
 ---
 
 import { Aside, Steps } from "@astrojs/starlight/components";
@@ -68,7 +68,7 @@ remove and reorder columns with any attribute.
 
 ![Time series view: the query's aggregation, every and add-ons (Group By, Having, Order By, Limit, Legend format) above a chart of span count over time.](../../../assets/traces/traces-explorer-time-series.png)
 
-Click a row to open its trace.
+Click a row to open its trace; see [Trace details](/fusescope-docs/explore/trace-details/).
 
 ## Example: the slowest requests of a service
 
@@ -100,42 +100,22 @@ Both need a query that has run.
 
 ## Trace details
 
-A trace opens at `/trace/<trace-id>`. The header shows the trace ID, root service, entry
-point, duration, start time and status code.
-
-- **Flame Graph** shows every span on a time axis, with the span and error counts.
-- **Waterfall** lists the spans as a tree. Search spans with a filter expression, pick a
-  category (All, Database, Functions, HTTP, Jobs, LLM), step through matches, and turn on
-  **Highlight errors**.
-- **Analytics** breaks the trace down by **% exec time** and by **Spans**.
-- **Trace options** sets **Preview fields** (up to 10 attributes shown on each span),
-  **Colour by**, and **Download trace** as CSV or JSONL.
-
-Each span row has **Copy Span Link** and **Add to Trace Funnel**.
+Click a row to open its trace at `/trace/<trace-id>`: a header with the request's
+service, duration and status, a flame graph, a waterfall and the details of each span.
+How to read it, with a worked example, is in
+[Trace details](/fusescope-docs/explore/trace-details/).
 
 ### Span details
 
-Click a span to open **Span details**. It can float, dock at the bottom or dock on the
-right.
-
-| Tab | Content |
-|---|---|
-| **Overview** | Every field and attribute, as a list or JSON. Each value can be copied, pinned, used to **Filter for value** or **Filter out value**, or to **Group by attribute** in the explorer. |
-| **Events** | Span events, such as exceptions |
-| **Logs** | Logs with the span's trace ID, from 5 minutes before to 5 minutes after the trace; **Open in Logs Explorer** shows them there |
-| **Metrics** | Host or Kubernetes metrics, when the span has host or Kubernetes attributes |
-
-<Aside>
-  Logs appear in the **Logs** tab only when they carry the `trace_id` and `span_id` of the
-  span. OpenTelemetry SDKs and log bridges add them when a log is written inside an
-  active span. See [Instrument applications](/fusescope-docs/sending-data/instrumentation/#logs).
-</Aside>
+Click a span in a trace to see its attributes, events, logs and host metrics. See
+[Span details](/fusescope-docs/explore/trace-details/#span-details).
 
 ## Funnels
 
 A funnel follows requests through an ordered set of steps. Each step is a service and a
 span name, with optional filters. In the **Funnels** tab, click **New funnel**,
-name it and add steps; spans can also be added from a trace with **Add to Trace Funnel**.
+name it and add steps; spans can also be added from a trace with
+[**Add to Trace Funnel**](/fusescope-docs/explore/trace-details/#next-steps-from-a-span).
 The results show the **Overall Funnel Metrics**, the traces that pass every step, and
 the **Slowest 5 traces** and **Traces with errors**. Editing funnels needs the Editor or
 Admin [role](/fusescope-docs/administration/users-and-roles/#roles).

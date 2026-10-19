@@ -47,8 +47,9 @@ example uses the HotROD demo app, where the `redis-manual` service fails with
    In the demo, all failures are `GetDriver` calls.
 
 4. **Open one failed request.** Switch back to the **List** view and click a row. The
-   trace opens. Turn on **Highlight errors** in the **Waterfall** to see which spans
-   failed, and where they sit in the request.
+   trace opens. Turn on **Highlight errors** at the top of the trace to see which
+   spans failed, and where they sit in the request. See
+   [Find spans in a trace](/fusescope-docs/explore/trace-details/#find-spans-in-a-trace).
 
 5. **Read the error.** Click the failed span. In **Span details**, the **Events** tab
    lists the exception the code recorded, with its type and message, and its stack
@@ -89,3 +90,4 @@ whole time range.
 - [Query builder](/fusescope-docs/querying/query-builder/#group-by-having-order-by-and-limit):
   group by, order by and limit.
 - [Exceptions](/fusescope-docs/apm/services/#exceptions).
+- [Trace details](/fusescope-docs/explore/trace-details/): span details, events and logs.

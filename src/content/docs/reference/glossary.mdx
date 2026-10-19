@@ -73,6 +73,11 @@ message and stack trace.
 A condition that selects which data a query uses, such as
 `service.name = 'driver'`. See [Search syntax](/fusescope-docs/querying/search-syntax/).
 
+## Flame graph
+
+A picture of a trace where time runs left to right and each span sits under the span
+that called it. See [Trace details](/fusescope-docs/explore/trace-details/#flame-graph).
+
 ## Gauge
 
 A metric type for a current value that goes up and down, such as memory in use.
@@ -197,3 +202,8 @@ trace share a trace ID.
 
 The identifier shared by every span of a trace. Logs written during a request carry it
 too, which links them to the trace.
+
+## Waterfall
+
+A trace drawn as a tree of spans, one row each, with a bar for when each span ran. See
+[Trace details](/fusescope-docs/explore/trace-details/#waterfall).
