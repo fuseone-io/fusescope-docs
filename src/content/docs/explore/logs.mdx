@@ -5,6 +5,14 @@ description: Search and tail logs, open a log's details and context, and save vi
 
 import { Aside, Steps } from "@astrojs/starlight/components";
 
+The Logs explorer searches the [logs](/fusescope-docs/reference/glossary/#log) your
+services and hosts send, and streams new ones as they arrive.
+
+**Use this page when** you need the exact message behind a problem: an error text, a
+stack trace a program printed, or what happened just before a crash. If you already have
+the request's trace, open its logs from the trace instead; see
+[See the logs for one request](/fusescope-docs/guides/logs-for-a-request/).
+
 Open **Logs** in the sidebar (`/logs/logs-explorer`). The page has three tabs:
 **Explorer**, **Pipelines** ([Log pipelines](/fusescope-docs/sending-data/log-pipelines/)) and **Views**.
 
@@ -29,14 +37,14 @@ logs carry it as an attribute, not just inside the body; a
 
 | View | Shows |
 |---|---|
-| **List View** | The matching logs, newest first |
-| **Time Series** | The query's aggregation as a chart, such as `count()` grouped by `severity_text` |
+| **List** | The matching logs, newest first |
+| **Time series** | The query's aggregation as a chart, such as `count()` grouped by `severity_text` |
 | **Table** | The query's aggregation as a table, one row per group |
 
 Aggregation and group by are described in
 [Query builder](/fusescope-docs/querying/query-builder/).
 
-### List View options
+### List options
 
 - **Frequency chart** shows the log count over time above the list.
 - **Order by** sorts by timestamp or another field.
@@ -58,7 +66,7 @@ Hover over a log for **Show in Context** and **Copy Link**.
 
 <Steps>
 
-1. Switch to **List View**.
+1. Switch to **List**.
 2. Open the time picker and choose **Live**.
 3. Logs matching the filter stream in; the list keeps the latest 1000.
 
@@ -66,6 +74,27 @@ Hover over a log for **Show in Context** and **Copy Link**.
 
 **Pause** and **Resume** stop and restart the stream. Changing the filter restarts it
 with the new filter. Picking a time range, or switching view, leaves live mode.
+
+## Example: from an error log to its request
+
+<Steps>
+
+1. Search for recent errors of one service:
+
+   ```text
+   severity_text ILIKE 'error' AND service.name = 'payment'
+   ```
+
+2. To see whether errors are rising, switch to **Time series** and group by
+   `severity_text`.
+3. Back in **List**, click an error log to open its details.
+4. Click the trace ID in the header. The request's trace opens, showing which service
+   and call failed.
+
+</Steps>
+
+The trace ID is there only when the log was written inside a traced request; see
+[How logs and traces are linked](/fusescope-docs/guides/logs-for-a-request/#how-logs-and-traces-are-linked).
 
 ## Log details
 

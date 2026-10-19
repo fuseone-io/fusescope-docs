@@ -78,6 +78,7 @@ export default defineConfig({
             { label: "Metrics explorer", slug: "explore/metrics" },
             { label: "Dashboards", slug: "dashboards/dashboards" },
             { label: "Dashboard variables", slug: "dashboards/variables" },
+            { label: "Dashboard JSON", slug: "reference/dashboard-json" },
           ],
         },
         {

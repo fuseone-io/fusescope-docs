@@ -5,6 +5,8 @@ description: Collect cluster metrics, events and pod logs with the k8s-infra cha
 
 import { Aside } from "@astrojs/starlight/components";
 
+**Use this page when** you run on Kubernetes and want pod logs, node and pod metrics and cluster events in FuseScope, without changing your applications.
+
 The `k8s-infra` chart, in the same Helm repository, runs OpenTelemetry collectors that
 send Kubernetes telemetry to FuseScope:
 
@@ -63,6 +65,8 @@ presets:
 | `presets.clusterMetrics.enabled` | `true` | Cluster-level object metrics. |
 | `presets.k8sEvents.enabled` | `true` | Kubernetes events as logs. |
 | `presets.prometheus.enabled` | `false` | Scrape pods annotated with `signoz.io/scrape` (prefix set by `presets.prometheus.annotationsPrefix`). |
+
+`signoz.io/scrape` is an [internal name](/fusescope-docs/configuration/config-file/#internal-names).
 
 All values are in the chart's
 [`values.yaml`](https://github.com/fuseone-io/fusescope-charts/blob/main/charts/k8s-infra/values.yaml).

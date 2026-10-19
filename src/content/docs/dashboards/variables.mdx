@@ -6,7 +6,20 @@ description: Add dropdowns and text boxes to a dashboard and use their values in
 import { Aside, Tabs, TabItem } from "@astrojs/starlight/components";
 
 Variables put dropdowns or text boxes at the top of a dashboard, so one dashboard can show
-any service, environment or host. Add them in **Configure → Variables → Add variable**.
+any service, environment or host. Add them in **Configure → Variables → Add variable**,
+or with **Add variable** below the dashboard title.
+
+**Use this page when** you have built a dashboard for one service and want the same
+panels for every service, without copying the dashboard.
+
+## Example: one dashboard for every service
+
+1. Click **Add variable**. Name it `service` and pick the **Dynamic** type.
+2. Pick the attribute `service.name` from **Traces**.
+3. Under **Apply to panels**, select the panels to filter, then **Save Variable**.
+4. A **service** dropdown appears above the panels. Pick `frontend`: every selected
+   panel now shows only `frontend`, because FuseScope added `service.name IN $service`
+   to their filters.
 
 ## Variable types
 

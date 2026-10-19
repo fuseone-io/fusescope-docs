@@ -5,9 +5,15 @@ description: Alert on metrics, logs, traces and exceptions with thresholds, eval
 
 import { Aside, Steps } from "@astrojs/starlight/components";
 
-An alert rule runs a query on a schedule, compares the result with one or more thresholds
-and sends a notification when a condition holds. Rules live under *Alerts → Alert Rules*.
-Admins and editors can create, edit and delete rules; viewers can read them.
+An [alert rule](/fusescope-docs/reference/glossary/#alert-rule) runs a query on a
+schedule, compares the result with one or more thresholds and sends a notification when a
+condition holds. Rules live under *Alerts → Alert Rules*. Creating, editing and deleting
+rules needs the Editor or Admin [role](/fusescope-docs/administration/users-and-roles/#roles);
+viewers can read them.
+
+**Use this page when** you want to be told about a problem instead of watching for it,
+for example when a service's error rate goes above 5%. For a step-by-step first rule
+with Slack, see [Set up your first alert](/fusescope-docs/guides/first-alert/).
 
 ![Alert Rules tab: a search box, Columns and New Alert above a table of rules with status, name, severity, labels and actions.](../../../assets/alerts/alert-rules-list.png)
 
@@ -15,7 +21,8 @@ Admins and editors can create, edit and delete rules; viewers can read them.
 
 <Steps>
 
-1. Go to *Alerts → Alert Rules*, click **New Alert** and choose a type:
+1. Go to *Alerts → Alert Rules*, click **New Alert** (**New Alert Rule** when there are
+   no rules yet) and choose a type:
 
    | Type | Data | Query editors |
    |---|---|---|
@@ -26,9 +33,9 @@ Admins and editors can create, edit and delete rules; viewers can read them.
 
 2. **Define the query.** Build the query and check the preview chart. Group by
    attributes, such as `service.name`, to get one alert per group.
-3. **Set alert conditions**: the comparison, the thresholds and the evaluation window.
-4. **Notification settings**: channels or routing policies, grouping, repeat interval
-   and message.
+3. **Set alert conditions**: the comparison, the thresholds and the evaluation window,
+   and where to send notifications: channels per threshold, or routing policies.
+4. **Notification settings**: the message, grouping and repeat interval.
 5. Name the rule in the header, add labels, then click **Save Alert Rule**.
 
 </Steps>
@@ -52,7 +59,23 @@ The condition reads as a sentence:
 
 ![Set alert conditions: F1 is ABOVE the threshold AT LEAST ONCE during the Last 5 minutes, a critical threshold of 5 sent to a Slack channel, and the Use Routing Policies switch.](../../../assets/alerts/alert-rule-conditions.png)
 
-| Operator | API value |
+The operators are **ABOVE**, **BELOW**, **EQUAL TO**, **NOT EQUAL TO**,
+**ABOVE OR EQUAL TO** and **BELOW OR EQUAL TO**.
+
+The match type decides which points of the evaluation window count:
+
+| Match type | Fires when | Good for |
+|---|---|---|
+| AT LEAST ONCE | any point meets the condition | catching every spike |
+| ALL THE TIME | every point meets it | ignoring short spikes |
+| ON AVERAGE | the average of the points meets it | noisy values |
+| IN TOTAL | the sum of the points meets it | counts, such as errors in the window |
+| LAST | the most recent point meets it | the current state |
+
+<details>
+<summary>Values in the alert rules API</summary>
+
+| In the editor | API value |
 |---|---|
 | ABOVE | `above` |
 | BELOW | `below` |
@@ -60,16 +83,13 @@ The condition reads as a sentence:
 | NOT EQUAL TO | `not_equal` |
 | ABOVE OR EQUAL TO | `above_or_equal` |
 | BELOW OR EQUAL TO | `below_or_equal` |
+| AT LEAST ONCE | `at_least_once` |
+| ALL THE TIME | `all_the_times` |
+| ON AVERAGE | `on_average` |
+| IN TOTAL | `in_total` |
+| LAST | `last` |
 
-The match type decides which points of the evaluation window count:
-
-| Match type | API value | Fires when |
-|---|---|---|
-| AT LEAST ONCE | `at_least_once` | any point meets the condition |
-| ALL THE TIME | `all_the_times` | every point meets it |
-| ON AVERAGE | `on_average` | the average of the points meets it |
-| IN TOTAL | `in_total` | the sum of the points meets it |
-| LAST | `last` | the most recent point meets it |
+</details>
 
 With several queries or a formula, pick which one the condition uses in the first
 drop-down.
@@ -77,7 +97,7 @@ drop-down.
 ## Thresholds and severity
 
 A rule can have several thresholds. Each one has a name, a value, an optional unit and
-its own notification channels. The first is named `critical`; **Add Threshold** adds
+its own notification channels, picked under *send to*. The first is named `critical`; **Add Threshold** adds
 `warning`, then `info`. All thresholds share the operator and match type.
 
 Each alert carries the labels `threshold.name` and `severity`, both set to the name of the
@@ -109,10 +129,15 @@ Also under *Advanced options*:
 
 ## Notification settings
 
+Turn on **Use Routing Policies for dynamic routing**, below the thresholds in
+**Set alert conditions**, to route alerts by their labels with
+[routing policies](/fusescope-docs/alerts/routing-and-downtime/#routing-policies)
+instead of per-threshold channels.
+
+The **Notification settings** step has:
+
 | Setting | Description |
 |---|---|
-| Channels | Per threshold, under *send to*. |
-| Use Routing Policies for dynamic routing | Route by alert labels with [routing policies](/fusescope-docs/alerts/routing-and-downtime/#routing-policies) instead of per-threshold channels. |
 | Group alerts by | Combine alerts with the same values of these fields into one notification. Empty combines all alerts of the rule; **All** disables grouping. |
 | Repeat notifications | Notify again every *n* minutes or hours while the alert is *Firing* or in *No Data*. Off by default. |
 | Notification message | Text of the alert description. |

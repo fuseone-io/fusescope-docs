@@ -1,0 +1,49 @@
+---
+title: Dashboard JSON
+description: The JSON format of a FuseScope dashboard, for export, import and editing.
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+**Use this page when** you edit a dashboard as JSON, keep dashboards in Git, or write
+one by hand to import. To export, import or edit JSON from the app, see
+[Dashboards](/fusescope-docs/dashboards/dashboards/#export-and-edit-as-json).
+
+## Format
+
+The JSON has `name`, `schemaVersion` (`"v6"`), `image`, `tags` and a `spec` with the
+display name and description, `duration`, `refreshInterval`, `variables`, `panels` and
+`layouts`. Panels are referenced from layouts by ID. A shortened example, with the panel's
+options and queries left out:
+
+```json
+{
+  "name": "checkout",
+  "schemaVersion": "v6",
+  "tags": [{ "key": "team", "value": "payments" }],
+  "spec": {
+    "display": { "name": "Checkout" },
+    "panels": { "p1": { "kind": "Panel", "spec": { "plugin": { "kind": "signoz/TimeSeriesPanel" } } } },
+    "layouts": [
+      {
+        "kind": "Grid",
+        "spec": {
+          "display": { "title": "Overview" },
+          "items": [{ "x": 0, "y": 0, "width": 6, "height": 6, "content": { "$ref": "#/spec/panels/p1" } }]
+        }
+      }
+    ]
+  }
+}
+```
+
+Panel kinds keep their [internal names](/fusescope-docs/configuration/config-file/#internal-names), such as `signoz/TimeSeriesPanel`.
+
+The grid is 12 columns wide. Import also accepts just the `spec` object, and JSON
+exported from older versions, which is converted on import.
+
+<Aside>
+  An imported dashboard's `image` must be one of FuseScope's built-in icons or a base64
+  image.
+</Aside>
+

@@ -5,9 +5,11 @@ description: Set how long FuseScope keeps metrics, traces and logs, and move old
 
 import { Aside } from "@astrojs/starlight/components";
 
+**Use this page when** you need to keep data longer, or to save disk space by keeping it for less time.
+
 Telemetry is deleted by ClickHouse TTLs. Each signal has its own retention period, set in
-*Settings → Workspace → Retention Controls*. Everyone can see the periods; only admins can
-change them.
+*Settings → Workspace → Retention Controls*. Everyone can see the periods; changing them needs the
+Admin [role](/fusescope-docs/administration/users-and-roles/#roles).
 
 | Signal | Default | Units |
 |---|---|---|

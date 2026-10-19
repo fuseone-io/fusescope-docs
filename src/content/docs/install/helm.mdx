@@ -9,7 +9,21 @@ The `fusescope` chart deploys the FuseScope backend and UI, the FuseScope OpenTe
 collector, the telemetry schema migrator, ClickHouse with ZooKeeper and, optionally,
 PostgreSQL.
 
-You need a Kubernetes cluster with a default storage class, `kubectl` and Helm 3.
+**Use this page when** you install FuseScope for the first time, or upgrade it.
+
+## Before you start
+
+You need:
+
+- **A Kubernetes cluster** with a default storage class, so the chart can create
+  persistent volumes. Any managed cluster (EKS, GKE, AKS) works. To try FuseScope on
+  your own machine, create a local cluster with [kind](https://kind.sigs.k8s.io/) or
+  [minikube](https://minikube.sigs.k8s.io/); both come with a default storage class.
+- **Room for ClickHouse.** The pods request little CPU and memory at rest, but
+  ClickHouse uses several GB of memory once data flows. For a trial, give the cluster at
+  least 4 CPUs and 8 GB of memory, and 20 GB of disk for the default ClickHouse volume.
+- **`kubectl`**, configured for the cluster: `kubectl get nodes` should list its nodes.
+- **[Helm](https://helm.sh/docs/intro/install/) 3.**
 
 ## Install
 
@@ -42,6 +56,32 @@ You need a Kubernetes cluster with a default storage class, `kubectl` and Helm 3
 
 </Steps>
 
+## Check that it worked
+
+<Steps>
+
+1. List the pods:
+
+   ```bash
+   kubectl get pods -n fusescope
+   ```
+
+   Every pod should show `Running`, except the schema migrator jobs, which show
+   `Completed`. The first start takes a few minutes while images download and
+   ClickHouse initializes.
+
+2. If a pod stays in `Pending`, describe it to see why, often a missing storage class
+   or too little memory:
+
+   ```bash
+   kubectl describe pod -n fusescope <pod-name>
+   ```
+
+3. Open the UI and sign in. The **Home** page shows which signals are arriving. None
+   are until you send data, which is the next step.
+
+</Steps>
+
 With the release named `fusescope`, the chart creates these services:
 
 | Service | Ports | Purpose |
@@ -67,7 +107,9 @@ With the release named `fusescope`, the chart creates these services:
 | `otelCollector.ingress.*` | disabled | Ingress for OTLP/HTTP ingestion. |
 | `otelCollector.replicaCount` | `1` | Collector replicas. |
 
-The full list, with comments, is in the chart's
+The `signoz.*` keys configure the FuseScope backend; they keep an
+[internal name](/fusescope-docs/configuration/config-file/#internal-names). The full list,
+with comments, is in the chart's
 [`values.yaml`](https://github.com/fuseone-io/fusescope-charts/blob/main/charts/fusescope/values.yaml).
 
 ### Environment variables
@@ -161,3 +203,11 @@ before the new version starts.
 ```bash
 helm -n fusescope uninstall fusescope
 ```
+
+## Next step
+
+Send data from an application: see
+[Instrument applications](/fusescope-docs/sending-data/instrumentation/), and
+[Kubernetes](/fusescope-docs/sending-data/kubernetes/) to collect the cluster's own logs
+and metrics. Within a minute of the first requests, your service appears under
+**Services**.

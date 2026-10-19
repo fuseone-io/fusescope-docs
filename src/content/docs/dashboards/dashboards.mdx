@@ -5,6 +5,14 @@ description: Create, import and export dashboards, add panels and sections, and 
 
 import { Aside, Steps } from "@astrojs/starlight/components";
 
+A [dashboard](/fusescope-docs/reference/glossary/#dashboard) is a page of
+[panels](/fusescope-docs/reference/glossary/#panel) you arrange yourself: charts, tables
+and numbers over traces, logs and metrics.
+
+**Use this page when** you want the same charts in front of you every day, or to share
+them with your team. To build one step by step, see
+[Build your first dashboard](/fusescope-docs/guides/first-dashboard/).
+
 Open **Dashboards** in the sidebar (`/dashboard`).
 
 ![A dashboard with three panels: Spans per service as lines, Errors per service as bars, and P99 latency by service as a table.](../../../assets/dashboards/dashboard-detail.png)
@@ -82,9 +90,9 @@ reorder them.
 | **View** | Opens the panel full size |
 | **Edit panel** | Opens the panel editor |
 | **Clone** | Copies the panel |
-| **Create Alerts** | Starts an [alert rule](/fusescope-docs/alerts/alert-rules/) from the panel's query |
+| **Create Alerts** | Starts an [alert rule](/fusescope-docs/alerts/alert-rules/) from the panel's query, on panel types that support alerts |
 | **Download** | As PNG or SVG; Table panels also as CSV |
-| **Move to section** | Moves the panel to another section |
+| **Move to section** | Moves the panel to another section, on dashboards that have sections |
 | **Delete panel** | Removes the panel |
 
 Clicking a point on a chart offers **View in Logs**, **View in Traces** and
@@ -140,38 +148,5 @@ current variable values in the link.
 ## Export and edit as JSON
 
 **JSON** opens the dashboard as JSON. **Download** saves it as `<name>.json`; edit it in
-place and **Apply changes** to change the dashboard directly.
-
-The JSON has `name`, `schemaVersion` (`"v6"`), `image`, `tags` and a `spec` with the
-display name and description, `duration`, `refreshInterval`, `variables`, `panels` and
-`layouts`. Panels are referenced from layouts by ID. A shortened example, with the panel's
-options and queries left out:
-
-```json
-{
-  "name": "checkout",
-  "schemaVersion": "v6",
-  "tags": [{ "key": "team", "value": "payments" }],
-  "spec": {
-    "display": { "name": "Checkout" },
-    "panels": { "p1": { "kind": "Panel", "spec": { "plugin": { "kind": "signoz/TimeSeriesPanel" } } } },
-    "layouts": [
-      {
-        "kind": "Grid",
-        "spec": {
-          "display": { "title": "Overview" },
-          "items": [{ "x": 0, "y": 0, "width": 6, "height": 6, "content": { "$ref": "#/spec/panels/p1" } }]
-        }
-      }
-    ]
-  }
-}
-```
-
-The grid is 12 columns wide. Import also accepts just the `spec` object, and JSON
-exported from older versions, which is converted on import.
-
-<Aside>
-  An imported dashboard's `image` must be one of FuseScope's built-in icons or a base64
-  image.
-</Aside>
+place and **Apply changes** to change the dashboard directly. The format is described in
+[Dashboard JSON](/fusescope-docs/reference/dashboard-json/).

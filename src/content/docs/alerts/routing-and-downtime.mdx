@@ -7,6 +7,9 @@ import { Steps } from "@astrojs/starlight/components";
 
 Both features are under *Alerts → Configuration*.
 
+**Use this page when** different teams should get different alerts, or when you plan
+maintenance and don't want alerts to wake anyone up while it runs.
+
 ## Routing policies
 
 A routing policy sends every alert whose labels match an expression to a set of
@@ -32,12 +35,14 @@ service.name == "payment" && threshold.name == "critical"
 ```
 
 Every policy is evaluated against each alert, and the channels of all matching policies
-are notified. Only admins can create, edit or delete routing policies.
+are notified. Creating, editing and deleting routing policies needs the Admin
+[role](/fusescope-docs/administration/users-and-roles/#roles).
 
 ## Planned downtime
 
 A planned downtime silences alerts during a maintenance window. Alerts are still evaluated
-and recorded; only notifications are suppressed. Admins and editors can manage downtimes.
+and recorded; only notifications are suppressed. Managing downtimes needs the Editor or
+Admin [role](/fusescope-docs/administration/users-and-roles/#roles).
 
 <Steps>
 

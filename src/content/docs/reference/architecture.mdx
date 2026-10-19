@@ -3,6 +3,8 @@ title: Architecture
 description: The components of a FuseScope installation and how data flows between them.
 ---
 
+**Use this page when** you want to know which component does what, for example to size, secure or troubleshoot an installation.
+
 ![FuseScope architecture: applications, Kubernetes and collectors send OTLP to the FuseScope OTel collector, which writes to ClickHouse (coordinated by ZooKeeper, schema by the schema migrator). The FuseScope backend queries ClickHouse, keeps metadata in PostgreSQL or SQLite, configures collectors over OpAMP, signs users in through an OIDC identity provider and sends alerts to notification channels.](../../../assets/architecture.png)
 
 ## Components
