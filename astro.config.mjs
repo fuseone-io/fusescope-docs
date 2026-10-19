@@ -60,6 +60,16 @@ export default defineConfig({
           ],
         },
         {
+          label: "How-to guides",
+          items: [
+            { label: "Investigate a slow endpoint", slug: "guides/slow-endpoint" },
+            { label: "Find out why a service is failing", slug: "guides/failing-service" },
+            { label: "See the logs for one request", slug: "guides/logs-for-a-request" },
+            { label: "Build your first dashboard", slug: "guides/first-dashboard" },
+            { label: "Set up your first alert", slug: "guides/first-alert" },
+          ],
+        },
+        {
           label: "Observe",
           items: [
             { label: "Services", slug: "apm/services" },
