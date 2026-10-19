@@ -8,19 +8,23 @@ import { Aside } from "@astrojs/starlight/components";
 Open **Traces** in the sidebar (`/traces-explorer`). The page has three tabs:
 **Explorer**, **Funnels** and **Views**.
 
+![Traces explorer in List view: filters on the left, the query bar on top and one row per span with service, name, duration and HTTP method.](../../../assets/traces/traces-explorer-list.png)
+
 ## Search spans
 
 Write a filter in the search box with the
-[search syntax](/fusescope-docs/querying/search-syntax/), pick a time range and click
-**Run Query**. The scope selector next to the search box limits the query to
+[search syntax](/fusescope-docs/querying/search-syntax/), pick a time range in the top
+bar and click **Run Query**. The scope selector next to the search box limits the query to
 **All Spans**, **Root Spans** or **Entrypoint Spans** (the first span of a request in each
 service).
 
 The filter panel on the left lists quick filters. By default: Duration, Deployment
 Environment, Has Error (Status), Service Name, Name, Rpc Method, Response Status Code,
 Http Host, Http Method, Http Route, Http Url and Trace Id. Duration is a range; the others
-list values to tick. **Settings** adds or removes filters for everyone in the
-organization; **Reset All** clears them.
+list values to tick. Each filter shows the attribute it filters on, with an icon for its
+kind. The settings button opens a side panel to add or remove filters for everyone in the
+organization; **Reset All** clears them. The collapse button folds the panel into a
+narrow rail that still shows the active filters; the explorer remembers it.
 
 ## Views
 
@@ -28,14 +32,17 @@ The toolbar switches between four views of the same query:
 
 | View | Shows |
 |---|---|
-| **List View** | One row per span: timestamp, service, span name, duration, HTTP method and response status code |
-| **Trace View** | One row per trace, from its root span: service, name, duration, span count and trace ID |
-| **Time Series** | The query's aggregation as a chart |
+| **List** | One row per span: timestamp, service, span name, duration, HTTP method and response status code |
+| **Traces** | One row per trace, from its root span: service, name, duration, span count and trace ID |
+| **Time series** | The query's aggregation as a chart |
 | **Table** | The query's aggregation as a table, one row per group |
 
-Time Series and Table use the query's aggregation and group by; see
-[Query builder](/fusescope-docs/querying/query-builder/). In List View, **Order by**
-sorts the spans, and **Options** opens **Edit columns** to add any attribute as a column.
+Time series and Table use the query's aggregation and group by; see
+[Query builder](/fusescope-docs/querying/query-builder/). In List, **Order by**
+sorts the spans, and the columns button opens a side panel to add, remove and reorder
+columns with any attribute.
+
+![Time series view: the query's aggregation, every and add-ons (Group By, Having, Order By, Limit, Legend format) above a chart of span count over time.](../../../assets/traces/traces-explorer-time-series.png)
 
 Click a row to open its trace.
 
@@ -43,8 +50,8 @@ Click a row to open its trace.
 
 Above the results:
 
-- **Download** exports the List or Trace View as `csv` or `jsonl`, up to 10k, 30k or 50k
-  rows. Table and Time Series results export the same way.
+- **Download** exports the List or Traces view as `csv` or `jsonl`, up to 10k, 30k or 50k
+  rows. Table and Time series results export the same way.
 - **Create an alert** starts an [alert rule](/fusescope-docs/alerts/alert-rules/) from the current query.
 - **Add to dashboard** adds the query as a panel to a new or existing dashboard.
 
@@ -86,11 +93,15 @@ right.
 ## Funnels
 
 A funnel follows requests through an ordered set of steps. Each step is a service and a
-span name, with optional filters. In the **Funnels** tab, click **Create new funnel**,
+span name, with optional filters. In the **Funnels** tab, click **New funnel**,
 name it and add steps; spans can also be added from a trace with **Add to Trace Funnel**.
 The results show the **Overall Funnel Metrics**, the traces that pass every step, and
 the **Slowest 5 traces** and **Traces with errors**. Editing funnels needs the Editor or
 Admin [role](/fusescope-docs/administration/users-and-roles/#roles).
+
+![Funnels tab: the list of funnels with search, sort and New funnel.](../../../assets/traces/traces-funnels.png)
+
+![A funnel: its steps on the left, each a service and span name with filters, and the Overall Funnel Metrics and spans per step on the right.](../../../assets/traces/traces-funnel-detail.png)
 
 ## Saved views
 
@@ -98,6 +109,8 @@ A view saves the query, the explorer view and its columns. The bar at the bottom
 explorer has **Select a view** and **Save this view**: give the view a label and a
 colour. With a view open, **Update this view** saves changes and **Clear this view**
 starts over. The **Views** tab lists the saved views, to open, edit or delete them.
+
+![Views tab: saved views with their colour, creator and creation time, and actions to edit, open or delete.](../../../assets/traces/traces-saved-views.png)
 
 Saving, editing and deleting views needs the Admin or Editor
 [role](/fusescope-docs/administration/users-and-roles/#roles).
