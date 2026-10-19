@@ -1,0 +1,167 @@
+---
+title: Core concepts
+description: Traces, spans, services, attributes, logs, metrics, queries, percentiles, error rate and Apdex, explained with examples.
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+This page explains the words you will meet on every FuseScope screen. Each section is
+short and uses the same example: a ride-booking app with the services `frontend`,
+`customer`, `driver` and `route`.
+
+**Read this page when** a term on another page is unclear. For one-line definitions,
+see the [Glossary](/fusescope-docs/reference/glossary/).
+
+## Traces and spans
+
+A **span** is one piece of work: an HTTP request handled, a database query, a call to
+another service. It has a name, a start time, a duration and a status (OK or error).
+
+A **trace** is every span of one request, linked into a tree. Each span knows its
+parent, so FuseScope can draw who called whom:
+
+```text
+frontend   HTTP GET /dispatch                    ███████████████████  720 ms
+  customer   HTTP GET /customer                  ██████               230 ms
+    mysql      SQL SELECT                        █████                210 ms
+  driver     /driver.DriverService/FindNearest          ██████        200 ms
+    redis      FindDriverIDs                            █              15 ms
+  route      HTTP GET /route                                  ██       50 ms
+```
+
+All spans of a trace share a **trace ID**. Services pass it along with each call,
+which is how a request is followed across programs.
+
+### Root span and entrypoint span
+
+- The **root span** is the first span of the trace, the one with no parent. Above, it
+  is `frontend HTTP GET /dispatch`. Its duration is the time the whole request took.
+- An **entrypoint span** is the first span *inside each service*: where the request
+  entered that service. Above, there is one per service: the `/dispatch`, `/customer`,
+  `FindNearest` and `/route` spans.
+
+Most service-level numbers in FuseScope, such as a service's latency and error rate,
+are computed from entrypoint spans. In the Traces explorer you can pick
+**All Spans**, **Root Spans** or **Entrypoint Spans** to choose which spans a search
+looks at.
+
+## Services
+
+A **service** is one program that sends data, such as `frontend` or `driver`.
+FuseScope reads its name from the `service.name` attribute. Every service that sends
+spans gets a row on the [Services](/fusescope-docs/apm/services/) page.
+
+## Attributes and resource attributes
+
+An **attribute** is a key and a value attached to data, used to filter and group it.
+
+- **Attributes** describe one span, log or data point: `http.method = GET`,
+  `http.status_code = 500`, `db.system = mysql`.
+- **Resource attributes** describe *what sent* the data, and are the same on
+  everything that program sends: `service.name = driver`,
+  `deployment.environment = prod`, `k8s.pod.name = driver-7d9f`.
+
+Most of the time you can write a key without caring which kind it is. When the same
+key exists in both, write `resource.` or `attribute.` in front of it; see
+[Search syntax](/fusescope-docs/querying/search-syntax/#attribute-keys).
+
+## Logs: body and severity
+
+A log record has:
+
+- a **body**: the message itself, such as `redis timeout after 50ms`;
+- a **severity**: how serious it is. `severity_text` holds the level name (`DEBUG`,
+  `INFO`, `WARN`, `ERROR`, `FATAL`) and `severity_number` a matching number;
+- a timestamp, attributes, resource attributes and, when written inside a request,
+  the **trace ID** and **span ID**. Those two IDs are what link a log to its trace.
+
+## Metrics and metric types
+
+A **metric** is a named number measured over time, such as `http.server.duration`.
+Each combination of a metric's labels is a separate **time series**. The type tells
+FuseScope how to add the numbers up:
+
+| Type | Holds | Example |
+|---|---|---|
+| **Sum** (counter) | A total that grows | Requests served |
+| **Gauge** | The current value | Memory in use |
+| **Histogram** | How many values fell into each range | Request durations |
+| **Summary** | Percentiles computed by the app | Older Prometheus clients |
+
+More detail, including temporality, is in
+[Metrics explorer](/fusescope-docs/explore/metrics/#metric-types-and-temporality).
+
+## Time range
+
+Almost every screen shows data for a **time range**, picked in the top bar:
+**Last 15 minutes**, **Last 1 hour**, a custom range and so on. Change it and the page
+reloads for the new range. If a page looks empty, widen the time range first.
+
+## Queries: filter, aggregation, group by
+
+Explorers, dashboard panels and alerts all use the same kind of query. It has up to
+three parts:
+
+| Part | Question it answers | Example |
+|---|---|---|
+| **Filter** | Which data? | `service.name = 'driver' AND has_error = true` |
+| **Aggregation** | What number? | `count()`, or `p99(duration_nano)` |
+| **Group by** | Split by what? | `http.route`: one line or row per route |
+
+Without an aggregation you get a list of matching spans or logs. With one, you get a
+chart or a table. For example, `count()` grouped by `service.name` draws one line per
+service with its number of spans over time.
+
+See [Search syntax](/fusescope-docs/querying/search-syntax/) for filters and
+[Query builder](/fusescope-docs/querying/query-builder/) for the rest.
+
+## Latency and percentiles: P50, P95, P99
+
+**Latency** is how long a request takes. An average hides slow requests, so FuseScope
+shows **percentiles**:
+
+- **P50** (the median): half the requests were faster than this.
+- **P95**: 95 in 100 requests were faster; 1 in 20 was slower.
+- **P99**: 99 in 100 requests were faster; 1 in 100 was slower.
+
+If `frontend` has a P50 of 120 ms and a P99 of 2,400 ms, most users are fine but one
+request in a hundred waits more than two seconds. P99 is usually where problems show
+first.
+
+<Aside>
+  Durations on spans are stored in nanoseconds (`duration_nano`). 1 ms is
+  1,000,000 ns and 1 s is 1,000,000,000 ns. Screens convert them to ms or s for you.
+</Aside>
+
+## Error rate
+
+The **error rate** is the share of requests that failed, as a percentage. A span
+counts as failed when its status is error (`has_error = true`), which SDKs set on
+uncaught exceptions and, for HTTP servers, on 5xx responses. An error rate of 2% means
+2 requests in 100 failed.
+
+What is "bad" depends on the service. A steady 0.1% may be normal; a jump from 0% to
+5% almost always needs a look.
+
+## Throughput
+
+**Throughput** is how many requests a service handles per unit of time. FuseScope
+shows it as **operations per second** (ops/s).
+
+## Apdex
+
+**Apdex** turns latency into one satisfaction score from 0 to 1. You choose a target
+time *T* (0.5 s by default). Then each request is:
+
+- **satisfied** if it succeeded within *T*;
+- **tolerating** if it succeeded within 4 × *T*, but not within *T*;
+- **frustrated** if it took longer than 4 × *T*, or failed.
+
+The score is (satisfied + tolerating ÷ 2) ÷ all requests. With *T* = 0.5 s, 80
+satisfied, 15 tolerating and 5 frustrated requests score (80 + 7.5) ÷ 100 = 0.875.
+1.0 is perfect; below 0.7 users are noticing.
+See [Services](/fusescope-docs/apm/services/#apdex-threshold) to change *T*.
+
+## Next step
+
+Open the app with the [Tour of the interface](/fusescope-docs/start/tour/).

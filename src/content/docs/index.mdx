@@ -8,9 +8,12 @@ hero:
     file: ../../assets/fusescope-mark.svg
     alt: FuseScope
   actions:
+    - text: Start here
+      link: /fusescope-docs/start/what-is-fusescope/
+      icon: right-arrow
     - text: Install with Helm
       link: /fusescope-docs/install/helm/
-      icon: right-arrow
+      variant: secondary
     - text: GitHub
       link: https://github.com/fuseone-io/fusescope
       icon: github
@@ -55,23 +58,33 @@ FuseScope is built by [FuseOne](https://github.com/fuseone-io) as a hard fork of
 
 <CardGrid>
   <LinkCard
-    title="Getting started"
+    title="Start here"
+    description="New to observability? What FuseScope does, the core concepts and a tour of the app."
+    href="/fusescope-docs/start/what-is-fusescope/"
+  />
+  <LinkCard
+    title="Using FuseScope"
+    description="Services, the traces, logs and metrics explorers, and dashboards."
+    href="/fusescope-docs/apm/services/"
+  />
+  <LinkCard
+    title="Alerts"
+    description="Get notified in Slack, email or PagerDuty when something goes wrong."
+    href="/fusescope-docs/alerts/alert-rules/"
+  />
+  <LinkCard
+    title="Install"
     description="Install FuseScope on Kubernetes with the Helm chart."
     href="/fusescope-docs/install/helm/"
   />
   <LinkCard
-    title="Configuration"
-    description="Configuration file, metadata store and single sign-on."
-    href="/fusescope-docs/configuration/config-file/"
-  />
-  <LinkCard
-    title="Sending data"
+    title="Send data"
     description="Send OTLP from applications and collect Kubernetes telemetry."
-    href="/fusescope-docs/sending-data/otlp/"
+    href="/fusescope-docs/sending-data/instrumentation/"
   />
   <LinkCard
-    title="Reference"
-    description="How the components fit together."
-    href="/fusescope-docs/reference/architecture/"
+    title="Operate"
+    description="Users and roles, single sign-on, retention, configuration and architecture."
+    href="/fusescope-docs/administration/users-and-roles/"
   />
 </CardGrid>

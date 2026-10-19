@@ -1,0 +1,111 @@
+---
+title: What is FuseScope?
+description: What observability is, the three signals FuseScope collects, and what you can do with them.
+---
+
+import { Aside, Card, CardGrid, LinkCard } from "@astrojs/starlight/components";
+
+FuseScope shows you what your software is doing while it runs. It collects data from
+your applications and servers, stores it, and lets you search it, chart it and get
+alerted when something goes wrong.
+
+**Read this page when** you are new to observability, or new to FuseScope, and want
+the big picture before you open the app.
+
+## Why you need it
+
+When a user says "checkout is slow", you need answers fast:
+
+- Which part is slow: the web server, the payment service or the database?
+- Is it slow for everyone, or only for some requests?
+- When did it start, and did anything else break at the same time?
+
+Reading code and guessing does not scale once a request passes through several
+programs. FuseScope answers these questions from data your applications already send.
+This practice is called **observability**.
+
+## The three signals
+
+FuseScope works with three kinds of data, often called *signals*. Each answers a
+different question.
+
+<CardGrid>
+  <Card title="Traces" icon="random">
+    **Where did the time go?** A [trace](/fusescope-docs/reference/glossary/#trace)
+    follows one request through every service it touches. Each step is a
+    [span](/fusescope-docs/reference/glossary/#span), with a start time and a duration.
+  </Card>
+  <Card title="Logs" icon="document">
+    **What exactly happened?** A [log](/fusescope-docs/reference/glossary/#log) is a
+    line of text a program writes, such as `payment declined: card expired`.
+  </Card>
+  <Card title="Metrics" icon="analytics">
+    **How much, how often?** A [metric](/fusescope-docs/reference/glossary/#metric) is
+    a number measured over time, such as requests per second or memory in use.
+  </Card>
+</CardGrid>
+
+## An example: following a parcel
+
+Think of a parcel sent across the country.
+
+1. You get a **tracking number** when you send it. Every depot that handles the
+   parcel scans that number.
+2. Each **scan** records the depot, when the parcel arrived and when it left.
+3. Each depot also keeps a **log book**: "truck 12 late, parcel moved to truck 14".
+4. Head office watches **counters**: parcels per hour, parcels delayed today.
+
+A web request works the same way. Say a user books a ride in a small demo app made of
+the services `frontend`, `customer`, `driver` and `route`:
+
+| Parcel | Web request | In FuseScope |
+|---|---|---|
+| Tracking number | Trace ID, passed from service to service | **Trace** |
+| One depot scan | The work one service did, with its duration | **Span** |
+| The depot's log book | Lines the service printed while it worked | **Logs** |
+| Head office counters | Requests per second, error count, CPU | **Metrics** |
+
+When the booking takes three seconds, the trace shows that `frontend` waited two of
+those seconds on `driver`. The logs of that span say `redis timeout`. A metric
+shows the timeouts started at 10:05. Three signals, one answer.
+
+<Aside type="tip">
+  The signals are most useful together. FuseScope links them: from a span you can open
+  its logs, and from a log you can open its trace. See
+  [Core concepts](/fusescope-docs/start/concepts/) for how.
+</Aside>
+
+## What FuseScope gives you
+
+- **Services**: latency, error rate and throughput for every service, with no extra
+  setup. See [Services](/fusescope-docs/apm/services/).
+- **Explorers** to search [traces](/fusescope-docs/explore/traces/),
+  [logs](/fusescope-docs/explore/logs/) and [metrics](/fusescope-docs/explore/metrics/).
+- **[Dashboards](/fusescope-docs/dashboards/dashboards/)** to put the charts you care about
+  on one page.
+- **[Alerts](/fusescope-docs/alerts/alert-rules/)** that notify Slack, email, PagerDuty and
+  others when a number crosses a line.
+
+## How data gets in
+
+Your applications send data using [OpenTelemetry](/fusescope-docs/reference/glossary/#opentelemetry),
+an open standard supported by most languages and frameworks. They send it to the
+FuseScope [collector](/fusescope-docs/reference/glossary/#collector), which writes it to
+a ClickHouse database. The FuseScope app reads from there. You don't need any
+FuseScope-specific library. See [Architecture](/fusescope-docs/reference/architecture/)
+for the details.
+
+## Next steps
+
+<CardGrid>
+  <LinkCard
+    title="Core concepts"
+    description="The words you will see everywhere: span, service, attribute, P99 and more."
+    href="/fusescope-docs/start/concepts/"
+  />
+  <LinkCard
+    title="Tour of the interface"
+    description="A map of the app: what each part of the screen does."
+    href="/fusescope-docs/start/tour/"
+  />
+</CardGrid>
