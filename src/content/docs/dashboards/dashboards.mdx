@@ -7,6 +7,8 @@ import { Aside, Steps } from "@astrojs/starlight/components";
 
 Open **Dashboards** in the sidebar (`/dashboard`).
 
+![A dashboard with three panels: Spans per service as lines, Errors per service as bars, and P99 latency by service as a table.](../../../assets/dashboards/dashboard-detail.png)
+
 ## Create a dashboard
 
 Click **New dashboard**. The dialog has three tabs:
@@ -33,6 +35,8 @@ The keys are `name`, `description`, `created_by`, `created_at`, `updated_at` and
 `LIKE`, `ILIKE` and `IN`, each with a `NOT` form; tags also take `EXISTS`. Dates take
 comparisons and `BETWEEN`. **Save as view** keeps a filter as a custom view.
 
+![Dashboards list: views on the left (My dashboards, Pinned, Recently viewed, All dashboards, Locked), the filter box, the Created by and time filters, and one dashboard with its tag and creator.](../../../assets/dashboards/dashboards-list.png)
+
 Each row's menu has **View**, **Open in New Tab**, **Copy Link**, **Rename**,
 **Edit Tags**, **Duplicate**, **Lock Dashboard** and **Delete Dashboard**.
 
@@ -52,6 +56,10 @@ A locked dashboard can't be edited or deleted until it is unlocked. Only its cre
 4. Click **Save changes**.
 
 </Steps>
+
+![The New panel picker: panel types grouped as trends over time, compare and rank, distributions, single values, raw records and documentation.](../../../assets/dashboards/new-panel-picker.png)
+
+![The panel editor: the chart preview on top, the query below with the Query Builder, ClickHouse Query, PromQL and AI Query Builder tabs, and Panel Details and display options on the right.](../../../assets/dashboards/panel-editor.png)
 
 Queries are described in [Query builder](/fusescope-docs/querying/query-builder/) and
 [ClickHouse SQL and PromQL](/fusescope-docs/querying/clickhouse-promql/). Explorers can

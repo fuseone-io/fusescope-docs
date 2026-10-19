@@ -9,6 +9,8 @@ An alert rule runs a query on a schedule, compares the result with one or more t
 and sends a notification when a condition holds. Rules live under *Alerts → Alert Rules*.
 Admins and editors can create, edit and delete rules; viewers can read them.
 
+![Alert Rules tab: a search box, Columns and New Alert above a table of rules with status, name, severity, labels and actions.](../../../assets/alerts/alert-rules-list.png)
+
 ## Create a rule
 
 <Steps>
@@ -31,6 +33,8 @@ Admins and editors can create, edit and delete rules; viewers can read them.
 
 </Steps>
 
+![The rule editor for a trace-based alert: the rule name and Add labels at the top, the three steps on the left, and the query preview chart.](../../../assets/alerts/alert-rule-editor.png)
+
 **Test Notification** evaluates the rule once and sends the result to its channels without
 saving it. When no series matches, FuseScope reports that no alerts were found; adjust the
 threshold and retry.
@@ -45,6 +49,8 @@ threshold and retry.
 The condition reads as a sentence:
 *Send a notification when* **A** *is* **ABOVE** *the threshold(s)* **AT LEAST ONCE**
 *during the* **Last 5 minutes**.
+
+![Set alert conditions: F1 is ABOVE the threshold AT LEAST ONCE during the Last 5 minutes, a critical threshold of 5 sent to a Slack channel, and the Use Routing Policies switch.](../../../assets/alerts/alert-rule-conditions.png)
 
 | Operator | API value |
 |---|---|
