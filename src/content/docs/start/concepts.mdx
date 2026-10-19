@@ -71,7 +71,9 @@ A log record has:
 
 - a **body**: the message itself, such as `redis timeout after 50ms`;
 - a **severity**: how serious it is. `severity_text` holds the level name (`DEBUG`,
-  `INFO`, `WARN`, `ERROR`, `FATAL`) and `severity_number` a matching number;
+  `INFO`, `WARN`, `ERROR`, `FATAL`) and `severity_number` a matching number. Programs
+  spell the name in many ways, so FuseScope groups them into
+  [seven levels](/fusescope-docs/explore/logs/#severity-levels);
 - a timestamp, attributes, resource attributes and, when written inside a request,
   the **trace ID** and **span ID**. Those two IDs are what link a log to its trace.
 

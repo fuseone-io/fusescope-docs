@@ -105,6 +105,12 @@ How long a request takes to get a response.
 
 A timestamped record a program writes, with a body (the message) and a severity.
 
+## Log pipeline
+
+A filter and a list of processors that change logs before they are stored, such as
+parsing JSON or setting the severity. See
+[Log pipelines](/fusescope-docs/sending-data/log-pipelines/).
+
 ## Metric
 
 A named number measured over time, such as requests per second.
@@ -138,6 +144,12 @@ The value below which a given share of measurements fall. **P50** is the median;
 **P95** and **P99** show the slowest 5% and 1% of requests. See
 [Core concepts](/fusescope-docs/start/concepts/#latency-and-percentiles-p50-p95-p99).
 
+## Processor
+
+One step of a log pipeline, such as a JSON parser or a Severity Parser. A pipeline
+runs its processors in order. See
+[Log pipelines](/fusescope-docs/sending-data/log-pipelines/#processors).
+
 ## Query
 
 A request for data: a source (traces, logs or metrics), a filter, and optionally an
@@ -159,8 +171,9 @@ One program that sends telemetry, named by its `service.name` resource attribute
 
 ## Severity
 
-How serious a log is: `DEBUG`, `INFO`, `WARN`, `ERROR` or `FATAL`, stored in
-`severity_text`.
+How serious a log is, stored as `severity_number` (1 to 24) and `severity_text`.
+FuseScope shows it as one of TRACE, DEBUG, INFO, WARN, ERROR, FATAL or UNKNOWN. See
+[Severity levels](/fusescope-docs/explore/logs/#severity-levels).
 
 ## Span
 
