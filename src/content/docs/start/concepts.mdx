@@ -21,12 +21,12 @@ A **trace** is every span of one request, linked into a tree. Each span knows it
 parent, so FuseScope can draw who called whom:
 
 ```text
-frontend   HTTP GET /dispatch                    ███████████████████  720 ms
-  customer   HTTP GET /customer                  ██████               230 ms
+frontend   /dispatch                             ███████████████████  720 ms
+  customer   /customer                           ██████               230 ms
     mysql      SQL SELECT                        █████                210 ms
   driver     /driver.DriverService/FindNearest          ██████        200 ms
     redis      FindDriverIDs                            █              15 ms
-  route      HTTP GET /route                                  ██       50 ms
+  route      /route                                           ██       50 ms
 ```
 
 All spans of a trace share a **trace ID**. Services pass it along with each call,
@@ -35,7 +35,7 @@ which is how a request is followed across programs.
 ### Root span and entrypoint span
 
 - The **root span** is the first span of the trace, the one with no parent. Above, it
-  is `frontend HTTP GET /dispatch`. Its duration is the time the whole request took.
+  is `frontend /dispatch`. Its duration is the time the whole request took.
 - An **entrypoint span** is the first span *inside each service*: where the request
   entered that service. Above, there is one per service: the `/dispatch`, `/customer`,
   `FindNearest` and `/route` spans.

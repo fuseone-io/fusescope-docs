@@ -43,7 +43,8 @@ HotROD demo app, where the `frontend` service answers `/dispatch` in about 700 m
    ![Traces explorer filtered on frontend /dispatch and ordered by duration_nano (desc): the slowest span took 849 ms.](../../../assets/traces/traces-explorer-sorted-by-duration.png)
 
 6. **Open the slowest trace.** Click the first row. The trace opens with a
-   **Flame Graph** and a **Waterfall**.
+   **Flame graph** and a **Waterfall**; see
+   [Trace details](/fusescope-docs/explore/trace-details/) for how to read them.
 
 7. **Find the longest span.** In the **Waterfall**, each span is a bar on a time axis,
    indented under the span that called it. Look for the widest bar that has no wide
@@ -78,5 +79,6 @@ You know which service and which call make the request slow. In the demo, most o
 ## Related
 
 - [Services](/fusescope-docs/apm/services/): every chart and column on the service page.
-- [Traces explorer](/fusescope-docs/explore/traces/): views, ordering and trace details.
+- [Traces explorer](/fusescope-docs/explore/traces/): views and ordering.
+- [Trace details](/fusescope-docs/explore/trace-details/): flame graph, waterfall, span details and a worked example.
 - [Set up your first alert](/fusescope-docs/guides/first-alert/): get notified next time.
