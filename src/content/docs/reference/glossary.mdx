@@ -1,0 +1,199 @@
+---
+title: Glossary
+description: Short definitions of the observability and FuseScope terms used in this documentation.
+---
+
+One-line definitions of the terms used in FuseScope and in these pages, in
+alphabetical order. For longer explanations with examples, see
+[Core concepts](/fusescope-docs/start/concepts/).
+
+## Aggregation
+
+A calculation over many spans, logs or data points that returns a number, such as
+`count()`, `avg(duration_nano)` or `p99(duration_nano)`. See
+[Query builder](/fusescope-docs/querying/query-builder/#aggregations).
+
+## Alert rule
+
+A query FuseScope runs on a schedule, with a threshold. When the result crosses the
+threshold, an alert fires and a notification is sent. See
+[Alert rules](/fusescope-docs/alerts/alert-rules/).
+
+## Apdex
+
+A score from 0 to 1 for how satisfied users are with a service's response times,
+based on a target time *T*. See [Core concepts](/fusescope-docs/start/concepts/#apdex).
+
+## Attribute
+
+A key and value attached to a span, log or data point, such as `http.method = GET`.
+Used to filter and group data.
+
+## Cardinality
+
+The number of different values a key has. `http.method` has low cardinality (a
+handful of values); `user.id` has high cardinality. Grouping by a high-cardinality key
+produces very many series.
+
+## ClickHouse
+
+The database FuseScope stores traces, logs and metrics in.
+
+## Collector
+
+The OpenTelemetry Collector: a program that receives telemetry from your applications,
+processes it and writes it to ClickHouse. FuseScope ships its own build. See
+[Architecture](/fusescope-docs/reference/architecture/).
+
+## Dashboard
+
+A page of panels (charts, tables, numbers) you arrange yourself. See
+[Dashboards](/fusescope-docs/dashboards/dashboards/).
+
+## Duration
+
+How long a span took, from start to end. Stored in nanoseconds as `duration_nano`.
+
+## Entrypoint span
+
+The first span of a request inside one service, where the request entered it. Service
+latency and error rate are computed from these spans.
+
+## Error rate
+
+The share of requests that failed, as a percentage.
+
+## Exception
+
+An error your code raised, recorded on a span as an `exception` event with its type,
+message and stack trace.
+
+## Filter
+
+A condition that selects which data a query uses, such as
+`service.name = 'driver'`. See [Search syntax](/fusescope-docs/querying/search-syntax/).
+
+## Gauge
+
+A metric type for a current value that goes up and down, such as memory in use.
+
+## Group by
+
+Splitting a query's result into one series or row per value of a key, such as one
+line per `service.name`.
+
+## Histogram
+
+A metric type that counts how many values fall into each range (bucket), used to
+compute percentiles.
+
+## Instrumentation
+
+The code or agent that makes an application produce traces, logs and metrics. See
+[Instrument applications](/fusescope-docs/sending-data/instrumentation/).
+
+## Latency
+
+How long a request takes to get a response.
+
+## Log
+
+A timestamped record a program writes, with a body (the message) and a severity.
+
+## Metric
+
+A named number measured over time, such as requests per second.
+
+## Monotonic
+
+Said of a counter that only goes up, such as total requests served.
+
+## Notification channel
+
+A destination for alert notifications: Slack, email, PagerDuty, a webhook and others.
+See [Notification channels](/fusescope-docs/alerts/notification-channels/).
+
+## OpenTelemetry
+
+An open standard and set of libraries for producing traces, logs and metrics. Often
+shortened to OTel. FuseScope accepts data from any OpenTelemetry SDK.
+
+## OTLP
+
+The OpenTelemetry protocol, used to send telemetry over gRPC (port 4317) or HTTP
+(port 4318). See [OTLP](/fusescope-docs/sending-data/otlp/).
+
+## Panel
+
+One chart, table, number or list on a dashboard.
+
+## Percentile
+
+The value below which a given share of measurements fall. **P50** is the median;
+**P95** and **P99** show the slowest 5% and 1% of requests. See
+[Core concepts](/fusescope-docs/start/concepts/#latency-and-percentiles-p50-p95-p99).
+
+## Query
+
+A request for data: a source (traces, logs or metrics), a filter, and optionally an
+aggregation and group by.
+
+## Resource attribute
+
+An attribute that describes what sent the data, such as `service.name` or
+`k8s.pod.name`. It is the same on everything one program sends.
+
+## Root span
+
+The first span of a trace, the one with no parent. Its duration is the duration of the
+whole request.
+
+## Service
+
+One program that sends telemetry, named by its `service.name` resource attribute.
+
+## Severity
+
+How serious a log is: `DEBUG`, `INFO`, `WARN`, `ERROR` or `FATAL`, stored in
+`severity_text`.
+
+## Span
+
+One piece of work inside a trace, such as an HTTP request or a database query, with a
+name, start time, duration and status.
+
+## Span event
+
+Something that happened at one moment during a span, such as an exception.
+
+## Sum
+
+A metric type for a total, such as requests served. Also called a counter when it is
+monotonic.
+
+## Temporality
+
+How a counter reports its value. **Cumulative**: the total since the program started.
+**Delta**: the change since the last report.
+
+## Throughput
+
+How many requests a service handles per second, shown as operations per second.
+
+## Time range
+
+The period a page or query covers, such as the last 30 minutes.
+
+## Time series
+
+The values of one metric for one combination of label values, over time.
+
+## Trace
+
+Every span of one request, linked into a tree by parent and child. All spans of a
+trace share a trace ID.
+
+## Trace ID
+
+The identifier shared by every span of a trace. Logs written during a request carry it
+too, which links them to the trace.

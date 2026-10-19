@@ -38,35 +38,30 @@ export default defineConfig({
       },
       sidebar: [
         {
-          label: "Getting started",
+          label: "Start here",
           items: [
-            { label: "What is FuseScope?", link: "/" },
-            { label: "Install with Helm", slug: "install/helm" },
+            { label: "What is FuseScope?", slug: "start/what-is-fusescope" },
+            { label: "Core concepts", slug: "start/concepts" },
+            { label: "Tour of the interface", slug: "start/tour" },
+            { label: "Glossary", slug: "reference/glossary" },
           ],
         },
         {
-          label: "Configuration",
-          items: [
-            { label: "Configuration file", slug: "configuration/config-file" },
-            { label: "Metadata store", slug: "configuration/metadata-store" },
-            { label: "Single sign-on", slug: "configuration/sso" },
-          ],
+          label: "Install",
+          items: [{ label: "Install with Helm", slug: "install/helm" }],
         },
         {
-          label: "Sending data",
+          label: "Send data",
           items: [
-            { label: "OTLP", slug: "sending-data/otlp" },
             { label: "Instrument applications", slug: "sending-data/instrumentation" },
+            { label: "OTLP endpoints", slug: "sending-data/otlp" },
             { label: "Kubernetes", slug: "sending-data/kubernetes" },
             { label: "Log pipelines", slug: "sending-data/log-pipelines" },
           ],
         },
         {
-          label: "Using FuseScope",
+          label: "Observe",
           items: [
-            { label: "Query builder", slug: "querying/query-builder" },
-            { label: "Search syntax", slug: "querying/search-syntax" },
-            { label: "ClickHouse SQL and PromQL", slug: "querying/clickhouse-promql" },
             { label: "Services", slug: "apm/services" },
             { label: "Traces explorer", slug: "explore/traces" },
             { label: "Logs explorer", slug: "explore/logs" },
@@ -76,7 +71,7 @@ export default defineConfig({
           ],
         },
         {
-          label: "Alerts",
+          label: "Respond",
           items: [
             { label: "Alert rules", slug: "alerts/alert-rules" },
             { label: "Notification channels", slug: "alerts/notification-channels" },
@@ -84,16 +79,24 @@ export default defineConfig({
           ],
         },
         {
-          label: "Administration",
+          label: "Query reference",
           items: [
-            { label: "Users and roles", slug: "administration/users-and-roles" },
-            { label: "Service accounts", slug: "administration/service-accounts" },
-            { label: "Data retention", slug: "administration/retention" },
+            { label: "Search syntax", slug: "querying/search-syntax" },
+            { label: "Query builder", slug: "querying/query-builder" },
+            { label: "ClickHouse SQL and PromQL", slug: "querying/clickhouse-promql" },
           ],
         },
         {
-          label: "Reference",
-          items: [{ label: "Architecture", slug: "reference/architecture" }],
+          label: "Operate",
+          items: [
+            { label: "Users and roles", slug: "administration/users-and-roles" },
+            { label: "Service accounts", slug: "administration/service-accounts" },
+            { label: "Single sign-on", slug: "configuration/sso" },
+            { label: "Data retention", slug: "administration/retention" },
+            { label: "Configuration file", slug: "configuration/config-file" },
+            { label: "Metadata store", slug: "configuration/metadata-store" },
+            { label: "Architecture", slug: "reference/architecture" },
+          ],
         },
       ],
     }),
