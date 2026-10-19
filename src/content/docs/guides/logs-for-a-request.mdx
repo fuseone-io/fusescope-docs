@@ -32,16 +32,21 @@ searched, but FuseScope cannot tie them to a trace.
    the trace of the request you care about.
 
 2. **Pick a span.** In the **Waterfall**, click the span you want to look at, for
-   example the one that failed. **Span details** opens.
+   example the service's entry span or the one that failed. **Span details** opens on
+   the right.
 
 3. **Open the Logs tab.** It lists the logs written while that span ran, and other logs
-   of the same trace around them for context. Click a log to read it.
+   of the same trace around them for context, newest first. The stripe on each row is
+   the log's [severity](/fusescope-docs/explore/logs/#severity-levels). Click a log to
+   open it in the Logs explorer, in a new tab.
 
 4. **Search further.** Click **Open in Logs Explorer**. The Logs explorer opens with a
    filter on the trace ID, where you can add filters, change the columns or save the
    view.
 
 </Steps>
+
+![A HotROD /dispatch trace with the frontend span selected and the Logs tab open: five frontend logs of the request, from "HTTP GET /dispatch?customer=123 started" to "HTTP GET /dispatch completed 200", with a red "failed to fetch driver location: redis timeout" in between, and Open in Logs Explorer at the bottom.](../../../assets/logs/logs-span-logs-tab.png)
 
 ## From a log to its trace
 
@@ -50,17 +55,26 @@ searched, but FuseScope cannot tie them to a trace.
 1. **Find the log.** Open **Logs** in the sidebar and search, for example:
 
    ```text
-   severity_text ILIKE 'error' AND service.name = 'payment'
+   severity_text ILIKE 'error' AND service.name = 'frontend'
    ```
 
-   `ILIKE` ignores case, so it matches `ERROR`, `Error` and `error`.
+   `ILIKE` ignores case, so it matches `ERROR`, `Error` and `error`. You can also hover
+   **ERROR** in the **Severity Text** filter and click **Only**, which matches every
+   spelling of the level.
 
-2. **Open it.** Click the log. The details header shows its service, severity,
-   trace ID and span ID.
+2. **Open it.** Click the log. **Log details** shows its service, severity, trace ID
+   and span ID.
 
-3. **Open the trace.** Click the trace ID. The trace opens in a new tab.
+3. **Open the trace.** Click **View trace** at the top of the panel. The trace opens in
+   a new tab with the log's span selected. The trace ID under **TRACE ID** is a link to
+   the trace too.
 
 </Steps>
+
+![Log details for a frontend ERROR log, "failed to fetch driver location: redis timeout", with View trace at the top and the trace ID and span ID in the highlighted fields.](../../../assets/logs/logs-detail-overview.png)
+
+If **View trace** is missing, the log has no `trace_id`; see
+[How logs and traces are linked](#how-logs-and-traces-are-linked).
 
 ## Search by trace ID
 
