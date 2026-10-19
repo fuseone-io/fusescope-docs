@@ -1,0 +1,109 @@
+---
+title: Set up your first alert
+description: Send a Slack message when a service's error rate stays above 5%, with a Slack channel and a trace-based alert rule.
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+
+**Use this guide when** you want FuseScope to tell you about a problem before your
+users do.
+
+You will create a Slack [notification channel](/fusescope-docs/reference/glossary/#notification-channel),
+then an [alert rule](/fusescope-docs/reference/glossary/#alert-rule) that fires when
+more than 5% of a service's requests fail. The example watches the `redis-manual`
+service of the HotROD demo app.
+
+**You need:**
+
+- the Admin [role](/fusescope-docs/administration/users-and-roles/#roles) to create
+  the channel, and Editor or Admin to create the rule;
+- a Slack incoming webhook URL, which a Slack workspace admin creates in Slack's app
+  settings. It looks like `https://hooks.slack.com/services/T000/B000/XXXX`.
+
+## Part 1: create the Slack channel
+
+<Steps>
+
+1. Open **Alerts** in the sidebar and go to the **Notification Channels** tab. Click
+   **New Alert Channel**.
+2. Enter a **Name**, such as `slack-oncall`. You cannot rename it later.
+3. Leave **Send resolved alerts** on, to also get a message when the problem is over.
+4. Keep **Type** as **Slack**. Paste the URL into **Webhook URL**.
+5. In **Recipient**, enter the Slack channel, such as `#oncall`.
+6. Click **Test** to send a test message, and check it arrives in Slack.
+7. Click **Save**.
+
+</Steps>
+
+![New Notification Channel form: Name slack-oncall, Send resolved alerts on, Type Slack, a Slack webhook URL and the recipient #oncall.](../../../assets/alerts/slack-channel-form.png)
+
+## Part 2: create the alert rule
+
+The error rate is errors divided by all requests. You will write it as two queries and
+a formula.
+
+<Steps>
+
+1. Go to the **Alert Rules** tab and click **New Alert** (**New Alert Rule** when
+   there are no rules yet). Choose **Trace-based Alert**.
+2. At the top, name the rule, such as `redis-manual error rate above 5%`.
+3. **Define the query.** In query **A**, type the filter below. Keep the aggregation
+   `count()`: it counts all spans of the service.
+
+   ```text
+   service.name = 'redis-manual'
+   ```
+
+4. Click **Add Query**. In query **B**, count only the failed spans:
+
+   ```text
+   service.name = 'redis-manual' AND has_error = true
+   ```
+
+5. Click **Add Formula** and enter `B / A * 100`. This formula, **F1**, is the error
+   percentage. Click **Run Query** and check the chart.
+6. **Set alert conditions.** Make the sentence read: *Send a notification when*
+   **F1** *is* **ABOVE** *the threshold(s)* **AT LEAST ONCE** *during the*
+   **Last 5 minutes**.
+7. In the `critical` threshold row, enter `5` as the value and pick `slack-oncall`
+   under **send to**.
+
+   ![Set alert conditions: F1 is ABOVE the threshold AT LEAST ONCE during the Last 5 minutes; the critical threshold is 5 and sends to slack-oncall.](../../../assets/alerts/alert-rule-conditions.png)
+
+8. **Notification settings.** Keep the default message, or write your own, for
+   example `{{$value}}% of redis-manual calls are failing`.
+9. Click **Save Alert Rule**.
+
+</Steps>
+
+## Expected result
+
+The rule appears in **Alert Rules** with the status **OK**. It is checked every
+minute. When more than 5% of `redis-manual` calls fail at any point in the last
+5 minutes, its status becomes **Firing** and Slack gets a message with the rule name,
+the value and links back to FuseScope. When the rate drops, a "resolved" message
+follows.
+
+<Aside type="tip">
+  **AT LEAST ONCE** fires on a single bad data point. For a noisy service, use
+  **ON AVERAGE** or **ALL THE TIME** so a short spike doesn't wake anyone up. See
+  [Conditions](/fusescope-docs/alerts/alert-rules/#conditions).
+</Aside>
+
+## If it doesn't work
+
+- **No Slack message from Test?** Check the webhook URL and that the Slack app may post
+  to the channel.
+- **Links in messages point to `localhost`?** Set the Alertmanager external URL; see
+  [Templates](/fusescope-docs/alerts/notification-channels/#templates).
+- **Too many messages?** Use **Repeat notifications** and **Group alerts by** in
+  Notification settings, or silence the rule during maintenance with
+  [planned downtime](/fusescope-docs/alerts/routing-and-downtime/#planned-downtime).
+
+## Related
+
+- [Alert rules](/fusescope-docs/alerts/alert-rules/): every option of the rule editor.
+- [Notification channels](/fusescope-docs/alerts/notification-channels/): all channel
+  types.
+- [Find out why a service is failing](/fusescope-docs/guides/failing-service/): what to
+  do when the alert fires.

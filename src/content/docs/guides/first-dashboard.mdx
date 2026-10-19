@@ -1,0 +1,113 @@
+---
+title: Build your first dashboard
+description: Create a dashboard with three panels — spans per service, errors per service and P99 latency — in about ten minutes.
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+
+**Use this guide when** you want one page that shows the health of your services at a
+glance, to keep open on a screen or to share with your team.
+
+You will build the dashboard below from trace data: how much each service does, how
+often it fails, and how slow it is. No metrics setup is needed.
+
+![The finished HotROD overview dashboard: a Spans per service line chart, an Errors per service bar chart and a P99 latency by service table.](../../../assets/dashboards/dashboard-detail.png)
+
+You need the Editor or Admin [role](/fusescope-docs/administration/users-and-roles/#roles).
+
+## Create the dashboard
+
+<Steps>
+
+1. Open **Dashboards** in the sidebar and click **New dashboard**.
+2. On the **Blank** tab, enter a **Title**, such as `HotROD overview`, and an
+   optional **Description**. Add a tag such as `team:demo` and press Enter.
+3. Click **Create dashboard**. The empty dashboard opens.
+
+</Steps>
+
+## Panel 1: spans per service
+
+A [panel](/fusescope-docs/reference/glossary/#panel) is one chart on the dashboard.
+
+<Steps>
+
+1. Click **New Panel**, pick **Time Series** and click **Add panel**. The panel editor
+   opens: the chart preview on top, the query below and the panel options on the right.
+2. In the query, change the data source from **Metrics** to **Traces**. The
+   aggregation is `count()`: the number of [spans](/fusescope-docs/reference/glossary/#span).
+3. Click **Group By** and pick `service.name`, to draw one line per service.
+4. Click **Legend format** and enter `{{service.name}}`, so each line is labelled with
+   its service name.
+5. On the right, set **Title** to `Spans per service`.
+6. Click **Run Query** to check the chart, then **Save changes**.
+
+</Steps>
+
+![Panel editor: a Traces query with count() grouped by service.name and a legend format that names each line after its service, the Spans per service chart above it, and Panel Details on the right.](../../../assets/dashboards/panel-editor.png)
+
+## Panel 2: errors per service
+
+<Steps>
+
+1. Click **New Panel**, pick **Bar Chart** and click **Add panel**.
+2. Change the data source to **Traces** and type this filter in the search box:
+
+   ```text
+   has_error = true
+   ```
+
+3. Group by `service.name`, set the legend to `{{service.name}}` and the title to
+   `Errors per service`.
+4. Click **Run Query**, then **Save changes**.
+
+</Steps>
+
+## Panel 3: P99 latency per service
+
+<Steps>
+
+1. Click **New Panel**, pick **Table** and click **Add panel**.
+2. Change the data source to **Traces**. Replace `count()` with
+   `p99(duration_nano)`, the duration that 99 in 100 spans stay under.
+3. Group by `service.name` and set the title to `P99 latency by service`.
+4. Durations are stored in nanoseconds. Open **Formatting & Units**, and under
+   **Column units** pick **Nanoseconds** for the `p99(duration_nano)` column. The
+   table now shows values such as `737.86 ms`.
+5. Click **Run Query**, then **Save changes**.
+
+</Steps>
+
+## Arrange and share
+
+- Drag a panel by its title to move it, and drag its bottom-right corner to resize it.
+  The layout is saved when you let go.
+- Change the [time range](/fusescope-docs/reference/glossary/#time-range) at the top of
+  the dashboard; every panel follows it.
+- Click the share button (the globe icon) to copy a link to the dashboard. Anyone with
+  access to FuseScope who opens it sees the same dashboard and time range.
+
+## Expected result
+
+A dashboard with three panels that update with the time range. Open it from
+**Dashboards** at any time; pin it with the pin icon on its row to keep it at the top.
+
+<Aside type="tip">
+  To show one service at a time, add a variable: click **Add variable**, create a
+  **Dynamic** variable on `service.name`, and use **Apply to panels**. See
+  [Dashboard variables](/fusescope-docs/dashboards/variables/).
+</Aside>
+
+## Next steps
+
+- Turn errors into a percentage with two queries and a formula `B / A * 100`: see
+  [Several queries and formulas](/fusescope-docs/querying/query-builder/#several-queries-and-formulas).
+- Get notified when a number crosses a line: see
+  [Set up your first alert](/fusescope-docs/guides/first-alert/).
+
+## Related
+
+- [Dashboards](/fusescope-docs/dashboards/dashboards/): panel types, options, sections
+  and JSON.
+- [Query builder](/fusescope-docs/querying/query-builder/): aggregations, group by and
+  formulas.
