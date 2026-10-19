@@ -20,6 +20,8 @@ shows:
 | **Error Rate (% of total)** | Share of those spans with an error status |
 | **Operations Per Second** | Their throughput |
 
+![Services list: seven HotROD services with their P99 latency, error rate and operations per second; payment and redis-manual show their error rates in red.](../../../assets/services/services-list.png)
+
 **Select Environment/s** filters by `deployment.environment`, and the resource attribute
 filter narrows the list by any other resource attribute. Set these attributes in your SDK
 with `OTEL_RESOURCE_ATTRIBUTES`; see [OTLP](/fusescope-docs/sending-data/otlp/).
@@ -29,6 +31,8 @@ with `OTEL_RESOURCE_ATTRIBUTES`; see [OTLP](/fusescope-docs/sending-data/otlp/).
 Click a service to open `/services/<service-name>`. It has three tabs.
 
 ### Overview
+
+![The frontend service page: View logs, View traces and Settings at the top, the Overview, DB Call Metrics and External Metrics tabs, a row of totals (requests, error rate, P99 and average latency, calls, errors), and the Latency and Rate charts.](../../../assets/services/service-overview.png)
 
 | Chart | Shows |
 |---|---|
@@ -44,6 +48,8 @@ Below the charts, **Key Operations** lists the service's operations with P50, P9
 P99 latency (in ms), **Number of Calls** and **Error Rate**. Turn on **Entrypoint Spans**
 to list only the spans where requests enter the service (**Key Entrypoint Operations**).
 Click an operation to see its traces. The table downloads as CSV or Excel.
+
+![Key Operations of the frontend service: /dispatch, HTTP GET and driver.DriverService/FindNearest with P50, P95 and P99 latency, number of calls and error rate.](../../../assets/services/service-key-operations.png)
 
 ### DB Call Metrics
 
@@ -71,6 +77,8 @@ from the parent and child spans in your traces. A node's size follows its call r
 it turns red when the service has errors. Hover over a link for its P99 latency,
 requests per second and error rate.
 
+![Service Map of the HotROD demo: frontend calls customer, driver and route; customer calls mysql; driver calls redis-manual, which is drawn in red because it has errors.](../../../assets/services/service-map.png)
+
 ## Exceptions
 
 **Exceptions** (`/exceptions`) groups the exceptions recorded on spans as span events.
@@ -78,6 +86,10 @@ The **All Exceptions** table shows **Exception Type**, **Error Message**, **Coun
 **Last Seen**, **First Seen** and **Application**. Click an exception to see its stack
 trace and attributes, step through **Older** and **Newer** occurrences, and open
 **See the error in trace graph**.
+
+![Exceptions page: a filter panel on the left and the All Exceptions table with one row, *errors.errorString with the message redis timeout from redis-manual.](../../../assets/exceptions/exceptions-list.png)
+
+![An exception's page: the type *errors.errorString and message redis timeout, the Older, Newer and See the error in trace graph buttons, and the event ID, timestamp and trace ID.](../../../assets/exceptions/exception-detail.png)
 
 <Aside>
   OpenTelemetry SDKs record an exception on a span with `span.recordException()` or its

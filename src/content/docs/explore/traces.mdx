@@ -18,6 +18,8 @@ bar and click **Run Query**. The scope selector next to the search box limits th
 **All Spans**, **Root Spans** or **Entrypoint Spans** (the first span of a request in each
 service).
 
+![The scope selector next to the search box, open on All Spans, Root Spans and Entrypoint Spans.](../../../assets/traces/traces-scope-selector.png)
+
 The filter panel on the left lists quick filters. By default: Duration, Deployment
 Environment, Has Error (Status), Service Name, Name, Rpc Method, Response Status Code,
 Http Host, Http Method, Http Route, Http Url and Trace Id. Duration is a range; the others
@@ -25,6 +27,10 @@ list values to tick. Each filter shows the attribute it filters on, with an icon
 kind. The settings button opens a side panel to add or remove filters for everyone in the
 organization; **Reset All** clears them. The collapse button folds the panel into a
 narrow rail that still shows the active filters; the explorer remembers it.
+
+![The Edit quick filters sheet: the added filters, which can be dragged to reorder, and other attributes to tick, with a search box on top.](../../../assets/traces/traces-quick-filter-settings.png)
+
+![The filter panel collapsed to a rail of icons; badges mark the two active filters, Has Error and Service Name.](../../../assets/traces/traces-filter-rail.png)
 
 ## Views
 
@@ -41,6 +47,8 @@ Time series and Table use the query's aggregation and group by; see
 [Query builder](/fusescope-docs/querying/query-builder/). In List, **Order by**
 sorts the spans, and the columns button opens a side panel to add, remove and reorder
 columns with any attribute.
+
+![The Edit columns sheet: the added fields in display order, each with a drag handle and Remove, and the other fields to add, with a search box on top.](../../../assets/traces/traces-columns-sheet.png)
 
 ![Time series view: the query's aggregation, every and add-ons (Group By, Having, Order By, Limit, Legend format) above a chart of span count over time.](../../../assets/traces/traces-explorer-time-series.png)
 
