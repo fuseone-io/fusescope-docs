@@ -1,6 +1,6 @@
 ---
 title: Investigate a slow endpoint
-description: Go from "this page is slow" to the exact span that takes the time, using Services, Key Operations and the Traces explorer.
+description: Go from "this page is slow" to the exact span that takes the time, using Services, the Endpoints tab and the Traces explorer.
 ---
 
 import { Aside, Steps } from "@astrojs/starlight/components";
@@ -16,25 +16,31 @@ HotROD demo app, where the `frontend` service answers `/dispatch` in about 700 m
 
 <Steps>
 
-1. **Find the slow service.** Open **Services** in the sidebar. The list is sorted by
-   **P99 latency (in ms)**, slowest first; click the column header to change the order.
-   [P99](/fusescope-docs/reference/glossary/#percentile) is the time 99 in 100 requests
-   stay under, so it shows the slow tail that averages hide.
+1. **Find the slow service.** Open **Services** in the sidebar. A service whose p99
+   latency doubled against the previous period has an amber **p99 ↑2×** badge and sits
+   at the top. Otherwise, click the **p99 latency** column header to sort the slowest
+   first. [P99](/fusescope-docs/reference/glossary/#percentile) is the time 99 in 100
+   requests stay under, so it shows the slow tail that averages hide.
 
-   In the demo, `frontend` is at the top with a P99 of about 790 ms.
+   In the demo, `frontend` has the highest p99, about 780 ms.
 
-2. **Open the service.** Click `frontend`. Check the **Latency** chart: is it slow all
-   the time, or did it jump at one moment? To focus on a spike, drag across the chart
-   to zoom into that time.
+2. **Open the service.** Click `frontend`. On the **Overview**, check the **Latency**
+   chart: is it slow all the time, or did it jump at one moment? The dashed line is
+   the previous period, so you can see whether this is new. To focus on a spike,
+   drag across the chart to zoom into that time, or click the spike and choose
+   **View traces** to jump straight to the requests of that moment.
 
-3. **Find the slow operation.** Scroll to **Key Operations**. Each row is one kind of
-   request the service handles, with its P50, P95 and P99 latency. Click the column
-   header **P99 (in ms)** to sort it.
+3. **Find the slow operation.** Open the **Endpoints** tab. Each row is one kind of
+   request or call the service makes, with its average, p50, p95 and p99 latency and
+   its **% time spent**. Click the **p99** column header to sort the slowest first.
 
-   ![Key Operations table of the frontend service: /dispatch with a P99 of 790 ms, HTTP GET and driver.DriverService/FindNearest, with the Entrypoint Spans switch and Download above.](../../../assets/services/service-key-operations.png)
+   ![The Endpoints tab of frontend sorted by p99: /dispatch with a p99 of 778 ms, HTTP GET with 336 ms and driver.DriverService/FindNearest with 241 ms, each with its rate, average, p50, p95, error rate and share of time spent.](../../../assets/services/service-endpoints-p99.png)
 
-4. **See its requests.** Click the operation name, here `/dispatch`. The Traces
-   explorer opens with a filter for that service and operation, in the same time range.
+   For HTTP services, **Group by** › **http.route** shows the same numbers per route
+   template, which is often closer to what users call "a page".
+
+4. **See its requests.** Click the operation, here `/dispatch`. The Traces explorer
+   opens with a filter for that service and operation, in the same time range.
 
 5. **Sort by duration.** Next to the results, set **Order by** to
    `duration_nano (desc)`. The slowest [spans](/fusescope-docs/reference/glossary/#span)
@@ -79,6 +85,7 @@ You know which service and which call make the request slow. In the demo, most o
 ## Related
 
 - [Services](/fusescope-docs/apm/services/): every chart and column on the service page.
+- [Endpoints](/fusescope-docs/apm/services/#endpoints): grouping, entry points and % time spent.
 - [Traces explorer](/fusescope-docs/explore/traces/): views and ordering.
 - [Trace details](/fusescope-docs/explore/trace-details/): flame graph, waterfall, span details and a worked example.
 - [Set up your first alert](/fusescope-docs/guides/first-alert/): get notified next time.

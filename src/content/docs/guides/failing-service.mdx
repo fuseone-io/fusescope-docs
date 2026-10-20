@@ -1,6 +1,6 @@
 ---
 title: Find out why a service is failing
-description: Use the error rate, an error filter, group by and span events to find which calls fail and why.
+description: Use the services list, a service's Errors tab, its traces and span events to find which calls fail and why.
 ---
 
 import { Aside, Steps } from "@astrojs/starlight/components";
@@ -16,39 +16,36 @@ example uses the HotROD demo app, where the `redis-manual` service fails with
 
 <Steps>
 
-1. **Spot the failing service.** Open **Services**. Click the
-   **Error Rate (% of total)** header to sort by it. Error rates are highlighted in red.
-   In the demo, `payment` fails on every call (a synthetic test service) and
-   `redis-manual` on about 18%. This guide follows `redis-manual`.
+1. **Spot the failing service.** Open **Services**. Services with a red badge, such as
+   **100% errors** or **errors ↑3×**, come first; their **Error %** is in red when it
+   is 5% or more. In the demo, `payment` fails on every call (a synthetic test
+   service) and `redis-manual` on about 18.5%. This guide follows `redis-manual`.
 
    The [error rate](/fusescope-docs/reference/glossary/#error-rate) counts
    [spans](/fusescope-docs/reference/glossary/#span) whose status is error, so one
    failed call in five gives 20%.
 
-2. **Count errors per service.** Open **Traces** in the sidebar. In the search box,
-   type:
+2. **Check whether it is new.** Click `redis-manual`. On the **Overview**, the
+   **Error rate** KPI shows the change against the previous period (`no change` in the
+   demo), and the **Error %** chart draws the previous period dashed. **Highlights**
+   calls out a rate that doubled or reached 50%. Click a point on the **Error %** chart
+   and choose **View traces** or **View logs** to see the failures of that moment.
 
-   ```text
-   has_error = true
-   ```
+3. **Find the failing operation and the error.** Open the **Errors** tab.
+   **Top exceptions** lists what the code recorded, here `*errors.errorString` with
+   the message `redis timeout`. **Error status messages** shows which operation fails:
+   all errors are `GetDriver` calls, with the status message `An error occurred`.
 
-   Switch to the **Table** view, click **Group By**, pick `service.name` and click
-   **Run Query**. You get one row per service with its number of failed spans.
+   ![The Errors tab of redis-manual: 1,637 error spans at 18.5%, the redis timeout exception 1,610 times, and the An error occurred status message on GetDriver with 100% of the errors.](../../../assets/services/service-errors.png)
 
-   ![Traces explorer in Table view: has_error = true grouped by service.name; redis-manual has 1660 failed spans and payment 895.](../../../assets/traces/traces-explorer-errors-by-service.png)
+   If **With exception** is `0`, the code sets an error status without recording an
+   exception: rely on the status message and the span attributes. See
+   [Errors](/fusescope-docs/apm/services/#errors).
 
-3. **Find the failing operation.** Narrow the filter to the service and group by
-   `name` instead, the span name:
-
-   ```text
-   service.name = 'redis-manual' AND has_error = true
-   ```
-
-   In the demo, all failures are `GetDriver` calls.
-
-4. **Open one failed request.** Switch back to the **List** view and click a row. The
-   trace opens. Turn on **Highlight errors** at the top of the trace to see which
-   spans failed, and where they sit in the request. See
+4. **Open one failed request.** Click **View traces** on the `GetDriver` row. The
+   Traces explorer opens on those failed spans. Click a row: the trace opens. Turn on
+   **Highlight errors** at the top of the trace to see which spans failed, and where
+   they sit in the request. See
    [Find spans in a trace](/fusescope-docs/explore/trace-details/#find-spans-in-a-trace).
 
 5. **Read the error.** Click the failed span. In **Span details**, the **Events** tab
@@ -56,12 +53,16 @@ example uses the HotROD demo app, where the `redis-manual` service fails with
    trace when the SDK sends one. The **Overview** tab shows the span's attributes, such
    as the status code or the query.
 
-6. **Check how often it happens.** Open **Exceptions** in the sidebar. It groups the
-   same error across all requests, with its **Count**, **First Seen** and
-   **Last Seen**. In the demo, `*errors.errorString` with the message `redis timeout`
-   comes from `redis-manual`.
+6. **Check who is affected.** Back on the service page, open **Dependencies**.
+   **Upstream** lists the services that call `redis-manual`: here `driver`, which
+   receives every failed call. Open `driver` to see whether its own latency or errors
+   suffer.
 
-   ![Exceptions page: one exception, *errors.errorString with the message redis timeout from redis-manual, seen about 1,600 times in the last 30 minutes.](../../../assets/exceptions/exceptions-list.png)
+7. **Compare across services (optional).** To count failures everywhere at once,
+   open **Traces**, search for `has_error = true`, switch to the **Table** view and
+   group by `service.name`.
+
+   ![Traces explorer in Table view: has_error = true grouped by service.name; redis-manual has 1660 failed spans and payment 895.](../../../assets/traces/traces-explorer-errors-by-service.png)
 
 </Steps>
 
@@ -72,10 +73,11 @@ been happening. In the demo: `redis-manual` times out on `GetDriver`, steadily, 
 whole time range.
 
 <Aside>
-  A service can look healthy while its callers fail. If the service that returns the
-  error to the user shows few errors of its own, check the services it calls. The
-  [Service Map](/fusescope-docs/apm/services/#service-map) colours services with errors
-  red.
+  A service can look healthy while the services it calls fail. If the service that
+  returns the error to the user shows few errors of its own, open its
+  [Dependencies](/fusescope-docs/apm/services/#dependencies) tab: failing callees are
+  outlined in amber or red, and one that fails half its calls also raises a highlight
+  on the Overview.
 </Aside>
 
 ## Next steps
@@ -89,5 +91,5 @@ whole time range.
 - [Search syntax](/fusescope-docs/querying/search-syntax/): more filters.
 - [Query builder](/fusescope-docs/querying/query-builder/#group-by-having-order-by-and-limit):
   group by, order by and limit.
-- [Exceptions](/fusescope-docs/apm/services/#exceptions).
+- [Errors tab](/fusescope-docs/apm/services/#errors) and [Exceptions](/fusescope-docs/apm/services/#exceptions).
 - [Trace details](/fusescope-docs/explore/trace-details/): span details, events and logs.
