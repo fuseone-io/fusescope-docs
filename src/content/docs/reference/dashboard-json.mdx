@@ -3,11 +3,34 @@ title: Dashboard JSON
 description: The JSON format of a FuseScope dashboard, for export, import and editing.
 ---
 
-import { Aside } from "@astrojs/starlight/components";
+import { Aside, Steps } from "@astrojs/starlight/components";
 
-**Use this page when** you edit a dashboard as JSON, keep dashboards in Git, or write
-one by hand to import. To export, import or edit JSON from the app, see
-[Dashboards](/fusescope-docs/dashboards/dashboards/#export-and-edit-as-json).
+**Use this page when** someone sent you a dashboard as a `.json` file and you want to
+add it to FuseScope, or when you edit a dashboard as JSON, keep dashboards in Git, or
+write one by hand. FuseScope ships no built-in dashboard templates: a dashboard shared
+as JSON is how you reuse one.
+
+## Import a dashboard
+
+<Steps>
+
+1. Open **Dashboards** in the sidebar and click **New dashboard**.
+2. Click the **Import JSON** tab.
+3. Paste the JSON into the editor, or click **Upload JSON file** and pick the `.json`
+   file.
+4. Click **Import and Next**. FuseScope creates the dashboard and opens it.
+
+</Steps>
+
+If the JSON can't be read, the dialog shows *Error loading JSON file*, or
+*Invalid JSON* for an uploaded file that isn't JSON at all.
+
+## Export a dashboard
+
+Open the dashboard and click **JSON** in its toolbar, then **Download**: the file is
+saved as `<name>.json`, ready to import elsewhere. **Copy** puts the same JSON on the
+clipboard. You can also edit the JSON in that drawer and click **Apply changes**; see
+[Export and edit as JSON](/fusescope-docs/dashboards/dashboards/#export-and-edit-as-json).
 
 ## Format
 

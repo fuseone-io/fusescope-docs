@@ -7,7 +7,9 @@ import { Aside, Tabs, TabItem } from "@astrojs/starlight/components";
 
 Variables put dropdowns or text boxes at the top of a dashboard, so one dashboard can show
 any service, environment or host. Add them in **Configure → Variables → Add variable**,
-or with **Add variable** below the dashboard title.
+or with **Add variable** in the variables bar below the dashboard title. How the bar
+works for viewers is described in
+[The variables bar](/fusescope-docs/dashboards/dashboards/#the-variables-bar).
 
 **Use this page when** you have built a dashboard for one service and want the same
 panels for every service, without copying the dashboard.
@@ -17,7 +19,7 @@ panels for every service, without copying the dashboard.
 1. Click **Add variable**. Name it `service` and pick the **Dynamic** type.
 2. Pick the attribute `service.name` from **Traces**.
 3. Under **Apply to panels**, select the panels to filter, then **Save Variable**.
-4. A **service** dropdown appears above the panels. Pick `frontend`: every selected
+4. A `$service` control appears in the variables bar. Pick `frontend`: every selected
    panel now shows only `frontend`, because FuseScope added `service.name IN $service`
    to their filters.
 
@@ -122,8 +124,13 @@ When **ALL** is selected:
 
 ## Variables in links
 
-The current values are kept in the dashboard URL as `?variables=` followed by a JSON
-object, for example `{"service":"checkout"}`; **ALL** is written `__ALL__`. When sharing,
-tick **Include variables** to send the link with the current selection.
+The values you pick are remembered in your browser, per dashboard; they are not saved
+in the dashboard, so every viewer has their own selection.
+
+To send a selection to someone, click **Share** and turn on **Include variables**
+before **Copy page link**. The link then carries `?variables=` followed by a JSON
+object, for example `{"service":"checkout"}`; **ALL** is written `__ALL__`. When the
+link is opened, those values are applied and the parameter is removed from the
+address.
 
 Renaming or deleting a variable lists the panels that use it and offers to update them.
