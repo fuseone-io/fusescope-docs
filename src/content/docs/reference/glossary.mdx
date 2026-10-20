@@ -22,7 +22,9 @@ threshold, an alert fires and a notification is sent. See
 ## Apdex
 
 A score from 0 to 1 for how satisfied users are with a service's response times,
-based on a target time *T*. See [Core concepts](/fusescope-docs/start/concepts/#apdex).
+based on a target time *T*: requests within *T* count fully, within 4 × *T* half, and
+slower or failed ones not at all. See [Core concepts](/fusescope-docs/start/concepts/#apdex)
+and [Apdex threshold](/fusescope-docs/apm/services/#apdex-threshold).
 
 ## Attribute
 
@@ -61,9 +63,20 @@ A control at the top of a dashboard, such as a list of services, whose value the
 panel queries use as `$name`. Changing it changes what every panel that uses it shows.
 See [Dashboard variables](/fusescope-docs/dashboards/variables/).
 
+## Downstream
+
+The services, databases and external addresses a service calls. See
+[Upstream and downstream](#upstream-and-downstream).
+
 ## Duration
 
 How long a span took, from start to end. Stored in nanoseconds as `duration_nano`.
+
+## Endpoint
+
+One kind of request or call a service handles, shown as a row of the
+[Endpoints](/fusescope-docs/apm/services/#endpoints) tab: an
+[operation](#operation), or an `http.route` or `rpc.method` value.
 
 ## Entrypoint span
 
@@ -103,6 +116,13 @@ A metric type for a current value that goes up and down, such as memory in use. 
 
 Splitting a query's result into one series or row per value of a key, such as one
 line per `service.name`.
+
+## Highlight
+
+A change FuseScope flags on a service because it crossed a rule: an error rate of 50%
+or more, or the error rate, p99 latency or request rate at least doubling against the
+previous period. On the service page, also a downstream dependency that fails half
+its calls. See [Highlight badges](/fusescope-docs/apm/services/#highlight-badges).
 
 ## Histogram
 
@@ -146,6 +166,11 @@ See [Notification channels](/fusescope-docs/alerts/notification-channels/).
 An open standard and set of libraries for producing traces, logs and metrics. Often
 shortened to OTel. FuseScope accepts data from any OpenTelemetry SDK.
 
+## Operation
+
+The name of a span, such as `/dispatch`, `HTTP GET` or `GetDriver`. Spans with the
+same name in one service are the same operation.
+
 ## OTLP
 
 The OpenTelemetry protocol, used to send telemetry over gRPC (port 4317) or HTTP
@@ -177,6 +202,11 @@ aggregation and group by.
 
 How fast a [counter](#counter) grows, per second, such as 35 requests per second. See
 [Why counters are queried with a rate](/fusescope-docs/explore/metrics/#why-counters-are-queried-with-a-rate).
+
+## RED metrics
+
+Rate, errors and duration: how many requests a service handles, how many fail and how
+long they take. See [Services](/fusescope-docs/apm/services/#rate-errors-and-duration).
 
 ## Resource attribute
 
@@ -236,7 +266,8 @@ How a counter reports its value. **Cumulative**: the total since the program sta
 
 ## Throughput
 
-How many requests a service handles per second, shown as operations per second.
+How many requests a service handles per second, shown as the rate in requests per
+second (req/s).
 
 ## Time range
 
@@ -256,6 +287,13 @@ trace share a trace ID.
 
 The identifier shared by every span of a trace. Logs written during a request carry it
 too, which links them to the trace.
+
+## Upstream and downstream
+
+Directions of calls between services. **Upstream** services call this one;
+**downstream** ones are called by it. In HotROD, `frontend` is upstream of `driver`,
+and `redis-manual` is downstream of it. See
+[Dependencies](/fusescope-docs/apm/services/#dependencies).
 
 ## Waterfall
 
