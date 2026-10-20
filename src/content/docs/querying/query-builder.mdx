@@ -94,7 +94,12 @@ SERIES**), optionally **by** some labels. The options depend on the metric type.
 | Gauge, non-monotonic Sum, Summary | Latest, Sum, Avg, Min, Max, Count, Count Distinct | Sum, Avg, Min, Max |
 | Histogram, Exponential histogram | none | P50, P75, P90, P95, P99 |
 
-See [Metrics explorer](/fusescope-docs/explore/metrics/) for metric types and temporality.
+In the Metrics explorer the same two steps are labelled **Over time** (*within each
+series*) and **Across series** (*combine into groups*), inside the card's
+**Aggregation** section; see
+[Aggregation](/fusescope-docs/explore/metrics/#aggregation). See
+[Metric basics](/fusescope-docs/explore/metrics/#metric-basics) for metric types and
+temporality.
 
 </TabItem>
 </Tabs>
@@ -140,6 +145,14 @@ Name series with the values of their group keys in double braces:
 Each query has a letter: **A**, **B**, and so on, up to 26 queries. Add one with the
 **+** button (**Add New Query**). Each query has a toggle to show or hide its result, and
 a menu to clone or delete it.
+
+<Aside>
+  The Metrics explorer lays queries out as cards in a side panel, with **Add query**
+  and **Add formula** at its foot and one card open at a time; see
+  [Chart a metric](/fusescope-docs/explore/metrics/#chart-a-metric). The options are
+  the same. Dashboard panels, alert rules and the Logs and Traces explorers keep the
+  stacked layout described here.
+</Aside>
 
 **Add Formula** combines queries by name, for example an error percentage:
 
