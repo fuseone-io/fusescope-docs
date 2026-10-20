@@ -45,6 +45,11 @@ The OpenTelemetry Collector: a program that receives telemetry from your applica
 processes it and writes it to ClickHouse. FuseScope ships its own build. See
 [Architecture](/fusescope-docs/reference/architecture/).
 
+## Counter
+
+A [Sum](#sum) metric that only goes up, such as requests served. Queried with a
+[rate](#rate). See [Metric basics](/fusescope-docs/explore/metrics/#metric-basics).
+
 ## Dashboard
 
 A page of panels (charts, tables, numbers) you arrange yourself. See
@@ -68,6 +73,11 @@ The share of requests that failed, as a percentage.
 An error your code raised, recorded on a span as an `exception` event with its type,
 message and stack trace.
 
+## Exponential histogram
+
+A [histogram](#histogram) whose buckets grow exponentially in size, so it covers a wide
+range of values without bucket settings.
+
 ## Filter
 
 A condition that selects which data a query uses, such as
@@ -80,7 +90,8 @@ that called it. See [Trace details](/fusescope-docs/explore/trace-details/#flame
 
 ## Gauge
 
-A metric type for a current value that goes up and down, such as memory in use.
+A metric type for a current value that goes up and down, such as memory in use. See
+[Metric types](/fusescope-docs/explore/metrics/#metric-types-and-temporality).
 
 ## Group by
 
@@ -155,6 +166,11 @@ runs its processors in order. See
 A request for data: a source (traces, logs or metrics), a filter, and optionally an
 aggregation and group by.
 
+## Rate
+
+How fast a [counter](#counter) grows, per second, such as 35 requests per second. See
+[Why counters are queried with a rate](/fusescope-docs/explore/metrics/#why-counters-are-queried-with-a-rate).
+
 ## Resource attribute
 
 An attribute that describes what sent the data, such as `service.name` or
@@ -164,6 +180,12 @@ An attribute that describes what sent the data, such as `service.name` or
 
 The first span of a trace, the one with no parent. Its duration is the duration of the
 whole request.
+
+## Sample
+
+One value of a metric at one moment, also called a data point. The Metrics explorer
+counts them per metric. See
+[Samples and time series](/fusescope-docs/explore/metrics/#samples-and-time-series).
 
 ## Service
 
@@ -189,10 +211,16 @@ Something that happened at one moment during a span, such as an exception.
 A metric type for a total, such as requests served. Also called a counter when it is
 monotonic.
 
+## Summary (metric type)
+
+A metric type that carries percentiles the application computed itself, sent by older
+Prometheus clients.
+
 ## Temporality
 
 How a counter reports its value. **Cumulative**: the total since the program started.
-**Delta**: the change since the last report.
+**Delta**: the change since the last report. See
+[Metric types and temporality](/fusescope-docs/explore/metrics/#metric-types-and-temporality).
 
 ## Throughput
 
@@ -204,7 +232,8 @@ The period a page or query covers, such as the last 30 minutes.
 
 ## Time series
 
-The values of one metric for one combination of label values, over time.
+The values of one metric for one combination of label values, over time. See
+[Samples and time series](/fusescope-docs/explore/metrics/#samples-and-time-series).
 
 ## Trace
 
