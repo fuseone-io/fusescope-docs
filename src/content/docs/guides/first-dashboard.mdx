@@ -20,11 +20,15 @@ You need the Editor or Admin [role](/fusescope-docs/administration/users-and-rol
 <Steps>
 
 1. Open **Dashboards** in the sidebar and click **New dashboard**.
-2. On the **Blank** tab, enter a **Title**, such as `HotROD overview`, and an
-   optional **Description**. Add a tag such as `team:demo` and press Enter.
-3. Click **Create dashboard**. The empty dashboard opens.
+2. On the **Blank** tab, replace `Sample Dashboard` in **Title** with a name, such as
+   `HotROD overview`, and add an optional **Description**. In **Tags**, type
+   `team:demo` and press Enter.
+3. Click **Create dashboard**. The new dashboard opens on **Welcome to your new
+   dashboard**.
 
 </Steps>
+
+![An empty dashboard: Welcome to your new dashboard, with a Configure your new dashboard step and an Add panels step with New Panel.](../../../assets/dashboards/dashboard-empty.png)
 
 ## Panel 1: spans per service
 
@@ -32,8 +36,9 @@ A [panel](/fusescope-docs/reference/glossary/#panel) is one chart on the dashboa
 
 <Steps>
 
-1. Click **New Panel**, pick **Time Series** and click **Add panel**. The panel editor
-   opens: the chart preview on top, the query below and the panel options on the right.
+1. Click **New Panel**. In the **New panel** picker, click **Time Series**, then
+   **Add panel**. The panel editor opens: the chart preview on top, the query below and
+   the panel options on the right.
 2. In the query, change the data source from **Metrics** to **Traces**. The
    aggregation is `count()`: the number of [spans](/fusescope-docs/reference/glossary/#span).
 3. Click **Group By** and pick `service.name`, to draw one line per service.
@@ -50,7 +55,8 @@ A [panel](/fusescope-docs/reference/glossary/#panel) is one chart on the dashboa
 
 <Steps>
 
-1. Click **New Panel**, pick **Bar Chart** and click **Add panel**.
+1. Click **New Panel** at the top of the dashboard, pick **Bar Chart** and click
+   **Add panel**.
 2. Change the data source to **Traces** and type this filter in the search box:
 
    ```text
@@ -80,22 +86,26 @@ A [panel](/fusescope-docs/reference/glossary/#panel) is one chart on the dashboa
 
 ## Arrange and share
 
-- Drag a panel by its title to move it, and drag its bottom-right corner to resize it.
+- Drag a panel by its header to move it, and drag its bottom-right corner to resize it.
   The layout is saved when you let go.
 - Change the [time range](/fusescope-docs/reference/glossary/#time-range) at the top of
-  the dashboard; every panel follows it.
-- Click the share button (the globe icon) to copy a link to the dashboard. Anyone with
-  access to FuseScope who opens it sees the same dashboard and time range.
+  the page; every panel follows it.
+- Click **Share** (the globe icon at the top right), then **Copy page link**. Anyone
+  with access to FuseScope who opens it sees the same dashboard and time range.
+- To group panels later, use **Actions** › **New section**. See
+  [Sections](/fusescope-docs/dashboards/dashboards/#sections).
 
 ## Expected result
 
 A dashboard with three panels that update with the time range. Open it from
-**Dashboards** at any time; pin it with the pin icon on its row to keep it at the top.
+**Dashboards** at any time; click the pin icon on its row to find it in the **Pinned**
+view.
 
 <Aside type="tip">
-  To show one service at a time, add a variable: click **Add variable**, create a
-  **Dynamic** variable on `service.name`, and use **Apply to panels**. See
-  [Dashboard variables](/fusescope-docs/dashboards/variables/).
+  To show one service at a time, add a variable: click **Add variable** under the
+  title, create a **Dynamic** variable on `service.name`, and use **Apply to panels**.
+  See [Dashboard variables](/fusescope-docs/dashboards/variables/) and the
+  [worked example](/fusescope-docs/dashboards/dashboards/#example-filter-a-dashboard-by-service).
 </Aside>
 
 ## Next steps
