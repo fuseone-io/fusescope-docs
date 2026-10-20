@@ -55,6 +55,12 @@ A [Sum](#sum) metric that only goes up, such as requests served. Queried with a
 A page of panels (charts, tables, numbers) you arrange yourself. See
 [Dashboards](/fusescope-docs/dashboards/dashboards/).
 
+## Dashboard variable
+
+A control at the top of a dashboard, such as a list of services, whose value the
+panel queries use as `$name`. Changing it changes what every panel that uses it shows.
+See [Dashboard variables](/fusescope-docs/dashboards/variables/).
+
 ## Duration
 
 How long a span took, from start to end. Stored in nanoseconds as `duration_nano`.
@@ -147,7 +153,8 @@ The OpenTelemetry protocol, used to send telemetry over gRPC (port 4317) or HTTP
 
 ## Panel
 
-One chart, table, number or list on a dashboard.
+One chart, table, number, list or note on a dashboard, with its own query and title.
+See [Dashboards](/fusescope-docs/dashboards/dashboards/#panels).
 
 ## Percentile
 
@@ -186,6 +193,11 @@ whole request.
 One value of a metric at one moment, also called a data point. The Metrics explorer
 counts them per metric. See
 [Samples and time series](/fusescope-docs/explore/metrics/#samples-and-time-series).
+
+## Section
+
+A titled group of panels on a dashboard. Sections can be folded, reordered and
+cloned. See [Sections](/fusescope-docs/dashboards/dashboards/#sections).
 
 ## Service
 
