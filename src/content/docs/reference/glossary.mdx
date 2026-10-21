@@ -167,6 +167,12 @@ A filter and a list of processors that change logs before they are stored, such 
 parsing JSON or setting the severity. See
 [Log pipelines](/fusescope-docs/sending-data/log-pipelines/).
 
+## Meter signal
+
+A count of what the workspace ingested: log records, spans and metric data points,
+and the size of logs and spans, written once per hour as `signoz.meter.*` metrics.
+See [Cost Meter](/fusescope-docs/analyze/cost-meter/).
+
 ## Metric
 
 A named number measured over time, such as requests per second.
