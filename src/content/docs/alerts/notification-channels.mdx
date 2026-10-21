@@ -16,20 +16,40 @@ test notifications.
 before creating alert rules. An example with Slack is in
 [Set up your first alert](/fusescope-docs/guides/first-alert/).
 
+## The channels list
+
+Open *Alerts → Notification Channels* (also under *Settings*). The list shows each
+channel's **Name** and **Type**, with **Edit** and **Delete**.
+
+![The Notification Channels tab with two channels: fs-design-test-webhook of type webhook and slack-oncall of type slack, each with Edit and Delete, and the count 2 channels.](../../../assets/alerts/notification-channels-list.png)
+
+A channel does nothing on its own: a rule sends to it only when the channel is picked
+under **send to** on one of the rule's thresholds, or when a
+[routing policy](/fusescope-docs/alerts/routing-and-downtime/#routing-policies)
+matching the alert lists it.
+
 ## Create a channel
 
 <Steps>
 
-1. Go to *Alerts → Notification Channels* (also under *Settings*) and click
-   **New Alert Channel**.
-2. Enter a **Name** and choose the **Type**. Neither can be changed later.
-3. Fill in the fields for the type, listed below.
-4. Leave **Send resolved alerts** on to be notified when an alert resolves.
-5. Click **Test** to send a test alert, then **Save**.
+1. Click **New Alert Channel**.
+2. Fill in the form below and click **Save**.
 
 </Steps>
 
-![New Notification Channel form for Slack: Name, Send resolved alerts, Type, Webhook URL, Recipient and the prefilled Title template.](../../../assets/alerts/slack-channel-form.png)
+![New Notification Channel for Slack, numbered: 1 Name slack-oncall, 2 Send resolved alerts on, 3 Type Slack, 4 Webhook URL, 5 Recipient #oncall, 6 the prefilled Title template, 7 Test, 8 Save.](../../../assets/alerts/slack-channel-form.png)
+
+1. **Name**: how rules and policies refer to the channel, such as `slack-oncall`. It
+   can't be changed later.
+2. **Send resolved alerts**: also notify when an alert resolves. On by default.
+3. **Type**: Slack, Webhook, PagerDuty and the others in
+   [Channel types](#channel-types). It can't be changed later.
+4. to 6. The fields of the type, here the Slack **Webhook URL**, the **Recipient**
+   (`#channel-name` or `@username`, in lower case, without spaces) and the **Title**
+   and **Description** templates.
+7. **Test** sends a sample alert to the channel without saving it, to check the
+   address and credentials. It reaches real people, so warn them first.
+8. **Save** creates the channel. **Back** leaves without saving.
 
 The test alert is named `Test Alert (<channel name>)`, has severity `critical` and the text
 "Test alert fired from FuseScope". Nothing is saved by a test.

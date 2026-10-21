@@ -1,76 +1,172 @@
 ---
 title: Alert rules
-description: Alert on metrics, logs, traces and exceptions with thresholds, evaluation windows and notification templates.
+description: Get told about problems instead of watching for them. The Alerts page, the rule list, the three-step rule editor, thresholds, evaluation windows, notification settings, a rule's history and the alerts firing now, with a worked example on the demo's rule.
 ---
 
 import { Aside, Steps } from "@astrojs/starlight/components";
 
 An [alert rule](/fusescope-docs/reference/glossary/#alert-rule) runs a query on a
-schedule, compares the result with one or more thresholds and sends a notification when a
-condition holds. Rules live under *Alerts → Alert Rules*. Creating, editing and deleting
-rules needs the Editor or Admin [role](/fusescope-docs/administration/users-and-roles/#roles);
-viewers can read them.
+schedule, compares the result with one or more thresholds and sends a notification
+when a condition holds. Rules live on the **Alerts** page, under **Respond** in the
+sidebar. Creating, editing and deleting rules needs the Editor or Admin
+[role](/fusescope-docs/administration/users-and-roles/#roles); viewers can read them.
 
 **Use this page when** you want to be told about a problem instead of watching for it,
-for example when a service's error rate goes above 5%. For a step-by-step first rule
-with Slack, see [Set up your first alert](/fusescope-docs/guides/first-alert/).
+for example when a service's error rate goes above 5%, or when you open a rule someone
+else wrote and want to know what it does. For a step-by-step first rule with Slack,
+see [Set up your first alert](/fusescope-docs/guides/first-alert/).
 
-![Alert Rules tab: a search box, Columns and New Alert above a table of rules with status, name, severity, labels and actions.](../../../assets/alerts/alert-rules-list.png)
+## Alerts in plain words
+
+- A **rule** is a question FuseScope asks every minute or so: *is the error rate of
+  `redis-manual` above 5%?*
+- A **threshold** is the line the answer is compared with, such as `5`. A rule can
+  have several, from `critical` down to `info`.
+- The **evaluation window** is how much recent data each check looks at, such as the
+  last 5 minutes.
+- When the condition holds, the rule **fires**: it creates an **alert** and sends a
+  **notification** to one or more
+  [notification channels](/fusescope-docs/alerts/notification-channels/), such as Slack
+  or email. When the condition stops holding, the alert **resolves**.
+- **Labels** are `key: value` pairs on a rule and its alerts, such as `team: payments`.
+  They decide how alerts are grouped and, with
+  [routing policies](/fusescope-docs/alerts/routing-and-downtime/#routing-policies),
+  where they are sent.
+
+## The Alerts page
+
+Click **Alerts** in the sidebar (`/alerts`). It has four tabs:
+
+![The Alert Rules tab, numbered: 1 to 4 the Triggered Alerts, Alert Rules, Notification Channels and Configuration tabs, 5 New Alert, 6 the search box, 7 Columns, 8 a rule's status, 9 the rule summary under its name, 10 a severity, 11 the row menu.](../../../assets/alerts/alert-rules-list.png)
+
+1. **Triggered Alerts**: the alerts firing now. See [Triggered alerts](#triggered-alerts).
+2. **Alert Rules**: every rule, the default tab. See [The rule list](#the-rule-list).
+3. **Notification Channels**: where alerts are sent. See
+   [Notification channels](/fusescope-docs/alerts/notification-channels/).
+4. **Configuration**: **Planned Downtime** and **Routing Policies**. See
+   [Routing and planned downtime](/fusescope-docs/alerts/routing-and-downtime/).
+5. **New Alert** creates a rule. The button follows the tab: on Configuration it
+   becomes **New downtime** or **New routing policy**, on Notification Channels
+   **New Alert Channel**.
+
+The tab is part of the address (`?tab=AlertRules`, `?tab=TriggeredAlerts`,
+`?tab=Channels`, `?tab=Configuration`), so you can link to it.
+
+### The rule list
+
+6. **Search by Alert Name, Severity and Labels**: type part of any of them. The
+   **?** next to it links to this page.
+7. **Columns**: show or hide **Severity**, **Labels**, **Created At**,
+   **Created By**, **Updated At** and **Updated By**.
+8. **Status**: the rule's current [state](#states), such as **Firing**, **OK** or
+   **Disabled**.
+9. **Alert name**, and under it a one-line summary of the rule: its type, the
+   condition and the window, such as `Trace-based · F1 > 5, at least once in 5m`.
+10. **Severity**: the `severity` label, such as `warning`, coloured by level.
+11. **Row menu** (**⋯**):
+
+![The row menu of a disabled rule: Enable, Edit, Edit in New Tab, Clone and Delete.](../../../assets/alerts/alert-rule-row-menu.png)
+
+| Item | Does |
+|---|---|
+| **Enable** / **Disable** | Turns the rule on or off. A disabled rule is not evaluated |
+| **Edit** | Opens the rule (**Edit in New Tab** in a new browser tab) |
+| **Clone** | Creates a copy you can change |
+| **Delete** | Deletes the rule, after you confirm |
+
+Click **Status**, **Alert name** or **Severity** to sort. Click a row to open the
+[rule page](#the-rule-page). With no rules yet, the tab shows ready-made examples and
+a **New Alert Rule** button instead of the table.
 
 ## Create a rule
 
 <Steps>
 
-1. Go to *Alerts → Alert Rules*, click **New Alert** (**New Alert Rule** when there are
-   no rules yet) and choose a type:
+1. Click **New Alert** and choose what the rule watches:
 
-   | Type | Data | Query editors |
+   ![Choose a type for the alert: Metric based Alert, Log-based Alert, Trace-based Alert and Exceptions-based Alert, each with a one-line description.](../../../assets/alerts/alert-type-picker.png)
+
+   | Type | Watches | Query editors |
    |---|---|---|
-   | Metric based Alert | Metrics | Query Builder, ClickHouse Query, PromQL |
-   | Log-based Alert | Logs | Query Builder, ClickHouse Query |
-   | Trace-based Alert | Spans | Query Builder, ClickHouse Query |
-   | Exceptions-based Alert | Exceptions | Query Builder, ClickHouse Query (default) |
+   | **Metric based Alert** | Metrics, such as CPU or a request counter | Query Builder, ClickHouse Query, PromQL |
+   | **Log-based Alert** | Logs, such as a count of `ERROR` lines | Query Builder, ClickHouse Query |
+   | **Trace-based Alert** | Spans, such as error rate or p99 latency | Query Builder, ClickHouse Query |
+   | **Exceptions-based Alert** | Recorded exceptions | Query Builder, ClickHouse Query (default) |
 
-2. **Define the query.** Build the query and check the preview chart. Group by
-   attributes, such as `service.name`, to get one alert per group.
-3. **Set alert conditions**: the comparison, the thresholds and the evaluation window,
-   and where to send notifications: channels per threshold, or routing policies.
-4. **Notification settings**: the message, grouping and repeat interval.
-5. Name the rule in the header, add labels, then click **Save Alert Rule**.
+2. The editor opens with three steps: [Define the query](#step-1-define-the-query),
+   [Set alert conditions](#conditions) and
+   [Notification settings](#notification-settings).
+3. Give the rule a name and labels at the top, then click **Save Alert Rule**.
 
 </Steps>
 
-![The rule editor for a trace-based alert: the rule name and Add labels at the top, the three steps on the left, and the query preview chart.](../../../assets/alerts/alert-rule-editor.png)
-
-**Test Notification** evaluates the rule once and sends the result to its channels without
-saving it. When no series matches, FuseScope reports that no alerts were found; adjust the
-threshold and retry.
-
 <Aside>
-  The header has a **Switch to Classic Experience** button that opens the previous form.
-  It offers the same rule types with a single threshold and a *Severity* field.
+  A new rule's header has **Switch to Classic Experience**, which opens the previous
+  form. It offers the same rule types with a single threshold and a *Severity* field.
 </Aside>
+
+You can also start a rule from elsewhere: **Create alert** on a
+[service chart](/fusescope-docs/apm/services/#the-charts), or from the explorers and
+dashboard panels, opens the editor with the query already filled in.
+
+## The rule editor
+
+The editor is the same when you create a rule and when you open an existing one. Here
+it shows the demo rule `redis-manual error rate above 5%`:
+
+![The rule page of redis-manual error rate above 5%, numbered: 1 the status badge, 2 the enable switch, 3 Copy link, 4 the rule menu, 5 Rule name, 6 Add labels, 7 the Overview and History tabs, 8 the preview time range, 9 Define the query, 10 the data source, 11 Query Builder or ClickHouse Query, 12 Run Query, 13 the formula F1 = B / A * 100, 14 the preview chart with A, B, F1 and the critical threshold line.](../../../assets/alerts/alert-rule-editor.png)
+
+### The header
+
+1. **Status**: the rule's [state](#states), here **Disabled**.
+2. **Enable switch**: turns the rule on or off, as the row menu does.
+3. **Copy link**: copies the rule's address.
+4. **⋯**: **Clone** and **Delete**.
+5. **Rule name**: what notifications and the list show. Make it say what is wrong,
+   such as `redis-manual error rate above 5%`.
+6. **Add labels**: add `key: value` labels, such as `team: platform`. Every alert of
+   the rule carries them, so routing policies and grouping can use them.
+7. **Overview** (the editor) and **History** (see [History](#history)).
+8. **Time range** of the preview chart. It doesn't change what the rule checks; that
+   is the [evaluation window](#evaluation-window-and-frequency).
+
+### Step 1: define the query
+
+9. **Define the query**: what number the rule watches.
+10. **Data source**: **Metrics**, **Logs**, **Traces** or **Exceptions**.
+11. **Query Builder** or **ClickHouse Query** (and **PromQL** for metrics). The query
+    builder works as in the explorers; see
+    [Query builder](/fusescope-docs/querying/query-builder/).
+12. **Run Query** draws the preview.
+13. **Queries and formulas**. Each query (**A**, **B**…) gives one series per group;
+    **Add Formula** combines them, such as `B / A * 100` for an error percentage.
+    **Group By** gives one alert per value, for example one per `service.name`.
+14. **Preview**: the result over the time range, with each threshold as a dashed
+    line, such as `critical`. Use it to check that the threshold sits where you
+    expect.
 
 ## Conditions
 
-The condition reads as a sentence:
-*Send a notification when* **A** *is* **ABOVE** *the threshold(s)* **AT LEAST ONCE**
-*during the* **Last 5 minutes**.
+**Set alert conditions** reads as a sentence: *Send a notification when* **F1** *is*
+**ABOVE** *the threshold(s)* **AT LEAST ONCE** *during the* **Last 5 minutes**.
 
-![Set alert conditions: F1 is ABOVE the threshold AT LEAST ONCE during the Last 5 minutes, a critical threshold of 5 sent to a Slack channel, and the Use Routing Policies switch.](../../../assets/alerts/alert-rule-conditions.png)
+![Set alert conditions and Notification settings of the demo rule, numbered: 1 Threshold, 2 the operator ABOVE, 3 the match type AT LEAST ONCE, 4 the evaluation window Last 5 minutes Rolling, 5 the threshold name critical, 6 its value 5, 7 send to slack-oncall, 8 Add Threshold, 9 Use Routing Policies, 10 How often to check, 11 Alert when data stops coming, 12 Minimum data required, 13 Notification Message, 14 Group alerts by, 15 Repeat notifications, 16 Test Notification, 17 Save Alert Rule.](../../../assets/alerts/alert-rule-conditions.png)
 
-The operators are **ABOVE**, **BELOW**, **EQUAL TO**, **NOT EQUAL TO**,
-**ABOVE OR EQUAL TO** and **BELOW OR EQUAL TO**.
-
-The match type decides which points of the evaluation window count:
+1. **Threshold**: the kind of condition: a fixed value.
+2. **Operator**: **ABOVE**, **BELOW**, **EQUAL TO**, **NOT EQUAL TO**,
+   **ABOVE OR EQUAL TO** or **BELOW OR EQUAL TO**. The drop-down before it, here
+   **F1**, picks which query or formula the condition uses.
+3. **Match type**: which points of the window must meet the condition:
 
 | Match type | Fires when | Good for |
 |---|---|---|
-| AT LEAST ONCE | any point meets the condition | catching every spike |
-| ALL THE TIME | every point meets it | ignoring short spikes |
-| ON AVERAGE | the average of the points meets it | noisy values |
-| IN TOTAL | the sum of the points meets it | counts, such as errors in the window |
-| LAST | the most recent point meets it | the current state |
+| **AT LEAST ONCE** | any point meets the condition | catching every spike |
+| **ALL THE TIME** | every point meets it | ignoring short spikes |
+| **ON AVERAGE** | the average of the points meets it | noisy values |
+| **IN TOTAL** | the sum of the points meets it | counts, such as errors in the window |
+| **LAST** | the most recent point meets it | the current state |
+
+4. **Evaluation window**: see [Evaluation window and frequency](#evaluation-window-and-frequency).
 
 <details>
 <summary>Values in the alert rules API</summary>
@@ -91,58 +187,62 @@ The match type decides which points of the evaluation window count:
 
 </details>
 
-With several queries or a formula, pick which one the condition uses in the first
-drop-down.
-
 ## Thresholds and severity
 
-A rule can have several thresholds. Each one has a name, a value, an optional unit and
-its own notification channels, picked under *send to*. The first is named `critical`; **Add Threshold** adds
-`warning`, then `info`. All thresholds share the operator and match type.
+5. to 7. Each threshold row has a **name**, an **on value**, an optional **Unit** and
+   its own channels under **send to**. The first is named `critical`.
+8. **Add Threshold** adds `warning`, then `info`. All thresholds share the operator
+   and match type.
+9. **Use Routing Policies for dynamic routing**: send alerts by their labels with
+   [routing policies](/fusescope-docs/alerts/routing-and-downtime/#routing-policies)
+   instead of per-threshold channels. The **send to** pickers disappear when it is on;
+   **View Routing Policies** opens the policies. Each threshold needs a channel unless
+   this is on.
 
-Each alert carries the labels `threshold.name` and `severity`, both set to the name of the
-threshold it crossed, in lower case. When several thresholds fire for the same series, only
-the most severe one notifies: the highest value for *above* conditions, the lowest for
-*below*.
+Each alert carries the labels `threshold.name` and `severity`, both set to the name of
+the threshold it crossed, in lower case. When several thresholds fire for the same
+series, only the most severe one notifies: the highest value for *above* conditions,
+the lowest for *below*.
 
 ## Evaluation window and frequency
 
+The evaluation window is how much data each check looks at.
+
 | Window | Options |
 |---|---|
-| Rolling | Last 5, 10, 15 or 30 minutes, Last 1, 2 or 4 hours, or Custom. Default: Last 5 minutes. |
-| Cumulative | Current hour, Current day or Current month, from a starting minute, hour or day in a chosen timezone. |
+| **Rolling** | Last 5, 10, 15 or 30 minutes, Last 1, 2 or 4 hours, or a custom duration. Default: Last 5 minutes. |
+| **Cumulative** | **Current hour**, **Current day** or **Current month**, from a starting minute, hour or day, in a chosen timezone. |
 
 A rolling window moves forward with every check. A cumulative window starts at a fixed
 point and grows until it resets, for example for a daily error budget.
 
-*Advanced options → How often to check* sets the frequency: every 1 minute by default, in
-seconds, minutes or hours.
+## Advanced options
 
-## Missing data
-
-Also under *Advanced options*:
+Open **Advanced options** under the thresholds:
 
 | Option | Effect |
 |---|---|
-| Alert when data stops coming | Notify when the query returns no data for the given number of minutes (default 15). The alert is named `[No data] <rule name>` and labelled `nodata=true`. |
-| Minimum data required | Skip groups that have fewer data points than the given number in the window. |
+| 10. **How often to check** | How often the rule runs. Default: every 1 minute; 1 to 5 minutes suits most rules. |
+| 11. **Alert when data stops coming** | Notify when the query returns no data for the given number of minutes. The alert is named `[No data] <rule name>` and labelled `nodata=true`. Good for pipelines that should never go quiet. |
+| 12. **Minimum data required** | Only decide when the window has at least this many data points, to avoid alerts on too little data. |
+
+### Missing data
+
+**Alert when data stops coming** is the only way to be told that something stopped
+sending. A rule that only compares values never fires when there are no values at all.
 
 ## Notification settings
 
-Turn on **Use Routing Policies for dynamic routing**, below the thresholds in
-**Set alert conditions**, to route alerts by their labels with
-[routing policies](/fusescope-docs/alerts/routing-and-downtime/#routing-policies)
-instead of per-threshold channels.
+13. **Notification Message**: the text of the alert. It can use
+    [template variables](#message-templates).
+14. **Group alerts by**: combine alerts with the same values of these fields into one
+    notification. Leave it empty to combine all alerts of the rule; choose **All** to
+    send one notification per alert. The fields offered are the query's group-by
+    keys, so a rule with no **Group By** says `No grouping fields available`.
+15. **Repeat notifications**: notify again every *n* minutes or hours while the alert
+    is firing or has no data. Off by default.
 
-The **Notification settings** step has:
-
-| Setting | Description |
-|---|---|
-| Group alerts by | Combine alerts with the same values of these fields into one notification. Empty combines all alerts of the rule; **All** disables grouping. |
-| Repeat notifications | Notify again every *n* minutes or hours while the alert is *Firing* or in *No Data*. Off by default. |
-| Notification message | Text of the alert description. |
-
-## Message templates
+### Message templates
 
 The notification message and label values are Go templates. These variables are
 available:
@@ -162,18 +262,126 @@ This alert is fired when the defined metric (current value: {{$value}}) crosses 
 Go template functions such as `toUpper`, `toLower`, `title`, `humanize` and
 `humanizeDuration` are available. Templates are checked when the rule is saved.
 
-## States and history
+### Test and save
+
+16. **Test Notification** evaluates the rule once and sends the result to its
+    channels, without saving it. When no series crosses a threshold, FuseScope says no
+    alerts were found; lower the threshold to see a real message, then put it back.
+    The message reaches real people, so warn the channel first.
+17. **Save Alert Rule** saves the rule. **Discard** drops your changes.
+
+## The rule page
+
+Click a rule in the list to open it (`/alerts/overview?ruleId=…`). **Overview** is the
+[rule editor](#the-rule-editor) with the saved values; change anything and click
+**Save Alert Rule**. **History** shows what the rule did.
+
+### History
+
+The **History** tab (`/alerts/history?ruleId=…`) answers "how often does this rule
+fire, and for how long?" over the time range at the top:
+
+![The History tab of a rule on sample data, numbered: 1 Total triggered 48 with -41% vs last 6h, 2 Avg. resolution time 22.0m with +26%, 3 Top contributors, 4 Timeline, 5 Overall Status, 6 All, Fired and Resolved, 7 48 triggers in 6h above the timeline bar, 8 the filter query, 9 the State column, 10 a row's actions.](../../../assets/alerts/alert-history.png)
+
+*Sample data: this image is a Storybook story, not the demo.*
+
+1. **Total triggered**: how many times the rule fired, against the same stretch of
+   time before.
+2. **Avg. resolution time**: how long its alerts lasted on average, from firing to
+   resolved. A long time means problems stay unfixed; a very short one often means a
+   noisy rule.
+3. **Top contributors**: the label combinations that fired most, with their share,
+   such as `service.name:checkout` in 24 of 48 triggers. **View all** lists them all.
+4. **Timeline**: the rule's state over time: red while firing, green while OK.
+5. **Overall Status** is the rule as a whole. (**Top 5 Contributors** is not
+   available yet.)
+6. **All**, **Fired** or **Resolved** filters the list below.
+7. The count of triggers in the range, such as `48 triggers in 6h`.
+8. **Filter**: narrow the list by labels, such as `service.name = 'frontend'`, then
+   **Run Query**.
+9. **State changes**: one row per change, **Firing** or **Resolved** (also
+   **No Data** and **Muted**), with the alert's labels and when it happened.
+10. **⋮** on a row links to **View Logs** or **View Traces** for that alert, when the
+    rule has a query those signals can follow.
+
+A rule that never fired reads `None Triggered.` and
+`No state changes in this time range.`
+
+## Triggered alerts
+
+**Triggered Alerts** lists every alert that is active now, across all rules.
+
+![The Triggered Alerts tab on sample data, numbered: 1 Search alerts by name, 2 Filter by tags, 3 Group by tag, 4 a Firing alert, 5 a Suppressed alert, 6 Firing since, 7 the +4 chip with more labels.](../../../assets/alerts/triggered-alerts.png)
+
+*Sample data: this image is a Storybook story, not the demo.*
+
+1. **Search alerts by name**.
+2. **Filter by tags**: keep alerts with given labels, such as `severity:critical`.
+3. **Group by tag**: group alerts by a label, such as `service`, with a count per
+   group. Expand a group to see its alerts.
+4. **Firing**: the alert is active and notifications go out.
+5. **Suppressed**: the alert is active, but a
+   [planned downtime](/fusescope-docs/alerts/routing-and-downtime/#planned-downtime)
+   silences its notifications.
+6. **Firing since**: when it started.
+7. **Labels**: the first label and a `+N` chip; hover it for the rest.
+
+With nothing active, the tab says `No alerts firing` and
+`All systems are healthy. No alerts are currently triggered.`
+
+## States
 
 | State | Meaning |
 |---|---|
-| `inactive` | Shown as **OK**: the condition does not hold. |
-| `firing` | The condition holds and notifications are sent. |
-| `nodata` | No data for the configured time. |
-| `disabled` | The rule is turned off, shown as **Muted** on the rule page. |
+| **OK** | The condition does not hold (`inactive` in the API). |
+| **Pending** | The condition holds, but not yet for as long as the rule requires. |
+| **Firing** | The condition holds and notifications are sent. |
+| **Recovering** | The value is heading back to normal but hasn't crossed the rule's recovery threshold yet. Only rules with a recovery threshold, which is set through the API, use it. |
+| **No data** | No data for the configured time (`nodata`). |
+| **Disabled** | The rule is turned off. History shows it as **Muted**. |
 
-*Alerts → Triggered Alerts* lists alerts that are firing now, with their severity, start
-time and labels. On a rule, the **History** tab shows the total triggers, average
-resolution time, top contributing series and a timeline of state changes, with links to
-the related logs or traces.
+## Example: what would the demo rule do?
 
-Rules can be enabled, disabled, cloned and deleted from the rule list or the rule page.
+The demo has a rule, `redis-manual error rate above 5%`, that is **Disabled**. Before
+turning a rule on, read it to see what it would do. The numbers are from the HotROD
+demo.
+
+<Steps>
+
+1. **Find it.** In **Alert Rules**, the row reads **Disabled**,
+   `redis-manual error rate above 5%` and `Trace-based · F1 > 5, at least once in 5m`.
+   So it watches spans and fires when a formula goes above 5.
+
+2. **Read the query.** Click the row. **Define the query** has three parts:
+   **A** counts all spans of `redis-manual`
+   (`service.name = 'redis-manual'`, `count()`), **B** counts the failed ones
+   (`... AND has_error = true`), and **F1** is `B / A * 100`, the error percentage.
+
+3. **Look at the preview.** The chart shows **A** at around 300 spans per step and
+   **B** far lower, with the `critical` line at 5. F1, the error percentage of the
+   cache, is about 18.5%, as on the
+   [service page](/fusescope-docs/apm/services/#example-what-does-driver-depend-on-and-is-it-healthy):
+   well above the line, all the time.
+
+4. **Read the conditions.** *F1 is ABOVE the threshold AT LEAST ONCE during the Last
+   5 minutes*, with one threshold, `critical` at `5`, sent to `slack-oncall`. Routing
+   policies are off, and the rule is checked every minute.
+
+5. **Conclude.** If you turned it on now, it would start firing within a minute and
+   post to `slack-oncall` every time its alerts change. The cache has failed at
+   18.5% for hours, so either fix the timeouts first or raise the threshold, and
+   consider **ON AVERAGE** so a single bad minute doesn't page anyone.
+
+</Steps>
+
+**What you learn**: the one-line summary in the list, the query and the preview tell
+you what a rule will do before you switch it on, without sending anything.
+
+## Related
+
+- [Set up your first alert](/fusescope-docs/guides/first-alert/): a rule and a Slack
+  channel, step by step.
+- [Notification channels](/fusescope-docs/alerts/notification-channels/): where
+  alerts are sent.
+- [Routing and planned downtime](/fusescope-docs/alerts/routing-and-downtime/): route
+  by label, silence during maintenance.

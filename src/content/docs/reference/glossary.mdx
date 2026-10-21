@@ -87,6 +87,11 @@ latency and error rate are computed from these spans.
 
 The share of requests that failed, as a percentage.
 
+## Evaluation window
+
+How much recent data an alert rule looks at each time it runs, such as the last 5
+minutes. See [Evaluation window and frequency](/fusescope-docs/alerts/alert-rules/#evaluation-window-and-frequency).
+
 ## Exception
 
 An error your code raised, recorded on a span as an `exception` event with its type,
@@ -195,6 +200,11 @@ The value below which a given share of measurements fall. **P50** is the median;
 **P95** and **P99** show the slowest 5% and 1% of requests. See
 [Core concepts](/fusescope-docs/start/concepts/#latency-and-percentiles-p50-p95-p99).
 
+## Planned downtime
+
+A maintenance window during which alert notifications are held back. Rules still run
+and record alerts. See [Planned downtime](/fusescope-docs/alerts/routing-and-downtime/#planned-downtime).
+
 ## Processor
 
 One step of a log pipeline, such as a JSON parser or a Severity Parser. A pipeline
@@ -232,6 +242,12 @@ healthy.
 
 The first span of a trace, the one with no parent. Its duration is the duration of the
 whole request.
+
+## Routing policy
+
+A rule that sends every alert whose labels match an expression, such as
+`service.name == "payment"`, to chosen notification channels. See
+[Routing policies](/fusescope-docs/alerts/routing-and-downtime/#routing-policies).
 
 ## Sample
 
@@ -278,6 +294,12 @@ Prometheus clients.
 How a counter reports its value. **Cumulative**: the total since the program started.
 **Delta**: the change since the last report. See
 [Metric types and temporality](/fusescope-docs/explore/metrics/#metric-types-and-temporality).
+
+## Threshold
+
+The value an alert rule compares its query with, such as `5` for a 5% error rate.
+A rule can have several, named `critical`, `warning` and `info`. See
+[Thresholds and severity](/fusescope-docs/alerts/alert-rules/#thresholds-and-severity).
 
 ## Throughput
 
