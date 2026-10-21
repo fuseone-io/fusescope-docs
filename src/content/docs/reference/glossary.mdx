@@ -102,6 +102,12 @@ message and stack trace. See [Exceptions](/fusescope-docs/apm/exceptions/).
 A [histogram](#histogram) whose buckets grow exponentially in size, so it covers a wide
 range of values without bucket settings.
 
+## External domain
+
+A host your services call over HTTP, such as `api.stripe.com` or `10.0.4.11`, taken
+from the URL of their client spans. It doesn't need to send telemetry itself. See
+[External APIs](/fusescope-docs/analyze/external-apis/).
+
 ## Filter
 
 A condition that selects which data a query uses, such as

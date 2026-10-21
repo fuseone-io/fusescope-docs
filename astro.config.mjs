@@ -94,6 +94,12 @@ export default defineConfig({
           ],
         },
         {
+          label: "Analyze",
+          items: [
+            { label: "External APIs", slug: "analyze/external-apis" },
+          ],
+        },
+        {
           label: "Query reference",
           items: [
             { label: "Search syntax", slug: "querying/search-syntax" },
