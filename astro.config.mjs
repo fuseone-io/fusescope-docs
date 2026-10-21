@@ -72,6 +72,7 @@ export default defineConfig({
         {
           label: "Observe",
           items: [
+            { label: "Home", slug: "observe/home" },
             { label: "Services", slug: "apm/services" },
             { label: "Traces explorer", slug: "explore/traces" },
             { label: "Trace details", slug: "explore/trace-details" },
