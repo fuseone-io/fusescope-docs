@@ -602,22 +602,10 @@ the [Dependencies](#dependencies) tab is quicker.
 
 ## Exceptions
 
-**Exceptions** (`/exceptions`) groups the exceptions recorded on spans as span events,
-across all services. The **All Exceptions** table shows **Exception Type**,
-**Error Message**, **Count**, **Last Seen**, **First Seen** and **Application**. Click
-an exception to see its stack trace and attributes, step through **Older** and
-**Newer** occurrences, and open **See the error in trace graph**. A service's own
-exceptions are also on its [Errors](#errors) tab.
-
-![Exceptions page: a filter panel on the left and the All Exceptions table with one row, *errors.errorString with the message redis timeout from redis-manual.](../../../assets/exceptions/exceptions-list.png)
-
-![An exception's page: the type *errors.errorString and message redis timeout, the Older, Newer and See the error in trace graph buttons, and the event ID, timestamp and trace ID.](../../../assets/exceptions/exception-detail.png)
-
-<Aside>
-  OpenTelemetry SDKs record an exception on a span with `span.recordException()` or its
-  equivalent, which adds an `exception` event carrying `exception.type`,
-  `exception.message` and `exception.stacktrace`.
-</Aside>
+**Exceptions** (`/exceptions`) groups the exceptions recorded on spans across all
+services, with each one's stack trace, logs and trace. It has its own page:
+[Exceptions](/fusescope-docs/apm/exceptions/). A service's own exceptions are also on
+its [Errors](#errors) tab.
 
 ## If something is missing
 

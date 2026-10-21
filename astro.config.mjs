@@ -90,6 +90,7 @@ export default defineConfig({
             { label: "Alert rules", slug: "alerts/alert-rules" },
             { label: "Notification channels", slug: "alerts/notification-channels" },
             { label: "Routing and planned downtime", slug: "alerts/routing-and-downtime" },
+            { label: "Exceptions", slug: "apm/exceptions" },
           ],
         },
         {
