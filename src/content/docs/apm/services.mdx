@@ -95,7 +95,7 @@ top of the page, such as the last 30 minutes.
 1. **Count line**: how many services sent data in the range and how many of them have
    a [highlight](#highlight-badges), such as `7 services in the selected range · 1 with
    highlights`.
-2. **Service map** opens the [Service map](#service-map).
+2. **Service map** opens the [Service Map](/fusescope-docs/apm/service-map/).
 3. **Search by service**: type part of a name to narrow the list.
 4. **Filters**: **Select Environment/s** keeps only the services of one or more
    `deployment.environment` values; the box next to it filters by any other resource
@@ -380,8 +380,8 @@ exist.
 ### Dependencies
 
 The **Dependencies** tab shows what the service calls (**downstream**) and what calls
-it (**upstream**), from the same parent and child spans the [Service map](#service-map)
-uses.
+it (**upstream**), from the same parent and child spans the
+[Service Map](/fusescope-docs/apm/service-map/) uses.
 
 ![The Dependencies tab of driver: the map with frontend as caller and redis-manual as callee, outlined in amber with 18.5% errors and a red arrow; the Downstream table with redis-manual, a Service at 4.77 req/s, p50 12 ms, p99 35 ms and 18.5% errors; the Upstream table with frontend.](../../../assets/services/service-dependencies.png)
 
@@ -594,22 +594,11 @@ its latency. Turning on the existing alert rule would warn you when it gets wors
 
 ## Service map
 
-**Service Map** (`/service-map`, also **Service map** on the services list) draws
-every service and the calls between them, from the parent and child spans in your
-traces.
-
-![Service Map of the HotROD demo: frontend calls customer, driver and route; customer calls mysql; driver calls redis-manual, which is drawn in red because it has errors.](../../../assets/services/service-map.png)
-
-- A circle is a service; its size follows how many requests it receives.
-- A circle is red when calls to it return errors, green otherwise.
-- A line is a caller–callee pair. Hover it for its **P99 latency**, **Request** rate
-  and **Error Rate**.
-- Scroll to zoom, and drag to move the map.
-
-The filters above the map accept `deployment.environment`, `k8s.cluster.name` and
-`k8s.cluster.namespace` only. Services that call nothing and are called by nothing, such
-as `payment` in the demo, don't appear on the map. For one service's direct neighbours
-with numbers, the [Dependencies](#dependencies) tab is easier to read.
+**Service Map** (`/service-map`, also **Service map** on the services list) draws every
+service and the calls between them, colours them by health and points at the service
+where errors most likely start. It has its own page:
+[Service Map](/fusescope-docs/apm/service-map/). For one service's direct neighbours,
+the [Dependencies](#dependencies) tab is quicker.
 
 ## Exceptions
 

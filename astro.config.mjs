@@ -81,6 +81,7 @@ export default defineConfig({
             { label: "Dashboards", slug: "dashboards/dashboards" },
             { label: "Dashboard variables", slug: "dashboards/variables" },
             { label: "Dashboard JSON", slug: "reference/dashboard-json" },
+            { label: "Service Map", slug: "apm/service-map" },
           ],
         },
         {

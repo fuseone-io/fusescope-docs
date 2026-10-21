@@ -129,6 +129,14 @@ its calls. See [Highlight badges](/fusescope-docs/apm/services/#highlight-badges
 A metric type that counts how many values fall into each range (bucket), used to
 compute percentiles.
 
+## Inferred dependency
+
+Something your services call that sends no traces itself, such as a managed database,
+a queue or a third-party API. FuseScope draws it on the
+[Service Map](/fusescope-docs/apm/service-map/#how-the-map-is-built) from the callers'
+client spans (`db.system`, `messaging.system`, `peer.service` or `server.address`),
+with a dashed outline.
+
 ## Instrumentation
 
 The code or agent that makes an application produce traces, logs and metrics. See
@@ -212,6 +220,13 @@ long they take. See [Services](/fusescope-docs/apm/services/#rate-errors-and-dur
 
 An attribute that describes what sent the data, such as `service.name` or
 `k8s.pod.name`. It is the same on everything one program sends.
+
+## Root cause
+
+The service where a failure starts, as opposed to the services that fail because they
+call it. The [Service Map](/fusescope-docs/apm/service-map/#root-cause) names a
+*likely* root cause: the deepest service with 5% errors or more whose callees are all
+healthy.
 
 ## Root span
 
