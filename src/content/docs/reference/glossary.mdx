@@ -37,6 +37,11 @@ The number of different values a key has. `http.method` has low cardinality (a
 handful of values); `user.id` has high cardinality. Grouping by a high-cardinality key
 produces very many series.
 
+## Celery worker
+
+A process that runs Celery tasks, Python jobs queued by your code to run in the
+background. See [Celery](/fusescope-docs/analyze/messaging-queues/#celery).
+
 ## ClickHouse
 
 The database FuseScope stores traces, logs and metrics in.
@@ -46,6 +51,12 @@ The database FuseScope stores traces, logs and metrics in.
 The OpenTelemetry Collector: a program that receives telemetry from your applications,
 processes it and writes it to ClickHouse. FuseScope ships its own build. See
 [Architecture](/fusescope-docs/reference/architecture/).
+
+## Consumer lag
+
+How many messages a Kafka consumer group still has to read in a partition. Lag that
+keeps growing means the consumers can't keep up. See
+[Messaging Queues](/fusescope-docs/analyze/messaging-queues/#queues-in-plain-words).
 
 ## Counter
 
@@ -205,6 +216,12 @@ The OpenTelemetry protocol, used to send telemetry over gRPC (port 4317) or HTTP
 
 One chart, table, number, list or note on a dashboard, with its own query and title.
 See [Dashboards](/fusescope-docs/dashboards/dashboards/#panels).
+
+## Partition
+
+One of the ordered parts a Kafka topic is split into, numbered from `0`, so several
+consumers can read the topic in parallel. See
+[Messaging Queues](/fusescope-docs/analyze/messaging-queues/#queues-in-plain-words).
 
 ## Percentile
 
