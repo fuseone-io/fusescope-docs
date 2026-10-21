@@ -79,6 +79,7 @@ export default defineConfig({
             { label: "Logs explorer", slug: "explore/logs" },
             { label: "Metrics explorer", slug: "explore/metrics" },
             { label: "Dashboards", slug: "dashboards/dashboards" },
+            { label: "Panel editor", slug: "dashboards/panel-editor" },
             { label: "Dashboard variables", slug: "dashboards/variables" },
             { label: "Dashboard JSON", slug: "reference/dashboard-json" },
             { label: "Infrastructure", slug: "observe/infrastructure" },

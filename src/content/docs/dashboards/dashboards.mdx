@@ -146,7 +146,7 @@ Click **New dashboard**. The dialog has three tabs.
 
 ## Read a dashboard
 
-![The HotROD service health dashboard, numbered: 1 the title, 2 the tags, 3 the description, 4 Actions, 5 Configure, 6 JSON, 7 New Panel, 8 the time range, 9 Zoom out, refresh and auto-refresh, 10 Share, 11 a variable, 12 the +5 button, 13 Add variable, 14 the section drag handle, 15 the section menu, 16 a panel menu, 17 the resize corner of a panel.](../../../assets/dashboards/dashboard-overview.png)
+![The HotROD service health dashboard, numbered: 1 the title, 2 the tags, 3 the description, 4 Actions, 5 Configure, 6 JSON, 7 New Panel, 8 the time range, 9 Zoom out, refresh and auto-refresh, 10 Share, 11 a variable, 12 the +4 more button, 13 Add variable, 14 the section drag handle, 15 the section menu, 16 a panel menu, 17 the resize corner of a panel.](../../../assets/dashboards/dashboard-overview.png)
 
 1. **Title** and icon. If you may edit the dashboard, click the title to rename it in
    place; Enter saves and Esc cancels.
@@ -158,12 +158,13 @@ Click **New dashboard**. The dialog has three tabs.
 5. **Configure** opens the [dashboard settings](#dashboard-settings).
 6. **JSON** opens the dashboard as JSON. See
    [Export and edit as JSON](#export-and-edit-as-json).
-7. **New Panel** opens the panel picker. See [Add panels](#add-panels).
+7. **New Panel** opens the panel type picker. See
+   [Add a panel](/fusescope-docs/dashboards/panel-editor/#add-a-panel).
 8. **Time range** for every panel. See [Time range and refresh](#time-range-and-refresh).
 9. **Zoom out**, **refresh** and, in the arrow next to it, **auto-refresh**.
 10. **Share** copies a link to the dashboard. See [Share](#share).
 11. **Variables**: one control per variable. See [The variables bar](#the-variables-bar).
-12. **+5**: five more variables that don't fit on the line.
+12. **+4 more**: four more variables that don't fit on the line.
 13. **Add variable**.
 14. **Section header**: the grip to drag the section, the arrow to fold it, and its
     title. See [Sections](#sections).
@@ -182,9 +183,10 @@ The refresh button reruns every query now. The arrow next to it sets
 
 ### The variables bar
 
-Each variable is a control labelled with its name, such as `$service`. A panel whose
-query uses `$service` shows only what the variable selects. Hover the ⓘ next to a name
-for its description and for the variables it **Depends on** or is **Used by**.
+Each variable is a pill: its name on the left, such as `$service`, and its current
+value on the right. A panel whose query uses `$service` shows only what the variable
+selects. Hover a name for the variable's description and for the variables it
+**Depends on** or is **Used by**.
 
 What the control looks like depends on the
 [variable type](/fusescope-docs/dashboards/variables/#variable-types):
@@ -203,10 +205,14 @@ What the control looks like depends on the
   appear later; see [The ALL option](/fusescope-docs/dashboards/variables/#the-all-option).
 - **Textbox** applies when you press Enter or leave the field. Empty it to go back to
   the default value.
-- **+N** appears when the variables don't fit on one line; hover it to see what the
-  hidden ones are set to. Click it to show every variable over several lines, and
+- **+N more** appears when the variables don't fit on one line; hover it to see what
+  the hidden ones are set to. Click it to show every variable over several lines, and
   **Less** to fold them again.
-- **Add variable** opens **Configure** › **Variables** ready to add one. See
+- **A spinner** in a pill means its values are loading. **A red pill** with a warning
+  icon means they couldn't be loaded; hover the icon for the reason and click
+  **Retry**. See
+  [Loading and errors](/fusescope-docs/dashboards/variables/#loading-and-errors).
+- **Add variable** opens the dashboard settings on **Variables**, ready to add one. See
   [Dashboard variables](/fusescope-docs/dashboards/variables/).
 
 ![The variables bar of the HotROD service health dashboard with the $service list open: ALL unticked, payment ticked, and the Only button on the hovered redis-manual row.](../../../assets/dashboards/dashboard-variables.png)
@@ -262,7 +268,7 @@ matching data, and **Breakout by ..** splits the series by another attribute.
 | Item | Does |
 |---|---|
 | **View** | Opens the panel full size. See [View a panel full size](#view-a-panel-full-size) |
-| **Edit panel** | Opens the panel editor |
+| **Edit panel** | Opens the [panel editor](/fusescope-docs/dashboards/panel-editor/) |
 | **Clone** | Copies the panel |
 | **Download** | **Download as PNG** or **Download as SVG**; Table panels also **Download as CSV** |
 | **Create Alerts** | Starts an [alert rule](/fusescope-docs/alerts/alert-rules/) from the panel's query, on panel types that support alerts |
@@ -284,7 +290,8 @@ can send the link to someone.
 Here you can try things without changing the dashboard: switch the panel type, change
 the query and click **Run Query**, or pick a different time range just for this window.
 **Reset Query** goes back to the saved query. To keep your changes, click
-**Switch to Edit Mode**, which opens the panel editor with them. Close the window, or
+**Switch to Edit Mode**, which opens the
+[panel editor](/fusescope-docs/dashboards/panel-editor/) with them. Close the window, or
 press Esc, to go back.
 
 ## Example: filter a dashboard by service
@@ -325,31 +332,13 @@ To go back, open the list and tick **ALL**.
 ## Add panels
 
 Click **New Panel** in the toolbar, or **Add panel** in a section's menu. The
-**New panel** picker opens on the right.
+**New panel** picker opens on the right: pick a panel type, choose where it goes and
+click **Add to …**. The [panel editor](/fusescope-docs/dashboards/panel-editor/) opens,
+where you write the query, set the title and options, and click **Save changes**.
 
-![The New panel picker: the search box, the group filters All, Trends over time, Compare & rank, Distributions, Single values, Raw records and Documentation, the panel type cards, and the Add to section menu with Dashboard (root), Golden signals, Breakdown and New section above the Add to Dashboard (root) button.](../../../assets/dashboards/new-panel-picker.png)
-
-<Steps>
-
-1. Pick a panel type. **Search panel types** and the group buttons narrow the list;
-   types marked **NEW** were added recently. See [Panel types](#panel-types).
-2. Choose where the panel goes. On a dashboard with sections, the arrow next to the
-   main button opens **Add to section**: pick a section, **Dashboard (root)** for the
-   top level, or **New section** to type a name for a new one.
-3. Click the main button. It names the target: **Add panel** on a dashboard without
-   sections, otherwise for example **Add to Dashboard (root)**, **Add to Breakdown**
-   or **Add to new section**.
-4. The panel editor opens. Write the query on the **Query Builder**,
-   **ClickHouse Query** or **PromQL** tab and click **Run Query**.
-5. Set the panel's title and options on the right, then click **Save changes**.
-
-</Steps>
-
-![The panel editor: the chart preview on top, the query below with the Query Builder, ClickHouse Query, PromQL and AI Query Builder tabs, and Panel Details and display options on the right.](../../../assets/dashboards/panel-editor.png)
-
-Queries are described in [Query builder](/fusescope-docs/querying/query-builder/) and
-[ClickHouse SQL and PromQL](/fusescope-docs/querying/clickhouse-promql/). Explorers can
-also send their query to a dashboard with **Add to dashboard**.
+[Add a panel](/fusescope-docs/dashboards/panel-editor/#add-a-panel) describes the
+picker, including what the data chips on each type mean. Explorers can also send their
+query to a dashboard with **Add to dashboard**.
 
 ### A new, empty dashboard
 
@@ -360,34 +349,22 @@ A dashboard with no panels shows **Welcome to your new dashboard** and two steps
 
 ## Panel types
 
-| Type | Group in the picker | Use it for |
-|---|---|---|
-| **Time Series** | Trends over time | Values over time, as lines |
-| **Area Chart** | Trends over time | Values over time, as areas, overlapping or stacked |
-| **Bar Chart** | Compare & rank | Values over time, as bars, side by side or stacked |
-| **Pie Chart** | Compare & rank | Shares of a total |
-| **Histogram** | Distributions | The distribution of values in buckets |
-| **Heatmap** | Distributions | A distribution over time |
-| **Number** | Single values | A single value |
-| **Table** | Raw records | Aggregated values, one row per group |
-| **List** | Raw records | Raw logs or spans |
-| **Text** | Documentation | Notes and documentation, in Markdown |
-
-### Panel options
-
-| Group | Options |
-|---|---|
-| Visualization | Panel type; **Time range** to pin the panel to its own range instead of the dashboard's; **Treat missing data as 0** (Time Series, Area Chart) |
-| Formatting & Units | **Unit**, **Decimal places**; **Column units** for tables |
-| Axes | **Y axis** soft min and max, **Scale**: Auto, Linear, Logarithmic or Symlog |
-| Legend | **Position**: below or right of the chart; **Series colors** |
-| Chart appearance | Line style, how points connect, area fill, **Show points**, and whether to connect or break the line on missing data |
-| Buckets | **Count**, **Width** and **Combine queries** (Histogram) |
-| Thresholds | A line on charts, a colour for Number panels, or per-column colours for tables |
-| Context Links | Links on the panel, with a **Label** and a URL that can include [variables](/fusescope-docs/dashboards/variables/) as `{{variable}}` |
+| Type | Category in the picker | Use it for | Accepts |
+|---|---|---|---|
+| **Time Series** | Trends over time | Values over time, as lines | Metrics, logs & traces; PromQL; ClickHouse |
+| **Area Chart** | Trends over time | Values over time, as areas, overlapping or stacked | Metrics, logs & traces; PromQL; ClickHouse |
+| **Bar Chart** | Compare & rank | Values over time, as bars, side by side or stacked | Metrics, logs & traces; PromQL; ClickHouse |
+| **Pie Chart** | Compare & rank | Shares of a total | Metrics, logs & traces; ClickHouse; no PromQL |
+| **Histogram** | Distributions | The distribution of values in buckets | Metrics, logs & traces; PromQL; ClickHouse |
+| **Heatmap** | Distributions | A distribution over time | Metrics only; PromQL; ClickHouse |
+| **Number** | Single values | A single value | Metrics, logs & traces; PromQL; ClickHouse |
+| **Table** | Raw records | Aggregated values, one row per group | Metrics, logs & traces; ClickHouse; no PromQL |
+| **List** | Raw records | Raw logs or spans | Logs & traces |
+| **Text** | Documentation | Notes and documentation, in Markdown | No query |
 
 List panels take query builder queries on logs or traces; pick their columns with
-**Add column**.
+**Add column**. The options each type has are listed in
+[Panel settings](/fusescope-docs/dashboards/panel-editor/#panel-settings).
 
 ## Lock a dashboard
 
@@ -409,11 +386,40 @@ On a locked dashboard:
 
 ## Dashboard settings
 
-**Configure** opens the dashboard settings:
+**Configure** opens **Dashboard Configuration**, a panel on the right side of the
+page. Its subtitle is the dashboard's name. It has two tabs: **Overview** and
+**Variables**.
 
-- **Overview**: name, icon, description and tags, and **Cross-Panel Sync**. Its
-  **Sync Mode** shares the crosshair or the tooltip between all charts on hover.
-- **Variables**: see [Dashboard variables](/fusescope-docs/dashboards/variables/).
+![The Dashboard Configuration sheet on the Overview tab, numbered: 1 the sheet title, 2 the Overview tab, 3 the Variables tab with its count, 4 Icon, 5 Dashboard Name, 6 Description, 7 Tags, 8 Sync Mode, 9 the 1 unsaved change badge, 10 Discard, 11 Save.](../../../assets/dashboards/dashboard-settings.png)
+
+1. **Dashboard Configuration** and the dashboard's name. **✕** on the right, a click
+   outside the panel or Esc closes it.
+2. **Overview**: what the dashboard is called and how it looks.
+3. **Variables**, with how many the dashboard has. See
+   [Dashboard variables](/fusescope-docs/dashboards/variables/#manage-variables).
+4. **Icon**: the picture shown next to the title and in the dashboards list.
+5. **Dashboard Name**: the title at the top of the page.
+6. **Description**: shown under the title. Use it to say what the dashboard is for.
+7. **Tags**: `key:value` labels, such as `team:payments`, that help you
+   [find dashboards](#find-dashboards). Type one and press Enter; click **×** on a
+   tag to remove it.
+8. **Cross-Panel Sync** › **Sync Mode**: what other charts do when you hover one.
+   - **No Sync**: nothing.
+   - **Crosshair**: every chart shows a vertical line at the same moment.
+   - **Tooltip**: every chart also shows its tooltip for that moment. A second
+     setting, **Synced Tooltip Series**, picks **All** series, with the matching ones
+     highlighted, or only the **Filtered** ones that share a group-by value.
+
+   Sync applies at once and is remembered in this browser, per dashboard. It is not
+   part of the dashboard, so it needs no saving.
+9. **Unsaved changes**: as soon as you change the icon, name, description or tags, a
+   bar appears at the bottom with how many fields changed, such as
+   `1 unsaved change`.
+10. **Discard** puts the fields back as they were.
+11. **Save** saves the changes to the dashboard.
+
+Variables you add, edit or delete on the **Variables** tab are saved straight away;
+they don't go through this bar.
 
 ## Share
 
@@ -434,16 +440,41 @@ Anyone who opens the link needs a FuseScope account with access to the dashboard
 
 ## Export and edit as JSON
 
-**JSON** opens the dashboard as JSON in a drawer. Its toolbar has **Format**, **Copy**,
-**Download** (saves it as `<name>.json`) and **Reset**. The line at the bottom says
-whether the JSON is valid. Edit it in place and click **Apply changes**, or press
-**⌘ + Enter** (**Ctrl + Enter**), to change the dashboard directly. The format is
-described in [Dashboard JSON](/fusescope-docs/reference/dashboard-json/).
+**JSON**, in the toolbar, opens **Dashboard JSON** on the right: the whole dashboard
+as text, which you can copy, download or edit. It is a panel of its own, separate
+from [Dashboard settings](#dashboard-settings).
+
+![The Dashboard JSON sheet, numbered: 1 the sheet title, 2 Format, 3 Copy, 4 Download, 5 Reset, 6 Valid JSON · 1008 lines, 7 the Apply with ⌘↵ hint, 8 Apply changes.](../../../assets/dashboards/dashboard-json.png)
+
+1. **Dashboard JSON** and the dashboard's name.
+2. **Format** tidies the indentation, for example after you paste JSON in.
+3. **Copy** puts the JSON on the clipboard.
+4. **Download** saves it as a `.json` file, to keep it or
+   [import it](/fusescope-docs/reference/dashboard-json/#import-a-dashboard)
+   elsewhere.
+5. **Reset** throws your edits away and shows the saved dashboard again. It is greyed
+   out while there is nothing to reset.
+6. **Validity**: *Valid JSON* and the number of lines, in green, or in red the line
+   and the reason it can't be read, as `Line 12 · …`. A warning
+   also appears when a panel is not placed in any layout, or a layout points to a
+   panel that doesn't exist.
+7. **⌘ + Enter** (**Ctrl + Enter** on Windows and Linux) applies, like the button.
+8. **Apply changes** saves your edits to the dashboard and closes the sheet. It is
+   greyed out until you change something, and while the JSON is invalid. **Cancel**,
+   or Esc, closes the sheet without applying.
+
+The JSON holds the dashboard's `spec` (panels, layouts and variables), its `tags` and
+its `image`. Its ID, owner and timestamps are left out and can't be changed here. On a
+locked dashboard, or without permission to edit, you can read, copy and download the
+JSON but not change it: **Format**, **Reset** and **Apply changes** are greyed out.
+The format is described in
+[Dashboard JSON](/fusescope-docs/reference/dashboard-json/).
 
 ## Related
 
 - [Build your first dashboard](/fusescope-docs/guides/first-dashboard/): a step-by-step
   guide.
+- [Panel editor](/fusescope-docs/dashboards/panel-editor/): build and change panels.
 - [Dashboard variables](/fusescope-docs/dashboards/variables/): create the variables
   the bar shows.
 - [Query builder](/fusescope-docs/querying/query-builder/): aggregations, group by and

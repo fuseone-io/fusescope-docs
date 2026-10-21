@@ -37,19 +37,21 @@ A [panel](/fusescope-docs/reference/glossary/#panel) is one chart on the dashboa
 <Steps>
 
 1. Click **New Panel**. In the **New panel** picker, click **Time Series**, then
-   **Add panel**. The panel editor opens: the chart preview on top, the query below and
-   the panel options on the right.
-2. In the query, change the data source from **Metrics** to **Traces**. The
+   **Add panel**. The [panel editor](/fusescope-docs/dashboards/panel-editor/) opens:
+   the query on the left, a preview of the chart in the middle and the panel settings
+   on the right.
+2. In the query card, change **Source** from **Metrics** to **Traces**. The
    aggregation is `count()`: the number of [spans](/fusescope-docs/reference/glossary/#span).
-3. Click **Group By** and pick `service.name`, to draw one line per service.
-4. Click **Legend format** and enter `{{service.name}}`, so each line is labelled with
-   its service name.
+3. Open **Result**, click **Group By** and pick `service.name`, to draw one line per
+   service.
+4. In **Legend format**, enter `{{service.name}}`, so each line is labelled with its
+   service name.
 5. On the right, set **Title** to `Spans per service`.
 6. Click **Run Query** to check the chart, then **Save changes**.
 
 </Steps>
 
-![Panel editor: a Traces query with count() grouped by service.name and a legend format that names each line after its service, the Spans per service chart above it, and Panel Details on the right.](../../../assets/dashboards/panel-editor.png)
+![The panel editor: a Traces count() query grouped by service.name with a legend format that names each line after its service on the left, the Spans per service chart in the middle, and Panel Details on the right.](../../../assets/dashboards/panel-editor-new-panel.png)
 
 ## Panel 2: errors per service
 
@@ -57,14 +59,14 @@ A [panel](/fusescope-docs/reference/glossary/#panel) is one chart on the dashboa
 
 1. Click **New Panel** at the top of the dashboard, pick **Bar Chart** and click
    **Add panel**.
-2. Change the data source to **Traces** and type this filter in the search box:
+2. Change **Source** to **Traces** and type this filter in **Where**:
 
    ```text
    has_error = true
    ```
 
-3. Group by `service.name`, set the legend to `{{service.name}}` and the title to
-   `Errors per service`.
+3. In **Result**, group by `service.name` and set the legend to `{{service.name}}`.
+   Set the title to `Errors per service`.
 4. Click **Run Query**, then **Save changes**.
 
 </Steps>
@@ -74,11 +76,12 @@ A [panel](/fusescope-docs/reference/glossary/#panel) is one chart on the dashboa
 <Steps>
 
 1. Click **New Panel**, pick **Table** and click **Add panel**.
-2. Change the data source to **Traces**. Replace `count()` with
+2. Change **Source** to **Traces**. Replace `count()` with
    `p99(duration_nano)`, the duration that 99 in 100 spans stay under.
-3. Group by `service.name` and set the title to `P99 latency by service`.
-4. Durations are stored in nanoseconds. Open **Formatting & Units**, and under
-   **Column units** pick **Nanoseconds** for the `p99(duration_nano)` column. The
+3. In **Result**, group by `service.name`. Set the title to
+   `P99 latency by service`.
+4. Durations are stored in nanoseconds. On the right, open **Formatting & Units**,
+   and under **Column units** pick **Nanoseconds** for the `p99(duration_nano)` column. The
    table now shows values such as `737.86 ms`.
 5. Click **Run Query**, then **Save changes**.
 
