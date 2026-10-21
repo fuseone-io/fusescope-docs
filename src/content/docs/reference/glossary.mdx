@@ -168,6 +168,12 @@ The code or agent that makes an application produce traces, logs and metrics. Se
 
 How long a request takes to get a response.
 
+## LLM tokens
+
+The pieces of text a language model reads (input tokens) and writes (output tokens),
+roughly three quarters of a word each. Providers charge per million tokens. See
+[AI Observability](/fusescope-docs/analyze/ai-observability/#llm-calls-in-plain-words).
+
 ## Log
 
 A timestamped record a program writes, with a body (the message) and a severity.
@@ -359,6 +365,11 @@ trace share a trace ID.
 
 The identifier shared by every span of a trace. Logs written during a request carry it
 too, which links them to the trace.
+
+## TTFT
+
+Time to first token: how long a streaming LLM call takes before the first words of
+the answer arrive. See [AI Observability](/fusescope-docs/analyze/ai-observability/#overview).
 
 ## Upstream and downstream
 

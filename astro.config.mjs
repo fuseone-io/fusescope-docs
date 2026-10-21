@@ -98,6 +98,7 @@ export default defineConfig({
           items: [
             { label: "External APIs", slug: "analyze/external-apis" },
             { label: "Messaging Queues", slug: "analyze/messaging-queues" },
+            { label: "AI Observability", slug: "analyze/ai-observability" },
             { label: "Cost Meter", slug: "analyze/cost-meter" },
           ],
         },
