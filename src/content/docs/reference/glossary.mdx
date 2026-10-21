@@ -198,6 +198,12 @@ A named number measured over time, such as requests per second.
 
 Said of a counter that only goes up, such as total requests served.
 
+## Node and pod
+
+In Kubernetes, a **node** is a machine of the cluster and a **pod** is one or more
+containers scheduled together on a node. See
+[Infrastructure](/fusescope-docs/observe/infrastructure/#infrastructure-in-plain-words).
+
 ## Notification channel
 
 A destination for alert notifications: Slack, email, PagerDuty, a webhook and others.
@@ -260,6 +266,12 @@ How fast a [counter](#counter) grows, per second, such as 35 requests per second
 
 Rate, errors and duration: how many requests a service handles, how many fail and how
 long they take. See [Services](/fusescope-docs/apm/services/#rate-errors-and-duration).
+
+## Requests and limits
+
+The CPU and memory Kubernetes reserves for a container (**request**) and the most it
+may use (**limit**). Over its memory limit a container is killed; over its CPU limit
+it is slowed down. See [Infrastructure](/fusescope-docs/observe/infrastructure/#kubernetes).
 
 ## Resource attribute
 

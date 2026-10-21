@@ -5,7 +5,9 @@ description: Collect cluster metrics, events and pod logs with the k8s-infra cha
 
 import { Aside } from "@astrojs/starlight/components";
 
-**Use this page when** you run on Kubernetes and want pod logs, node and pod metrics and cluster events in FuseScope, without changing your applications.
+**Use this page when** you run on Kubernetes and want pod logs, node and pod metrics and cluster events in FuseScope, without changing your applications, or when an
+[instrumentation check](/fusescope-docs/observe/infrastructure/#instrumentation-checks) on
+the **Infrastructure** page says a metric or attribute is missing.
 
 The `k8s-infra` chart, in the same Helm repository, runs OpenTelemetry collectors that
 send Kubernetes telemetry to FuseScope:
@@ -70,3 +72,117 @@ presets:
 
 All values are in the chart's
 [`values.yaml`](https://github.com/fuseone-io/fusescope-charts/blob/main/charts/k8s-infra/values.yaml).
+
+## What each component sends
+
+The [Infrastructure](/fusescope-docs/observe/infrastructure/) page checks for the
+metrics and attributes below and names the collector component that should produce
+each one. Every component is part of the `k8s-infra` chart and on by default; this
+section says which value turns it on, and what to check when a metric is missing.
+
+### hostmetrics receiver
+
+Runs in `otel-agent` on every node and reads the node's CPU, memory, load, disk,
+file system and network: `system.cpu.time`, `system.memory.usage`,
+`system.cpu.load_average.15m`, `system.filesystem.usage` and the `process.*` metrics.
+It feeds the **Hosts** tab.
+
+- Turned on by `presets.hostMetrics.enabled` (default `true`).
+- It reads the node's file systems through `presets.hostMetrics.rootPath`
+  (`/hostfs`). If CPU and memory arrive but `system.filesystem.usage` doesn't, check
+  that the agent pods can mount the host root.
+
+#### Hosts outside Kubernetes
+
+For a virtual machine or a bare-metal server, run the FuseScope collector (or any
+OpenTelemetry Collector) on the host with the `hostmetrics` receiver and the
+`resourcedetection` processor, and send to FuseScope over OTLP:
+
+```yaml
+receivers:
+  hostmetrics:
+    collection_interval: 30s
+    scrapers:
+      cpu: {}
+      load: {}
+      memory: {}
+      disk: {}
+      filesystem: {}
+      network: {}
+
+processors:
+  resourcedetection:
+    detectors: [env, system]
+    system:
+      hostname_sources: [os]
+
+exporters:
+  otlp:
+    endpoint: fusescope-otel-collector.example.com:4317
+
+service:
+  pipelines:
+    metrics:
+      receivers: [hostmetrics]
+      processors: [resourcedetection]
+      exporters: [otlp]
+```
+
+See [OTLP endpoints](/fusescope-docs/sending-data/otlp/#from-another-collector) for
+the endpoint and TLS settings.
+
+### kubeletstats receiver
+
+Runs in `otel-agent` and asks each node's kubelet for container, pod, node and volume
+usage: `container.cpu.usage`, `container.memory.working_set`, `k8s.pod.cpu.usage`,
+`k8s.pod.memory.working_set`, `k8s.node.cpu.usage`, `k8s.node.memory.working_set`
+and the `k8s.volume.*` metrics.
+
+- Turned on by `presets.kubeletMetrics.enabled` (default `true`).
+- The optional request and limit metrics, such as
+  `k8s.pod.cpu_request_utilization` and `k8s.container.memory_limit_utilization`, are
+  listed under `presets.kubeletMetrics.metrics` and on by default. They only have a
+  value for containers that set CPU or memory **requests** and **limits** in their
+  spec. GKE Autopilot clusters don't expose them.
+- If nothing arrives, check that the agent's service account may read the kubelet
+  API (`nodes/stats`); the chart creates that permission.
+
+### k8scluster receiver
+
+Runs once in `otel-deployment` and watches the Kubernetes API for the state of
+objects: `k8s.pod.phase`, `k8s.container.restarts`, `k8s.container.ready`,
+`k8s.node.allocatable_cpu`, `k8s.node.condition_ready`, and the desired, current and
+ready counts of deployments, daemon sets, stateful sets and jobs.
+
+- Turned on by `presets.clusterMetrics.enabled` (default `true`).
+- The optional `k8s.pod.status_reason`, `k8s.container.status.reason` and
+  `k8s.container.status.state`, which explain states such as `CrashLoopBackOff`, are
+  under `presets.clusterMetrics.metrics` and on by default.
+
+### resourcedetection processor
+
+Adds attributes that describe where the data comes from: `host.name` and `os.type` on
+host metrics, and `k8s.cluster.name` on everything.
+
+- Turned on by `presets.resourceDetection.enabled` (default `true`).
+- `k8s.cluster.name` comes from `global.clusterName`. If the check reports it
+  missing, set `global.clusterName` in your values.
+
+### k8sattributes processor
+
+Adds the Kubernetes names to metrics, logs and traces: `k8s.pod.uid`,
+`k8s.pod.name`, `k8s.namespace.name`, `k8s.node.name`, `k8s.container.name` and the
+owner (`k8s.deployment.name`, `k8s.statefulset.name`, `k8s.daemonset.name`,
+`k8s.job.name`).
+
+- Turned on by `presets.kubernetesAttributes.enabled` (default `true`).
+- It needs permission to read pods, namespaces and replica sets; the chart creates it.
+  With `presets.kubernetesAttributes.passthrough: true` the agents make no Kubernetes
+  API calls and add no metadata themselves.
+
+### Kubernetes events
+
+`presets.k8sEvents.enabled` (default `true`) sends Kubernetes events, such as
+`Back-off restarting failed container`, as logs. They appear on the **Events** tab of
+a pod, node or other object on the Infrastructure page.
+
