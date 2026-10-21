@@ -1,0 +1,75 @@
+---
+title: Impersonation mode
+description: Run FuseScope without sign-in, with every request acting as the root user.
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+
+**Use this page when** you see the *Impersonation mode* banner, or want a local or demo
+instance that opens without a login page.
+
+In impersonation mode FuseScope has no sign-in. Every request, from the browser or the
+API, acts as the [root user](/fusescope-docs/administration/users-and-roles/#first-user),
+an admin. The UI skips the login page and shows this banner on **Home**:
+
+> Impersonation mode: authentication is disabled. Anyone with access to this instance
+> has admin privileges.
+
+<Aside type="danger">
+  Anyone who can reach the instance can read all telemetry and change every setting.
+  Use impersonation mode only on a machine or network you trust, never on an instance
+  reachable from the internet.
+</Aside>
+
+## Turn it on
+
+Impersonation replaces session tokens and API keys, so those must be turned off, and it
+needs a root user to act as:
+
+```yaml
+identn:
+  impersonation:
+    enabled: true
+  tokenizer:
+    enabled: false
+  apikey:
+    enabled: false
+
+user:
+  root:
+    enabled: true
+    email: admin@example.com
+    password: <password>
+    org:
+      name: default
+```
+
+The same with environment variables:
+
+```bash
+SIGNOZ_IDENTN_IMPERSONATION_ENABLED=true
+SIGNOZ_IDENTN_TOKENIZER_ENABLED=false
+SIGNOZ_IDENTN_APIKEY_ENABLED=false
+SIGNOZ_USER_ROOT_ENABLED=true
+SIGNOZ_USER_ROOT_EMAIL=admin@example.com
+SIGNOZ_USER_ROOT_PASSWORD=<password>
+```
+
+The backend refuses to start when impersonation is on together with the tokenizer or API
+keys, or when the root user is not enabled. At startup it logs a warning that all
+requests impersonate the root user.
+
+See [Configuration file](/fusescope-docs/configuration/config-file/) for where these
+settings go.
+
+## Turn it off
+
+<Steps>
+
+1. Remove `identn.impersonation.enabled` or set it to `false`, and remove the
+   `tokenizer` and `apikey` overrides; both are on by default.
+2. Restart the backend.
+3. Sign in as the root user, then [invite members](/fusescope-docs/administration/users-and-roles/#invite-members)
+   or set up [single sign-on](/fusescope-docs/configuration/sso/).
+
+</Steps>

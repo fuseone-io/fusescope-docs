@@ -31,6 +31,12 @@ and [Apdex threshold](/fusescope-docs/apm/services/#apdex-threshold).
 A key and value attached to a span, log or data point, such as `http.method = GET`.
 Used to filter and group data.
 
+## Auth domain
+
+An email domain, such as `example.com`, tied to a single sign-on provider. Users with an
+email in that domain sign in through the provider. See
+[Single sign-on](/fusescope-docs/configuration/sso/).
+
 ## Cardinality
 
 The number of different values a key has. `http.method` has low cardinality (a
@@ -73,6 +79,11 @@ A page of panels (charts, tables, numbers) you arrange yourself. See
 A control at the top of a dashboard, such as a list of services, whose value the
 panel queries use as `$name`. Changing it changes what every panel that uses it shows.
 See [Dashboard variables](/fusescope-docs/dashboards/variables/).
+
+## Data source catalog
+
+The **Get Started** screen listing the languages, services and clouds you can send data
+from. See [Data source catalog](/fusescope-docs/sending-data/data-source-catalog/).
 
 ## Downstream
 
@@ -150,6 +161,12 @@ its calls. See [Highlight badges](/fusescope-docs/apm/services/#highlight-badges
 
 A metric type that counts how many values fall into each range (bucket), used to
 compute percentiles.
+
+## Impersonation mode
+
+A setting that turns sign-in off: every request acts as the root user, an admin. For
+trusted local or demo instances only. See
+[Impersonation mode](/fusescope-docs/configuration/impersonation-mode/).
 
 ## Inferred dependency
 
@@ -308,6 +325,12 @@ A rule that sends every alert whose labels match an expression, such as
 `service.name == "payment"`, to chosen notification channels. See
 [Routing policies](/fusescope-docs/alerts/routing-and-downtime/#routing-policies).
 
+## SAML
+
+Security Assertion Markup Language 2.0, an older single sign-on standard: the identity
+provider sends FuseScope a signed assertion with the user's email. See
+[SAML 2.0](/fusescope-docs/configuration/sso/#saml-20).
+
 ## Sample
 
 One value of a metric at one moment, also called a data point. The Metrics explorer
@@ -328,6 +351,12 @@ One program that sends telemetry, named by its `service.name` resource attribute
 How serious a log is, stored as `severity_number` (1 to 24) and `severity_text`.
 FuseScope shows it as one of TRACE, DEBUG, INFO, WARN, ERROR, FATAL or UNKNOWN. See
 [Severity levels](/fusescope-docs/explore/logs/#severity-levels).
+
+## Single sign-on
+
+Signing in to FuseScope with a company account from an identity provider, over OpenID
+Connect, Google Workspace or SAML, instead of a FuseScope password. See
+[Single sign-on](/fusescope-docs/configuration/sso/).
 
 ## Span
 

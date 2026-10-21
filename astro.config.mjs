@@ -57,6 +57,7 @@ export default defineConfig({
             { label: "OTLP endpoints", slug: "sending-data/otlp" },
             { label: "Kubernetes", slug: "sending-data/kubernetes" },
             { label: "Log pipelines", slug: "sending-data/log-pipelines" },
+            { label: "Data source catalog", slug: "sending-data/data-source-catalog" },
           ],
         },
         {
@@ -118,6 +119,7 @@ export default defineConfig({
             { label: "Users and roles", slug: "administration/users-and-roles" },
             { label: "Service accounts", slug: "administration/service-accounts" },
             { label: "Single sign-on", slug: "configuration/sso" },
+            { label: "Impersonation mode", slug: "configuration/impersonation-mode" },
             { label: "Data retention", slug: "administration/retention" },
             { label: "Configuration file", slug: "configuration/config-file" },
             { label: "Metadata store", slug: "configuration/metadata-store" },
