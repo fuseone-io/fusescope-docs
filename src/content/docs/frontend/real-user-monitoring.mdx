@@ -1,0 +1,117 @@
+---
+title: Real User Monitoring
+description: What Real User Monitoring (RUM) records in your users' browsers, what Web Vitals mean, how a page load links to its backend trace, and what FuseScope collects about users by default.
+---
+
+import { Aside, CardGrid, LinkCard } from "@astrojs/starlight/components";
+
+<Aside type="caution" title="Beta">
+  Real User Monitoring is in beta, for web applications only. The screens, the SDK and
+  its options may still change. Android and iOS come later.
+</Aside>
+
+**Real User Monitoring** (RUM) records what real users experience in their browser:
+how fast your pages load, how quickly they react to a click, which JavaScript errors
+they hit, and which backend request each page made. It lives under **Frontend** in the
+sidebar (`/frontend/applications`).
+
+The rest of FuseScope sees requests from the server inward. RUM adds the other end:
+the time spent in the browser, and the errors your servers never see.
+
+**Use RUM when** users say "the site is slow" and the backend looks healthy, when you
+want to know whether a release made pages slower, or when you need the backend trace
+behind one user's failing click.
+
+## What you get
+
+- **Sessions.** A session is one user's visit, from the first page until 15 minutes
+  without a click, key press, scroll or touch, or 4 hours at most. All tabs of one
+  browser share it. Every span and event carries its `session.id`. See
+  [session](/fusescope-docs/reference/glossary/#session).
+- **Views.** A view is one page or screen the user saw. Single-page apps count each
+  route change as a new view, named by its **route template**, such as
+  `/product/:id`, so `/product/1234` and `/product/99` count as one route.
+- **Web Vitals.** Google's standard measures of page experience, explained
+  [below](#web-vitals-in-plain-words).
+- **JavaScript errors.** Uncaught errors and unhandled promise rejections, with their
+  type, message, stack trace and the route they happened on.
+- **Browser requests linked to backend traces.** Each `fetch` or `XMLHttpRequest`
+  call is a span. The SDK adds the W3C `traceparent` header to it, so the backend's
+  trace becomes a child of the browser's request. From a session, one click opens the
+  backend trace in [Trace details](/fusescope-docs/explore/trace-details/).
+
+RUM data is stored as ordinary traces and logs, so the
+[Traces explorer](/fusescope-docs/explore/traces/), the
+[Logs explorer](/fusescope-docs/explore/logs/), dashboards and alert rules work on it.
+Filter by `fusescope.rum.application.id` to see one application.
+
+## Web Vitals in plain words
+
+Web Vitals are measured on each page load. FuseScope shows the **75th percentile
+(p75)**: three loads in four were at least this good. Each value is rated
+**good**, **needs improvement** or **poor** with Google's thresholds:
+
+| Vital | What it measures | Good | Needs improvement | Poor |
+|---|---|---|---|---|
+| **LCP**, Largest Contentful Paint | How long until the largest image or block of text is on screen: when the page *looks* loaded. | ≤ 2.5 s | ≤ 4 s | > 4 s |
+| **INP**, Interaction to Next Paint | How long the page takes to show a reaction after a click, tap or key press. The slowest interactions of the visit count. | ≤ 200 ms | ≤ 500 ms | > 500 ms |
+| **CLS**, Cumulative Layout Shift | How much the content jumps around while it loads, such as a button moving as an image appears. It has no unit. | ≤ 0.1 | ≤ 0.25 | > 0.25 |
+
+The SDK also records **FCP** (First Contentful Paint, the first text or image) and
+**TTFB** (Time to First Byte, how long the server took to start answering). They are in
+the data but not on the overview yet.
+
+<Aside>
+  Browsers report LCP, CLS and INP late, often after the user has moved to another
+  route. Vitals are therefore attributed to the route the page was **loaded** on, not
+  the route the user was on when they were reported.
+</Aside>
+
+## Privacy by default
+
+RUM is designed so that no personal data is collected unless you decide otherwise.
+
+- **Query strings and fragments are dropped** from URLs, span names and error
+  messages: `/search?q=boots#top` becomes `/search`. Keep named parameters, such as
+  `page`, with an allowlist. The SDK does this in the browser, and the FuseScope gateway
+  does it again on the server for URL attributes and span names, so a client that skips
+  it is still covered.
+- **No form input or typed text** is ever captured. Clicks record the element's tag
+  and a CSS selector, not its text.
+- **The client IP is not stored.** The gateway uses it in memory for the rate limit
+  only.
+- **Consent hook.** With **Wait for consent** on, the SDK records nothing until your
+  consent banner calls `setConsent(true)`.
+- **Users are anonymous** unless you call `setUser()`. The id you pass is then sent as
+  a SHA-256 hash, `user.hash`, unless you turn hashing off.
+
+The application's settings say which of these the server enforces and which the SDK
+applies; see [Set up a web application](/fusescope-docs/frontend/set-up-web/#3-privacy).
+
+## Homologated, not mandatory
+
+FuseScope publishes a browser SDK, [`@fusescope/browser`](/fusescope-docs/frontend/sdk-reference/):
+a thin distribution of OpenTelemetry JS that adds sessions, views, privacy scrubbing and
+the attributes the RUM screens read. It is the tested and recommended path, but it is
+not required. FuseScope accepts **any OpenTelemetry client** that sends OTLP to the RUM
+endpoints with an application key, and never checks which SDK sent the data.
+
+A client configured by hand only needs a few attributes for the screens to fill:
+`session.id`, `fusescope.rum.view.route`, spans named `view`, and `exception` and
+`browser.web_vital` events with an `event.name` attribute. See
+[Use another OpenTelemetry client](/fusescope-docs/frontend/opentelemetry-clients/).
+
+## Next steps
+
+<CardGrid>
+  <LinkCard
+    title="Set up a web application"
+    href="/fusescope-docs/frontend/set-up-web/"
+    description="Create the application, install the SDK and see the first session."
+  />
+  <LinkCard
+    title="Applications and Overview"
+    href="/fusescope-docs/frontend/applications/"
+    description="A tour of the screens and what each number means."
+  />
+</CardGrid>

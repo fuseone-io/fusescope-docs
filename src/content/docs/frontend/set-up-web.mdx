@@ -1,0 +1,323 @@
+---
+title: Set up a web application
+description: Create a RUM application, copy its public key, install @fusescope/browser with the generated snippet, link browser requests to backend traces, and fix rejected requests.
+---
+
+import { Aside, Steps, Tabs, TabItem } from "@astrojs/starlight/components";
+
+This page takes a web application from nothing to its first session in FuseScope, in
+about ten minutes. You need the **Admin** or **Editor** role, and a web app you can
+change and deploy. It works with any framework that uses a bundler, such as React with
+Vite, Vue, Angular or Next.js.
+
+If you don't know what RUM records yet, start with
+[Real User Monitoring](/fusescope-docs/frontend/real-user-monitoring/).
+
+## The steps at a glance
+
+<Steps>
+
+1. [Create the application](#create-the-application) in FuseScope: its name, the
+   origins allowed to send data, and its privacy policy.
+2. [Copy the public key](#copy-the-public-key). It is shown once.
+3. [Install the SDK](#install-the-sdk) with npm and paste the generated `init()` call.
+4. [Allow `traceparent`](#allow-traceparent-in-your-apis-cors) in your API's CORS, if
+   the API is on another origin.
+5. [Open your site and watch the data arrive](#check-that-data-arrives).
+
+</Steps>
+
+## Create the application
+
+A RUM **application** is one web app in one environment, such as `web-shop` in
+`production`. Open **Frontend** in the sidebar, then **New application**. When there is
+no application yet, the page explains RUM and shows the same button:
+
+![The empty Frontend page: See what your users experience, the three steps Create an application, Install the SDK and Open your site, the New application button, and the platforms Web (available), Android and iOS (coming soon).](../../../assets/frontend/frontend-applications-empty.png)
+
+*Sample data: this image is a Storybook story.*
+
+The **New application** sheet has two steps, **Settings** and **Install**. Here it is
+filled for a shop at `https://shop.example.com` whose API is at
+`https://api.example.com`:
+
+![The New application sheet, numbered: 1 Name web-shop, 2 Environment production, 3 Platform Web, 4 Allowed origins https://shop.example.com, 5 Link requests to backend traces https://api.example.com, 6 Session sample rate 50%, 7 Drop query strings and fragments, 8 Keep these query parameters page, 9 Look up country from client IP, 10 Wait for consent, 11 Hash user IDs, 12 Create application.](../../../assets/frontend/frontend-new-application.png)
+
+### 1. Application
+
+1. **Name**: sent as `service.name`, so it is also how the app appears in
+   [Services](/fusescope-docs/apm/services/) and the explorers. Use lowercase letters,
+   digits and dashes, such as `web-shop`.
+2. **Environment**: sent as `deployment.environment.name`, such as `production` or
+   `staging`. Create one application per environment, so each has its own key, origins
+   and numbers.
+3. **Platform**: **Web**. Android and iOS are coming soon.
+
+### 2. Origins and tracing
+
+4. **Allowed origins**: the sites allowed to send data with this application's key.
+   Type an origin and press Enter. An origin is a scheme, host and optional port, with
+   no path: `https://shop.example.com` or `http://localhost:5173`.
+   - `https://*.example.com` allows every subdomain of `example.com`, but not
+     `example.com` itself; add it separately.
+   - `*` allows any origin. Avoid it in production: anyone who copies your key could
+     send data from their own site.
+   - A browser request from any other origin is rejected. Add your local development
+     origin too if you test from there.
+5. **Link requests to backend traces**: the URLs of your APIs on **another origin**,
+   such as `https://api.example.com`. The SDK adds `traceparent` to requests sent to
+   them, which links each browser request to its backend trace. Requests to your site's
+   own origin are always linked. Your API must accept the header; see
+   [Allow traceparent](#allow-traceparent-in-your-apis-cors).
+6. **Session sample rate**: the share of sessions recorded, in steps of 5%. The choice
+   is made once per session, so a session is recorded whole or not at all. Sessions
+   left out send nothing and add no `traceparent`, so they don't affect how your
+   backend samples its traces. Keep 100% unless you have a lot of traffic.
+
+### 3. Privacy
+
+The line under **Privacy** reminds you that form inputs and typed text are never
+captured, whatever you choose here.
+
+7. **Drop query strings and fragments**: on by default. Removes everything after `?`
+   and `#` from URLs and span names: `/search?q=boots#top` becomes `/search`. Query
+   strings often hold emails, tokens or search terms, so keep it on.
+8. **Keep these query parameters**: parameter names kept despite 7, such as `page` or
+   `utm_source`. Only the name is matched; its value is kept as sent.
+9. **Look up country from client IP**: reserved for a country lookup from the client's
+   IP. In the beta the gateway stores your choice but adds no country yet. The IP is
+   never stored either way.
+10. **Wait for consent**: the SDK records nothing until your consent banner calls
+    `setConsent(true)`. Turn it on if you need consent before analytics, as under GDPR
+    or LGPD.
+11. **Hash user IDs**: on by default. When your code calls `setUser({ id })`, the id is
+    sent as a SHA-256 hash, `user.hash`, instead of `user.id`. Users are anonymous when
+    you don't call `setUser()`.
+12. **Create application** saves it, creates its first public key and opens the
+    **Install** step.
+
+### Server or SDK
+
+Each setting carries a tag that says where it is applied:
+
+| Tag | Settings | Applied by | When you change it |
+|---|---|---|---|
+| **SERVER** | Allowed origins, Drop query strings, Keep these query parameters, Look up country | The FuseScope RUM gateway, on every request | Takes effect when you save, for all users |
+| **SDK** | Link requests to backend traces, Session sample rate, Wait for consent, Hash user IDs | The SDK, from the options in the `init()` snippet | Copy the new snippet into your app and redeploy it |
+
+Because the gateway applies the server settings itself, they hold even for a client
+that ignores them, such as an old build or a hand-configured OpenTelemetry SDK.
+
+## Copy the public key
+
+Right after **Create application**, the **Install** step shows the application's
+**public key**. It is the only time FuseScope shows it in full:
+
+![The Install step right after creating web-shop-next, numbered: 1 Copy your public key now. It is shown once, 2 Copy, 3 the init snippet with the key already in it, 4 Waiting for first data…, 5 a rejected origin http://localhost:5173 with Add origin.](../../../assets/frontend/frontend-key-shown-once.png)
+
+*Sample data: this image is a Storybook story.*
+
+1. **Copy your public key now. It is shown once.** FuseScope stores only a hash of
+   it, so it can't show the key again. Keys start with `rum_pub_`.
+2. **Copy** puts the key on the clipboard.
+3. The `init()` **snippet** already contains the key until you close the sheet.
+
+The key is **public** and **write-only**: it is safe to ship in your JavaScript bundle,
+where anyone can read it. It can only send data for this application, from its allowed
+origins, within its rate limit. It can't read anything.
+
+<Aside type="tip">
+  Lost the key? You can't read it again, but you can make a new one: open the
+  application's **Settings**, then **Public key**, and
+  [rotate it](/fusescope-docs/frontend/keys/#rotate-a-key). The old key keeps working
+  for an overlap window while you deploy the new one.
+</Aside>
+
+## Install the SDK
+
+Install [`@fusescope/browser`](https://www.npmjs.com/package/@fusescope/browser) from
+npm:
+
+```bash
+npm install @fusescope/browser
+```
+
+Then paste the snippet from the **Install** step **as early as possible** in your app's
+entry point, before your app renders, such as `src/main.tsx` or `src/main.ts`. The
+snippet is generated from the application's settings; for the example above it reads:
+
+```ts title="src/main.ts"
+import { init } from '@fusescope/browser';
+
+init({
+  applicationId: '01a16431-12ca-7064-bae9-6ac64cf20a29',
+  publicKey: 'rum_pub_…',
+  endpoint: 'https://fusescope.example.com',
+  service: 'web-shop',
+  environment: 'production',
+  sessionSampleRate: 0.5,
+  propagateTraceHeaderCorsUrls: ['https://api.example.com'],
+  privacy: { queryAllowlist: ['page'] },
+});
+```
+
+- `applicationId` is the application's id, not its name.
+- `endpoint` is the FuseScope URL the snippet was generated on. Your users' browsers
+  must be able to reach it: if you opened FuseScope through `localhost` or an internal
+  host name, replace it with FuseScope's public URL. See
+  [Self-hosted FuseScope](#self-hosted-fusescope).
+- Options left at the SDK's defaults are omitted, so the snippet only shows what this
+  application changes. Add `version: '1.4.0'`, your app's release, to compare releases
+  on the overview. All options are in the
+  [SDK reference](/fusescope-docs/frontend/sdk-reference/).
+
+The SDK is published as ESM for bundlers.
+
+<Aside type="note" title="Script tag: coming soon">
+  The **Script tag · CDN** and **Script tag · this FuseScope** install methods are
+  marked **Soon**. A versioned CDN build with SRI hashes, and the same build served by
+  your FuseScope server at `/rum/sdk/browser/<version>.js`, come in a later release.
+  Until then, use npm.
+</Aside>
+
+### Allow traceparent in your API's CORS
+
+If your site calls an API on **another origin**, such as `https://api.example.com` from
+`https://shop.example.com`, the browser sends a CORS preflight before each request that
+carries `traceparent`. The API must allow that header, or the browser blocks the request
+itself, not only its trace. Same-origin APIs need nothing.
+
+Add `traceparent` (and `tracestate`, if you use it) to the API's
+`Access-Control-Allow-Headers`:
+
+<Tabs>
+  <TabItem label="Express">
+    ```js
+    import cors from 'cors';
+
+    app.use(cors({
+      origin: ['https://shop.example.com'],
+      allowedHeaders: ['content-type', 'authorization', 'traceparent', 'tracestate'],
+    }));
+    ```
+  </TabItem>
+  <TabItem label="NGINX">
+    ```nginx
+    add_header Access-Control-Allow-Headers "content-type, authorization, traceparent, tracestate" always;
+    ```
+  </TabItem>
+  <TabItem label="Go (rs/cors)">
+    ```go
+    handler := cors.New(cors.Options{
+        AllowedOrigins: []string{"https://shop.example.com"},
+        AllowedHeaders: []string{"Content-Type", "Authorization", "traceparent", "tracestate"},
+    }).Handler(mux)
+    ```
+  </TabItem>
+</Tabs>
+
+The backend must also be instrumented with OpenTelemetry and send its traces to
+FuseScope; see [Instrument applications](/fusescope-docs/sending-data/instrumentation/).
+OpenTelemetry instrumentations read `traceparent` and continue the browser's trace.
+
+<Aside type="caution">
+  Add to **Link requests to backend traces** only APIs you control. Third-party APIs
+  usually reject unknown headers in their CORS preflight, which would break those
+  requests.
+</Aside>
+
+## Check that data arrives
+
+Deploy your app and open it in a browser. The **Install** step updates by itself: it
+reads **Waiting for first data…** until the gateway accepts the first request, then
+**Receiving data**:
+
+![The Install tab of shop-demo while it receives data, numbered: 1 the install methods, npm and two script tags marked Soon, 2 the npm install command, 3 the init snippet, 4 the note to replace the masked key, 5 the OpenTelemetry web SDK note, 6 Receiving data with 16 sessions, 74 views, 10 errors and 78 Web Vitals, 7 @fusescope/browser 0.1.0-beta.0 Supported, 8 Open shop-demo.](../../../assets/frontend/frontend-install-receiving.png)
+
+1. **Install method**: **npm**; the two script-tag methods are coming soon.
+2. **Install command**, with a copy button.
+3. **Snippet**, with a copy button.
+4. When you come back later, the snippet shows the key masked, such as
+   `rum_pub_…sqdu`: replace it with your key.
+5. A reminder for apps that already use the OpenTelemetry web SDK; see
+   [Use another OpenTelemetry client](/fusescope-docs/frontend/opentelemetry-clients/).
+6. **Receiving data**, with when the first data arrived and what arrived in the last
+   5 minutes: **Sessions**, **Views**, **Errors** and **Web Vitals**.
+7. **The SDK seen** and whether this server supports its version: **Supported**,
+   **Outdated** (data is still accepted), or **Other client** for any other OpenTelemetry
+   SDK. See [Compatibility](/fusescope-docs/frontend/sdk-reference/#compatibility).
+8. **Open shop-demo** opens the application's
+   [overview](/fusescope-docs/frontend/applications/#the-overview).
+
+The first session shows up within seconds. Some Web Vitals, such as CLS and INP, are
+only final when the user hides or leaves the page, so switch tabs or close the page to
+send them sooner.
+
+### Troubleshoot rejected requests
+
+Requests the gateway refuses are listed under the status with a warning icon and how
+many were rejected in the last 5 minutes, such as
+`2 requests rejected: origin http://localhost:5173 is not allowed.`
+
+| Message | Cause | Fix |
+|---|---|---|
+| **origin … is not allowed** | The page's origin is not in **Allowed origins**. The browser shows a CORS error and the gateway answers `403`. | Click **Add origin** on the line, then save. Check the scheme and port: `http://localhost:5173` and `http://localhost:3000` are different origins. |
+| **the key is not valid for this application** | The key was revoked, or its rotation overlap ended. The gateway answers `401`. | Deploy the current key; see [Keys](/fusescope-docs/frontend/keys/). |
+| **rate limited** | More than 20 requests per second from one browser (bursts of 60), or 500 per second for the whole key (bursts of 1,000). The gateway answers `429`. | Usually a loop or a misbehaving page. Behind a proxy, check [the client IP setting](#self-hosted-fusescope): otherwise all users share one limit. |
+| **payload too large** | A request body over 4 MiB, before or after gzip. The gateway answers `400`. | The SDK sends small batches; this comes from a custom client. Send smaller batches. |
+| **not valid OTLP** | The body is not OTLP, or its `Content-Type` is not `application/json` or `application/x-protobuf`. | Check the exporter of a custom client. |
+
+<Aside>
+  A key FuseScope never issued, such as a typo or a key from another workspace, can't be
+  tied to an application, so it isn't counted here. If nothing arrives and no rejection
+  shows, compare the `publicKey` in your app with the last four characters on the
+  **Public key** tab, and open the browser's network panel: requests to `/rum/v1/` that
+  fail with `401` mean an unknown key.
+</Aside>
+
+Other things to check when nothing arrives:
+
+- **No request to `/rum/v1/` at all**: `init()` is not called, the session was not
+  sampled (check `sessionSampleRate`), or **Wait for consent** is on and
+  `setConsent(true)` hasn't been called.
+- **Requests fail without reaching FuseScope**: `endpoint` is wrong, or the `/rum/`
+  path is not exposed; see the next section.
+- The counts are kept in memory by each FuseScope server for 5 minutes. They start
+  again after a restart and, with several replicas, cover only the replica that
+  answers. The data itself is in the explorers either way.
+
+## Self-hosted FuseScope
+
+The RUM gateway runs inside the FuseScope backend, on its HTTP port (8080), under
+`/rum/`. Users' browsers send data straight to it, so:
+
+- **Expose `/rum/` publicly.** The `endpoint` in the snippet must reach the backend's
+  `/rum/v1/traces` and `/rum/v1/logs` from the internet. The Helm chart's default
+  ingress path `/` already does; if you route only some paths, add `/rum`. See
+  [Expose FuseScope](/fusescope-docs/install/helm/#expose-fusescope).
+- **Let the gateway answer CORS.** Your ingress or proxy must pass `OPTIONS` requests
+  and the `Origin` header through and must not add CORS headers of its own. With
+  ingress-nginx, don't set `enable-cors` on this ingress, and raise
+  `proxy-body-size` (1 MB by default) to 4 MB.
+- **Trust the client IP behind a proxy.** The per-browser rate limit keys on the client
+  IP. Behind an ingress or load balancer every browser would share the proxy's IP, and
+  one limit. Set the chart's `trustForwardedFor` value to `true`, or the backend
+  environment variable `SIGNOZ_RUM_RATELIMIT_TRUST__FORWARDED__FOR=true`, so the
+  gateway reads the first `X-Forwarded-For` address. Only do this behind a proxy that
+  sets that header, since a browser could otherwise choose its own address.
+- **Point the gateway at your collector.** It forwards to
+  `http://localhost:4318` by default. Outside Helm, set
+  `SIGNOZ_RUM_COLLECTOR__ENDPOINT` to your collector's OTLP/HTTP address, such as
+  `http://otel-collector:4318`.
+
+The gateway's settings are under `rum` in the
+[configuration file](/fusescope-docs/configuration/config-file/), such as
+`rum.max_body_size` and `rum.ratelimit.client.rate`. `rum.enabled: false` turns the
+gateway off. See [Install with Helm](/fusescope-docs/install/helm/) for the chart.
+
+## Related
+
+- [Applications and Overview](/fusescope-docs/frontend/applications/): read what
+  arrives.
+- [Keys](/fusescope-docs/frontend/keys/): rotate or revoke the public key.
+- [SDK reference](/fusescope-docs/frontend/sdk-reference/): every `init()` option.

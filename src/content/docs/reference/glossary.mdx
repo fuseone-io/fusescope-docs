@@ -281,6 +281,12 @@ One step of a log pipeline, such as a JSON parser or a Severity Parser. A pipeli
 runs its processors in order. See
 [Log pipelines](/fusescope-docs/sending-data/log-pipelines/#processors).
 
+## Public key (RUM)
+
+A write-only key, starting with `rum_pub_`, that a web app sends with its Real User
+Monitoring data. It is safe to ship in a JavaScript bundle: it can only send data for its
+application, from its allowed origins. See [RUM keys](/fusescope-docs/frontend/keys/).
+
 ## Query
 
 A request for data: a source (traces, logs or metrics), a filter, and optionally an
@@ -290,6 +296,12 @@ aggregation and group by.
 
 How fast a [counter](#counter) grows, per second, such as 35 requests per second. See
 [Why counters are queried with a rate](/fusescope-docs/explore/metrics/#why-counters-are-queried-with-a-rate).
+
+## Real User Monitoring (RUM)
+
+Measuring what real users experience in their browser: page loads, Web Vitals,
+JavaScript errors and the requests each page makes, linked to backend traces. See
+[Real User Monitoring](/fusescope-docs/frontend/real-user-monitoring/).
 
 ## RED metrics
 
@@ -319,6 +331,12 @@ healthy.
 The first span of a trace, the one with no parent. Its duration is the duration of the
 whole request.
 
+## Route template
+
+A page path with its variable parts replaced by names, such as `/product/:id` for
+`/product/1234`. RUM groups views and vitals by route template. See
+[Real User Monitoring](/fusescope-docs/frontend/real-user-monitoring/#what-you-get).
+
 ## Routing policy
 
 A rule that sends every alert whose labels match an expression, such as
@@ -345,6 +363,12 @@ cloned. See [Sections](/fusescope-docs/dashboards/dashboards/#sections).
 ## Service
 
 One program that sends telemetry, named by its `service.name` resource attribute.
+
+## Session
+
+In Real User Monitoring, one user's visit to a web app, shared by all its tabs. It ends
+after 15 minutes without activity or after 4 hours. Every RUM span and event carries its
+`session.id`. See [Real User Monitoring](/fusescope-docs/frontend/real-user-monitoring/#what-you-get).
 
 ## Severity
 
@@ -431,7 +455,19 @@ Directions of calls between services. **Upstream** services call this one;
 and `redis-manual` is downstream of it. See
 [Dependencies](/fusescope-docs/apm/services/#dependencies).
 
+## View
+
+In Real User Monitoring, one page or route a user saw. Each view is a span named `view`.
+See [Real User Monitoring](/fusescope-docs/frontend/real-user-monitoring/#what-you-get).
+
 ## Waterfall
 
 A trace drawn as a tree of spans, one row each, with a bar for when each span ran. See
 [Trace details](/fusescope-docs/explore/trace-details/#waterfall).
+
+## Web Vitals
+
+Google's measures of page experience: LCP (loading), INP (responsiveness) and CLS
+(visual stability), each rated good, needs improvement or poor. See
+[Web Vitals in plain words](/fusescope-docs/frontend/real-user-monitoring/#web-vitals-in-plain-words).
+

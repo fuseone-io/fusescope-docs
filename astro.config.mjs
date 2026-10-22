@@ -88,6 +88,18 @@ export default defineConfig({
           ],
         },
         {
+          label: "Frontend (RUM)",
+          badge: { text: "Beta", variant: "caution" },
+          items: [
+            { label: "Real User Monitoring", slug: "frontend/real-user-monitoring" },
+            { label: "Set up a web application", slug: "frontend/set-up-web" },
+            { label: "Applications and Overview", slug: "frontend/applications" },
+            { label: "Keys", slug: "frontend/keys" },
+            { label: "Browser SDK reference", slug: "frontend/sdk-reference" },
+            { label: "Use another OpenTelemetry client", slug: "frontend/opentelemetry-clients" },
+          ],
+        },
+        {
           label: "Respond",
           items: [
             { label: "Alert rules", slug: "alerts/alert-rules" },

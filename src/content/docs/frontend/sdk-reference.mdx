@@ -1,0 +1,115 @@
+---
+title: Browser SDK reference
+description: The @fusescope/browser options and functions, init, setUser, addError, addAction, setView, setConsent and shutdown, and which SDK versions each FuseScope server supports.
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+[`@fusescope/browser`](https://www.npmjs.com/package/@fusescope/browser) is FuseScope's
+browser SDK for Real User Monitoring: a thin distribution of OpenTelemetry JS that adds
+sessions, views, privacy scrubbing and the attributes the RUM screens read. It is
+licensed Apache-2.0, like OpenTelemetry.
+
+The current release is `0.1.0-beta.0`, on npm's `next` and `latest` tags. It is a beta
+built on experimental OpenTelemetry browser packages, so options may change before 1.0.
+This page is a short reference; the
+[README](https://github.com/fuseone-io/fusescope-sdk/tree/main/packages/browser#readme)
+has the full one, with every attribute it sends.
+
+```bash
+npm install @fusescope/browser
+```
+
+It ships as ESM for bundlers, and works in evergreen browsers with ES2020 and `fetch`.
+
+## init(config)
+
+Starts collection. Call it once, as early as possible in your app's entry point; a
+second call is ignored with a warning. The **Install** tab of the application's settings
+generates the call for you; see
+[Set up a web application](/fusescope-docs/frontend/set-up-web/#install-the-sdk).
+
+```ts
+import { init } from '@fusescope/browser';
+
+init({
+  applicationId: '01a16431-12ca-7064-bae9-6ac64cf20a29',
+  publicKey: 'rum_pub_…',
+  endpoint: 'https://fusescope.example.com',
+  service: 'web-shop',
+  environment: 'production',
+  version: '1.4.0',
+  propagateTraceHeaderCorsUrls: ['https://api.example.com'],
+});
+```
+
+| Option | Default | What it does |
+|---|---|---|
+| `applicationId` | required | The application's id, from the snippet. |
+| `publicKey` | required | The application's public key, `rum_pub_…`. Safe to ship in a bundle. |
+| `endpoint` | required | FuseScope's base URL. Data goes to `<endpoint>/rum/v1/traces` and `<endpoint>/rum/v1/logs`. |
+| `service` | `applicationId` | `service.name`. The snippet sets it to the application's name. |
+| `environment` | none | `deployment.environment.name`, such as `production`. |
+| `version` | none | `service.version`, your app's release. Fills the **Release** filter on the overview. |
+| `sessionSampleRate` | `1` | Share of sessions recorded, from 0 to 1. Unsampled sessions send nothing and no `traceparent`. |
+| `propagateTraceHeaderCorsUrls` | `[]` | Cross-origin API URLs that get `traceparent`. A string matches URLs that start with it at a `/`, `?` or `#` boundary, so an origin works; a `RegExp` is tested against the full URL. Same-origin requests always get it. |
+| `requireConsent` | `false` | Collect nothing until `setConsent(true)`. |
+| `privacy.dropQuery` | `true` | Drop query strings and fragments from URLs, span names, error messages and stacks. |
+| `privacy.queryAllowlist` | `[]` | Query parameters kept while `dropQuery` is on. |
+| `privacy.hashUserId` | `true` | `setUser()` sends `user.hash` instead of `user.id`. |
+| `session.inactivityTimeoutMs` | 15 min | A session ends after this long without a click, key, scroll or touch. |
+| `session.maxDurationMs` | 4 h | A session never lasts longer. |
+| `routeTemplate` | id segments → `:id` | `(path) => route`, to name views from a path. |
+| `instrumentations` | all `true` | Turn off `documentLoad`, `fetch`, `xhr`, `userActions`, `webVitals` or `errors` one by one. |
+
+## Functions
+
+| Function | What it does |
+|---|---|
+| `setUser(user \| null)` | Opt-in. `{ id }` is sent as `user.hash` (SHA-256), or as `user.id` with `privacy.hashUserId: false`. `null` clears it. Hashing needs a secure context (HTTPS or `localhost`). |
+| `addError(error, attributes?)` | Reports an error you caught yourself, with `fusescope.rum.error.source = manual`. |
+| `addAction(name, attributes?)` | Reports a custom action, such as `checkout`. |
+| `setView(route)` | Names the current view with your router's template, such as `/orders/:id`. |
+| `setConsent(granted)` | `true` starts collection when `requireConsent` is set; `false` flushes and stops it. |
+| `shutdown()` | Flushes and stops; `init()` can be called again. |
+
+Calls made before collection starts are dropped, except `setUser`, which is applied when
+collection starts.
+
+```ts
+import { addError, setUser, setView } from '@fusescope/browser';
+
+router.afterEach((to) => setView(to.matched.at(-1)?.path ?? to.path));
+
+onLogin((account) => setUser({ id: account.id }));
+
+try {
+  await checkout();
+} catch (error) {
+  addError(error, { step: 'payment' });
+}
+```
+
+<Aside type="tip" title="Consent banner">
+  With **Wait for consent** on in the application's settings, the snippet has
+  `requireConsent: true`. Call `setConsent(true)` when the user accepts, and
+  `setConsent(false)` if they withdraw.
+</Aside>
+
+## Compatibility
+
+Each FuseScope server is tested with a range of SDK versions, shown on the Applications
+page and in each application's SDK badge. Data from other versions, or from any other
+OpenTelemetry client, is still accepted; the badge then reads **Outdated** or
+**Other client**.
+
+| FuseScope server | `@fusescope/browser` | OpenTelemetry JS line |
+|---|---|---|
+| with RUM (web beta) | from `0.1.0` up to, not including, `1.0.0` | 2.12 / 0.223, `browser-sdk` 0.5, `browser-instrumentation` 0.8 |
+
+Pre-releases count as their version: `0.1.0-beta.0` is supported.
+
+## Related
+
+- [Use another OpenTelemetry client](/fusescope-docs/frontend/opentelemetry-clients/)
+- [Real User Monitoring](/fusescope-docs/frontend/real-user-monitoring/)

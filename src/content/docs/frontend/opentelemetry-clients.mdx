@@ -1,0 +1,108 @@
+---
+title: Use another OpenTelemetry client
+description: Send RUM data to FuseScope from the OpenTelemetry web SDK or any OTLP client. The /rum/v1 endpoints, the FuseScope-RUM-Key header, CORS, and the attributes the Frontend screens need.
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+FuseScope's [browser SDK](/fusescope-docs/frontend/sdk-reference/) is recommended, but
+not required. The RUM gateway accepts OTLP from **any** client and never checks which
+SDK sent it. If your app already uses the OpenTelemetry web SDK, point its exporters at
+FuseScope and add the attributes below; the Frontend screens then work as with
+`@fusescope/browser`.
+
+Create the application first, as in
+[Set up a web application](/fusescope-docs/frontend/set-up-web/#create-the-application),
+to get its public key and allowed origins. The **SDK** settings, such as the sample rate
+and consent, are then yours to implement in your client.
+
+## Endpoints
+
+| Signal | Endpoint |
+|---|---|
+| Traces | `POST <FuseScope URL>/rum/v1/traces` |
+| Logs | `POST <FuseScope URL>/rum/v1/logs` |
+
+- **Encoding**: OTLP/HTTP, with `Content-Type: application/json` or
+  `application/x-protobuf`. `Content-Encoding: gzip` is accepted.
+- **Key**: the application's public key in the **`FuseScope-RUM-Key`** header. For
+  `navigator.sendBeacon`, which can't set headers, pass it as the
+  `fusescope_rum_key` query parameter instead.
+- **Size**: 4 MiB per request at most, before and after gzip.
+- **Response**: an OTLP export response, `200`, in the request's encoding.
+
+The gateway is not the collector's OTLP endpoint (port 4318): browsers never talk to the
+collector directly. It authenticates the key, checks the origin, rate-limits, scrubs
+URLs, adds the application's attributes and forwards to the collector.
+
+```ts title="OpenTelemetry web SDK"
+import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
+import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http';
+
+const headers = { 'FuseScope-RUM-Key': 'rum_pub_…' };
+
+const traceExporter = new OTLPTraceExporter({
+  url: 'https://fusescope.example.com/rum/v1/traces',
+  headers,
+});
+const logExporter = new OTLPLogExporter({
+  url: 'https://fusescope.example.com/rum/v1/logs',
+  headers,
+});
+```
+
+### CORS
+
+The gateway answers CORS itself, from the application's **Allowed origins**:
+
+- The custom header makes every export a non-simple request, so the browser sends an
+  `OPTIONS` preflight first. The gateway allows `POST` with the headers `content-type`,
+  `content-encoding` and `fusescope-rum-key`, and caches the answer for 24 hours.
+- Don't send credentials (`withCredentials`, cookies): they aren't needed and aren't
+  allowed.
+- Requests without an `Origin` header, such as from a server or a test script, skip the
+  origin check but still need a valid key.
+
+## Attributes the screens need
+
+The gateway sets these on every resource, so you don't need to:
+
+- `fusescope.rum.application.id` and `fusescope.rum.platform` (`web`), always,
+  overwriting any value the client sent;
+- `service.name` and `deployment.environment.name`, from the application's name and
+  environment, when the client didn't set them;
+- `event.name` on log records, copied from the record's event name when the attribute
+  is missing. FuseScope's log storage keeps only the attribute.
+
+Your client must send the rest:
+
+| Where | Attribute | Used for |
+|---|---|---|
+| Every span and log record | `session.id` | Sessions, session error rate, recent sessions. A random id per visit, shared by the visit's spans and logs. |
+| Every span and log record | `fusescope.rum.view.route` | Routes: the route template, such as `/product/:id`. |
+| Resource | `service.version` | The **Release** filter and column. |
+| Resource | `user_agent.original` | **Browser · OS** in recent sessions. |
+| Resource | `telemetry.distro.name` and `.version`, or `telemetry.sdk.name` and `.version` | The SDK badge. Any name other than `@fusescope/browser` shows as **Other client**. |
+| Span named `view` | `url.path`, `fusescope.rum.view.route` | **Views**: one span per page or route the user saw. |
+| HTTP client spans | `http.request.method`, `http.response.status_code`, `url.full`, with `traceparent` sent to the backend | **View backend trace** in recent sessions. |
+| Log record, event `exception` | `exception.type`, `exception.message`, `exception.stacktrace`, `fusescope.rum.error.source` (`onerror`, `unhandledrejection` or `manual`) | **Recent errors** and the error rate. |
+| Log record, event `browser.web_vital` | `browser.web_vital.name` (`lcp`, `inp`, `cls`, `fcp`, `ttfb`), `browser.web_vital.value`, `browser.web_vital.rating` (`good`, `needs-improvement`, `poor`) | The vitals, their split bars and **Top routes by LCP**. Values in milliseconds; CLS unitless. |
+
+The upstream `@opentelemetry/browser-instrumentation` package emits the
+`browser.web_vital` events and HTTP spans with these names; you add the session, the
+route and the `view` spans. The
+[SDK's README](https://github.com/fuseone-io/fusescope-sdk/tree/main/packages/browser#data)
+lists every attribute `@fusescope/browser` sends.
+
+<Aside type="caution" title="Privacy is yours to apply">
+  The gateway still drops query strings and fragments from URL attributes and span names
+  according to the application's policy. Error messages, stack traces and log bodies are
+  sent as your client wrote them, so scrub them in the client, and don't record input
+  values or element text.
+</Aside>
+
+## Related
+
+- [Set up a web application](/fusescope-docs/frontend/set-up-web/#troubleshoot-rejected-requests):
+  rejected requests.
+- [OTLP endpoints](/fusescope-docs/sending-data/otlp/): sending backend telemetry.

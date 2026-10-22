@@ -190,6 +190,11 @@ signoz:
 URL too so links in alert notifications point to it. To accept OTLP from outside the
 cluster, see [OTLP ingress](/fusescope-docs/sending-data/otlp/#from-outside-the-cluster).
 
+Browsers send [Real User Monitoring](/fusescope-docs/frontend/real-user-monitoring/) data
+to `/rum/` on this same host, which the path `/` above already routes to the backend. See
+[Self-hosted FuseScope](/fusescope-docs/frontend/set-up-web/#self-hosted-fusescope) for
+CORS, body size and the client IP behind an ingress.
+
 ## Upgrade and uninstall
 
 ```bash
