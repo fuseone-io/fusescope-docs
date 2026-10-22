@@ -41,7 +41,7 @@ The **New application** sheet has two steps, **Settings** and **Install**. Here 
 filled for a shop at `https://shop.example.com` whose API is at
 `https://api.example.com`:
 
-![The New application sheet, numbered: 1 Name web-shop, 2 Environment production, 3 Platform Web, 4 Allowed origins https://shop.example.com, 5 Link requests to backend traces https://api.example.com, 6 Session sample rate 50%, 7 Drop query strings and fragments, 8 Keep these query parameters page, 9 Look up country from client IP, 10 Wait for consent, 11 Hash user IDs, 12 Create application.](../../../assets/frontend/frontend-new-application.png)
+![The New application sheet, numbered: 1 Name web-shop, 2 Environment production, 3 Platform Web, 4 Allowed origins https://shop.example.com, 5 Link requests to backend traces https://api.example.com, 6 Session sample rate 50%, 7 Drop query strings and fragments, 8 Keep these query parameters page, 9 Look up country from client IP, marked Soon and off, 10 Wait for consent, 11 Hash user IDs, 12 Create application.](../../../assets/frontend/frontend-new-application.png)
 
 ### 1. Application
 
@@ -112,7 +112,7 @@ that ignores them, such as an old build or a hand-configured OpenTelemetry SDK.
 Right after **Create application**, the **Install** step shows the application's
 **public key**. It is the only time FuseScope shows it in full:
 
-![The Install step right after creating web-shop-next, numbered: 1 Copy your public key now. It is shown once, 2 Copy, 3 the init snippet with the key already in it, 4 Waiting for first data…, 5 a rejected origin http://localhost:5173 with Add origin.](../../../assets/frontend/frontend-key-shown-once.png)
+![The Install step right after creating web-shop-next, numbered: 1 Copy your public key now. It is shown once, 2 Copy, 3 the init snippet with the key already in it, 4 Waiting for first data…, 5 a rejected origin http://localhost:5173 with Add origin, followed by requests with an unknown key from https://shop.example.com.](../../../assets/frontend/frontend-key-shown-once.png)
 
 *Sample data: this image is a Storybook story.*
 
@@ -233,7 +233,7 @@ Deploy your app and open it in a browser. The **Install** step updates by itself
 reads **Waiting for first data…** until the gateway accepts the first request, then
 **Receiving data**:
 
-![The Install tab of shop-demo while it receives data, numbered: 1 the install methods, npm and two script tags marked Soon, 2 the npm install command, 3 the init snippet, 4 the note to replace the masked key, 5 the OpenTelemetry web SDK note, 6 Receiving data with 16 sessions, 74 views, 10 errors and 78 Web Vitals, 7 @fusescope/browser 0.1.0-beta.0 Supported, 8 Open shop-demo.](../../../assets/frontend/frontend-install-receiving.png)
+![The Install tab of shop-demo while it receives data, numbered: 1 the install methods, npm and two script tags marked Soon, 2 the npm install command, 3 the init snippet, 4 the note to replace the masked key, 5 the OpenTelemetry web SDK note, 6 Receiving data with 14 sessions, 64 views, 9 errors and 70 Web Vitals, 7 @fusescope/browser 0.1.0-beta.0 Supported, 8 Open shop-demo.](../../../assets/frontend/frontend-install-receiving.png)
 
 1. **Install method**: **npm**; the two script-tag methods are coming soon.
 2. **Install command**, with a copy button.
