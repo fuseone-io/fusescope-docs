@@ -84,9 +84,8 @@ captured, whatever you choose here.
    strings often hold emails, tokens or search terms, so keep it on.
 8. **Keep these query parameters**: parameter names kept despite 7, such as `page` or
    `utm_source`. Only the name is matched; its value is kept as sent.
-9. **Look up country from client IP**: reserved for a country lookup from the client's
-   IP. In the beta the gateway stores your choice but adds no country yet. The IP is
-   never stored either way.
+9. **Look up country from client IP**: marked **Soon**, off and disabled. A country
+   lookup from the client's IP comes in a later release. The IP is never stored.
 10. **Wait for consent**: the SDK records nothing until your consent banner calls
     `setConsent(true)`. Turn it on if you need consent before analytics, as under GDPR
     or LGPD.
@@ -102,7 +101,7 @@ Each setting carries a tag that says where it is applied:
 
 | Tag | Settings | Applied by | When you change it |
 |---|---|---|---|
-| **SERVER** | Allowed origins, Drop query strings, Keep these query parameters, Look up country | The FuseScope RUM gateway, on every request | Takes effect when you save, for all users |
+| **SERVER** | Allowed origins, Drop query strings, Keep these query parameters | The FuseScope RUM gateway, on every request | Takes effect when you save, for all users |
 | **SDK** | Link requests to backend traces, Session sample rate, Wait for consent, Hash user IDs | The SDK, from the options in the `init()` snippet | Copy the new snippet into your app and redeploy it |
 
 Because the gateway applies the server settings itself, they hold even for a client
@@ -154,6 +153,7 @@ init({
   publicKey: 'rum_pub_…',
   endpoint: 'https://fusescope.example.com',
   service: 'web-shop',
+  version: '<your app version>', // your release, e.g. from package.json
   environment: 'production',
   sessionSampleRate: 0.5,
   propagateTraceHeaderCorsUrls: ['https://api.example.com'],
@@ -166,9 +166,10 @@ init({
   must be able to reach it: if you opened FuseScope through `localhost` or an internal
   host name, replace it with FuseScope's public URL. See
   [Self-hosted FuseScope](#self-hosted-fusescope).
+- Replace `<your app version>` with your app's release, such as the `version` in
+  `package.json`. It fills the **Release** filter and badge on the overview.
 - Options left at the SDK's defaults are omitted, so the snippet only shows what this
-  application changes. Add `version: '1.4.0'`, your app's release, to compare releases
-  on the overview. All options are in the
+  application changes. All options are in the
   [SDK reference](/fusescope-docs/frontend/sdk-reference/).
 
 The SDK is published as ESM for bundlers.
@@ -263,16 +264,17 @@ many were rejected in the last 5 minutes, such as
 |---|---|---|
 | **origin … is not allowed** | The page's origin is not in **Allowed origins**. The browser shows a CORS error and the gateway answers `403`. | Click **Add origin** on the line, then save. Check the scheme and port: `http://localhost:5173` and `http://localhost:3000` are different origins. |
 | **the key is not valid for this application** | The key was revoked, or its rotation overlap ended. The gateway answers `401`. | Deploy the current key; see [Keys](/fusescope-docs/frontend/keys/). |
+| **with an unknown key from …** | The key matches no key FuseScope issued, such as a typo or a key from another application or workspace, and the page's origin is in **Allowed origins**. The gateway answers `401`. | Check the `publicKey` in your snippet against the last four characters on the **Public key** tab. |
 | **rate limited** | More than 20 requests per second from one browser (bursts of 60), or 500 per second for the whole key (bursts of 1,000). The gateway answers `429`. | Usually a loop or a misbehaving page. Behind a proxy, check [the client IP setting](#self-hosted-fusescope): otherwise all users share one limit. |
-| **payload too large** | A request body over 4 MiB, before or after gzip. The gateway answers `400`. | The SDK sends small batches; this comes from a custom client. Send smaller batches. |
+| **payload too large** | A request body over 4 MiB, before or after gzip. The gateway answers `413`. | The SDK sends small batches; this comes from a custom client. Send smaller batches. |
 | **not valid OTLP** | The body is not OTLP, or its `Content-Type` is not `application/json` or `application/x-protobuf`. | Check the exporter of a custom client. |
 
 <Aside>
-  A key FuseScope never issued, such as a typo or a key from another workspace, can't be
-  tied to an application, so it isn't counted here. If nothing arrives and no rejection
-  shows, compare the `publicKey` in your app with the last four characters on the
-  **Public key** tab, and open the browser's network panel: requests to `/rum/v1/` that
-  fail with `401` mean an unknown key.
+  An unknown key names no application, so it is counted on every application whose
+  **Allowed origins** include the request's origin, and nowhere when none does, such as
+  for a request without an `Origin` header. If nothing arrives and no rejection shows,
+  open the browser's network panel: requests to `/rum/v1/` that fail with `401` mean a
+  key FuseScope doesn't know.
 </Aside>
 
 Other things to check when nothing arrives:
