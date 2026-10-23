@@ -1,6 +1,6 @@
 ---
 title: Browser SDK reference
-description: The @fusescope/browser options and functions, init, setUser, addError, addAction, setView, setConsent and shutdown, and which SDK versions each FuseScope server supports.
+description: The @fusescope/browser options and functions, init, setUser, addError, addAction, setView, setConsent and shutdown, what changed in 0.2.0, the data it sends, and which SDK versions each FuseScope server supports.
 ---
 
 import { Aside } from "@astrojs/starlight/components";
@@ -10,15 +10,20 @@ browser SDK for Real User Monitoring: a thin distribution of OpenTelemetry JS th
 sessions, views, privacy scrubbing and the attributes the RUM screens read. It is
 licensed Apache-2.0, like OpenTelemetry.
 
-The current release is `0.1.0-beta.0`, on npm's `next` and `latest` tags. It is a beta
-built on experimental OpenTelemetry browser packages, so options may change before 1.0.
-This page is a short reference; the
+The current release is `0.2.0-beta.0`, on npm's `next` tag. It is a beta built on
+experimental OpenTelemetry browser packages, so options may change before 1.0. This page
+is a short reference; the
 [README](https://github.com/fuseone-io/fusescope-sdk/tree/main/packages/browser#readme)
 has the full one, with every attribute it sends.
 
 ```bash
-npm install @fusescope/browser
+npm install @fusescope/browser@next
 ```
+
+<Aside type="caution">
+  Install with the `next` tag. npm's `latest` tag still points to `0.1.0-beta.0`, which
+  lacks page loads and route changes, time on view and the click target.
+</Aside>
 
 It ships as ESM for bundlers, and works in evergreen browsers with ES2020 and `fetch`.
 
@@ -50,13 +55,13 @@ init({
 | `endpoint` | required | FuseScope's base URL. Data goes to `<endpoint>/rum/v1/traces` and `<endpoint>/rum/v1/logs`. |
 | `service` | `applicationId` | `service.name`. The snippet sets it to the application's name. |
 | `environment` | none | `deployment.environment.name`, such as `production`. |
-| `version` | none | `service.version`, your app's release. Fills the **Release** filter on the overview. |
+| `version` | none | `service.version`, your app's release. Fills the **Release** filter, and **must equal the `--release` of your [source map](/fusescope-docs/frontend/source-maps/) upload**. |
 | `sessionSampleRate` | `1` | Share of sessions recorded, from 0 to 1. Unsampled sessions send nothing and no `traceparent`. |
 | `propagateTraceHeaderCorsUrls` | `[]` | Cross-origin API URLs that get `traceparent`. A string matches URLs that start with it at a `/`, `?` or `#` boundary, so an origin works; a `RegExp` is tested against the full URL. Same-origin requests always get it. |
 | `requireConsent` | `false` | Collect nothing until `setConsent(true)`. |
 | `privacy.dropQuery` | `true` | Drop query strings and fragments from URLs, span names, error messages and stacks. |
 | `privacy.queryAllowlist` | `[]` | Query parameters kept while `dropQuery` is on. |
-| `privacy.hashUserId` | `true` | `setUser()` sends `user.hash` instead of `user.id`. |
+| `privacy.hashUserId` | `true` | `setUser()` sends the SHA-256 of the id in `user.id`; `false` sends the raw id. |
 | `session.inactivityTimeoutMs` | 15 min | A session ends after this long without a click, key, scroll or touch. |
 | `session.maxDurationMs` | 4 h | A session never lasts longer. |
 | `routeTemplate` | id segments → `:id` | `(path) => route`, to name views from a path. |
@@ -66,7 +71,7 @@ init({
 
 | Function | What it does |
 |---|---|
-| `setUser(user \| null)` | Opt-in. `{ id }` is sent as `user.hash` (SHA-256), or as `user.id` with `privacy.hashUserId: false`. `null` clears it. Hashing needs a secure context (HTTPS or `localhost`). |
+| `setUser(user \| null)` | Opt-in. `{ id }` is sent in `user.id`, hashed; see [setUser](#setuser). `null` clears it. |
 | `addError(error, attributes?)` | Reports an error you caught yourself, with `fusescope.rum.error.source = manual`. |
 | `addAction(name, attributes?)` | Reports a custom action, such as `checkout`. |
 | `setView(route)` | Names the current view with your router's template, such as `/orders/:id`. |
@@ -96,6 +101,60 @@ try {
   `setConsent(false)` if they withdraw.
 </Aside>
 
+### setUser
+
+`setUser({ id })` adds `user.id` to every span and log record that follows. Users are
+anonymous until you call it.
+
+#### User identity
+
+By default `user.id` is the **SHA-256 of the id, in hexadecimal**, computed in the browser
+with WebCrypto, so FuseScope never stores who the user is. To find someone's sessions,
+hash their id the same way and paste it in the
+[Sessions](/fusescope-docs/frontend/sessions/#the-session-list) user search:
+
+```bash
+printf '%s' 'customer-42' | sha256sum
+```
+
+With `privacy.hashUserId: false`, the raw id is sent instead.
+
+- Hashing is asynchronous. Records emitted between the call and the hash carry no
+  `user.id`, never the previous user's; spans already open, like the current view, get it
+  when they end.
+- When calls overlap, the last one wins, so `setUser(null)` right after a login is never
+  undone by a late hash.
+- WebCrypto needs a secure context (HTTPS or `localhost`). Elsewhere the user is not set
+  and a warning is logged, rather than sending the raw id.
+
+## What the SDK sends
+
+Besides the attributes listed in
+[Use another OpenTelemetry client](/fusescope-docs/frontend/opentelemetry-clients/#attributes-the-screens-need):
+
+| Attribute | On | Meaning |
+|---|---|---|
+| `session.previous_id` | every span and log record | The session that expired just before this one, empty for the first. The view open at that moment keeps the old session. |
+| `fusescope.rum.view.loading_type` | `view` spans | `initial_load` for the view the page was loaded on, `route_change` for every other view. |
+| `fusescope.rum.view.navigation_type` | `view` spans | `load`, `push`, `replace`, `pop`, `manual`, or `restore` when a hidden page is shown again and its view restarts. |
+| duration of the `view` span | `view` spans | The **time on view**: the view ends at the next navigation, when the page is hidden, or on `shutdown()`. |
+| `fusescope.rum.action.target` | click events | What was clicked, as a short selector; see [What a click records](/fusescope-docs/frontend/sessions/#what-a-click-records). |
+| `user.id` | every span and log record, after `setUser()` | The user's id, hashed by default. |
+
+## What changed in 0.2.0
+
+| Change | What to do |
+|---|---|
+| Views carry `fusescope.rum.view.loading_type` and `navigation_type`. The [Views](/fusescope-docs/frontend/views/) tab splits page loads from route changes with them. | Nothing; views from 0.1 SDKs are shown apart, marked `*`. |
+| A view lasts until the next navigation or until the page is hidden: its duration is the time on view. | Nothing. |
+| `setUser()` sends the hash in `user.id`. **`user.hash` is no longer sent.** | Update dashboards, alerts and saved queries that read `user.hash` to read `user.id`. |
+| A session that replaces an expired one carries `session.previous_id`. | Nothing. |
+| Clicks carry `fusescope.rum.action.target`. | Add `data-fusescope-action` to elements you want named. |
+| `version` is documented as the release your source maps are uploaded for, sent as `service.version`. | Pass the same value to `--release`; see [Source maps](/fusescope-docs/frontend/source-maps/). |
+
+To upgrade, install `@fusescope/browser@next` and redeploy; the `init()` options are
+unchanged.
+
 ## Compatibility
 
 Each FuseScope server is tested with a range of SDK versions, shown on the Applications
@@ -105,11 +164,13 @@ OpenTelemetry client, is still accepted; the badge then reads **Outdated** or
 
 | FuseScope server | `@fusescope/browser` | OpenTelemetry JS line |
 |---|---|---|
-| with RUM (web beta) | from `0.1.0` up to, not including, `1.0.0` | 2.12 / 0.223, `browser-sdk` 0.5, `browser-instrumentation` 0.8 |
+| v0.152.0 and later | from `0.1.0` up to, not including, `1.0.0`; `0.2.0` or later for page loads, route changes and time on view | 2.12 / 0.223, `browser-sdk` 0.5, `browser-instrumentation` 0.8 |
+| v0.151.x | from `0.1.0` up to, not including, `1.0.0` | 2.12 / 0.223, `browser-sdk` 0.5, `browser-instrumentation` 0.8 |
 
-Pre-releases count as their version: `0.1.0-beta.0` is supported.
+Pre-releases count as their version: `0.2.0-beta.0` is supported.
 
 ## Related
 
 - [Use another OpenTelemetry client](/fusescope-docs/frontend/opentelemetry-clients/)
+- [Source maps](/fusescope-docs/frontend/source-maps/)
 - [Real User Monitoring](/fusescope-docs/frontend/real-user-monitoring/)

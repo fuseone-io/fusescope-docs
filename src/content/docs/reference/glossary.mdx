@@ -37,6 +37,12 @@ An email domain, such as `example.com`, tied to a single sign-on provider. Users
 email in that domain sign in through the provider. See
 [Single sign-on](/fusescope-docs/configuration/sso/).
 
+## Breadcrumbs
+
+In Real User Monitoring, the views, clicks and requests of a session in the 2 minutes
+before a JavaScript error, so you can see what the user did just before it. See
+[Error detail](/fusescope-docs/frontend/errors/#error-detail).
+
 ## Cardinality
 
 The number of different values a key has. `http.method` has low cardinality (a
@@ -105,6 +111,12 @@ One kind of request or call a service handles, shown as a row of the
 The first span of a request inside one service, where the request entered it. Service
 latency and error rate are computed from these spans.
 
+## Error group
+
+In Real User Monitoring, all the JavaScript errors with the same
+[fingerprint](#fingerprint): one bug, however many times and in however many browsers it
+happened. See [Errors](/fusescope-docs/frontend/errors/).
+
 ## Error rate
 
 The share of requests that failed, as a percentage.
@@ -134,6 +146,12 @@ from the URL of their client spans. It doesn't need to send telemetry itself. Se
 
 A condition that selects which data a query uses, such as
 `service.name = 'driver'`. See [Search syntax](/fusescope-docs/querying/search-syntax/).
+
+## Fingerprint
+
+A short id that groups JavaScript errors, computed from the exception type, the message
+with its numbers, ids and URLs removed, and the file and function of the top stack frame.
+See [How errors are grouped](/fusescope-docs/frontend/errors/#how-errors-are-grouped).
 
 ## Flame graph
 
@@ -241,6 +259,13 @@ same name in one service are the same operation.
 The OpenTelemetry protocol, used to send telemetry over gRPC (port 4317) or HTTP
 (port 4318). See [OTLP](/fusescope-docs/sending-data/otlp/).
 
+## Page load
+
+In Real User Monitoring, the [view](#view) a browser loaded the page on: the first view of
+a visit, or a reload. Only page loads have Web Vitals. The other views of a single-page
+app are [route changes](#route-change). See
+[Page loads and route changes](/fusescope-docs/frontend/views/#page-loads-and-route-changes).
+
 ## Panel
 
 One chart, table, number, list or note on a dashboard, with its own query and title.
@@ -308,6 +333,12 @@ JavaScript errors and the requests each page makes, linked to backend traces. Se
 Rate, errors and duration: how many requests a service handles, how many fail and how
 long they take. See [Services](/fusescope-docs/apm/services/#rate-errors-and-duration).
 
+## Release
+
+The version of your app that sent the data, the `version` passed to the RUM SDK's
+`init()` and stored as `service.version`. RUM screens filter by it, and source maps are
+uploaded per release. See [Source maps](/fusescope-docs/frontend/source-maps/).
+
 ## Requests and limits
 
 The CPU and memory Kubernetes reserves for a container (**request**) and the most it
@@ -330,6 +361,12 @@ healthy.
 
 The first span of a trace, the one with no parent. Its duration is the duration of the
 whole request.
+
+## Route change
+
+In Real User Monitoring, a [view](#view) reached by navigating inside a single-page app,
+without reloading the page. Route changes have no Web Vitals but count time on view,
+errors and requests. See [Views](/fusescope-docs/frontend/views/#page-loads-and-route-changes).
 
 ## Route template
 
@@ -367,8 +404,9 @@ One program that sends telemetry, named by its `service.name` resource attribute
 ## Session
 
 In Real User Monitoring, one user's visit to a web app, shared by all its tabs. It ends
-after 15 minutes without activity or after 4 hours. Every RUM span and event carries its
-`session.id`. See [Real User Monitoring](/fusescope-docs/frontend/real-user-monitoring/#what-you-get).
+after 15 minutes without activity or after 4 hours; the next session carries its id as
+`session.previous_id`. Every RUM span and event carries its `session.id`. See
+[Sessions](/fusescope-docs/frontend/sessions/).
 
 ## Severity
 
@@ -381,6 +419,13 @@ FuseScope shows it as one of TRACE, DEBUG, INFO, WARN, ERROR, FATAL or UNKNOWN. 
 Signing in to FuseScope with a company account from an identity provider, over OpenID
 Connect, Google Workspace or SAML, instead of a FuseScope password. See
 [Single sign-on](/fusescope-docs/configuration/sso/).
+
+## Source map
+
+A file your bundler writes next to each minified JavaScript bundle, mapping its positions
+back to your original files, functions and lines. Uploaded to FuseScope, it turns
+browser stack traces back into your code. See
+[Source maps](/fusescope-docs/frontend/source-maps/).
 
 ## Span
 
@@ -407,6 +452,12 @@ monotonic.
 A metric type that carries percentiles the application computed itself, sent by older
 Prometheus clients.
 
+## Symbolication
+
+Translating a minified stack trace back to the original source with a
+[source map](#source-map). FuseScope does it when you read an error, so maps uploaded
+later also fix past errors. See [Source maps](/fusescope-docs/frontend/source-maps/).
+
 ## Temporality
 
 How a counter reports its value. **Cumulative**: the total since the program started.
@@ -423,6 +474,12 @@ A rule can have several, named `critical`, `warning` and `info`. See
 
 How many requests a service handles per second, shown as the rate in requests per
 second (req/s).
+
+## Time on view
+
+In Real User Monitoring, how long a user stayed on a [view](#view): from when it opened
+until the next navigation or until the tab was hidden. The Views tab shows the median.
+See [Views](/fusescope-docs/frontend/views/).
 
 ## Time range
 
@@ -457,8 +514,9 @@ and `redis-manual` is downstream of it. See
 
 ## View
 
-In Real User Monitoring, one page or route a user saw. Each view is a span named `view`.
-See [Real User Monitoring](/fusescope-docs/frontend/real-user-monitoring/#what-you-get).
+In Real User Monitoring, one page or route a user saw, either a [page load](#page-load)
+or a [route change](#route-change). Each view is a span named `view`, whose duration is
+the [time on view](#time-on-view). See [Views](/fusescope-docs/frontend/views/).
 
 ## Waterfall
 

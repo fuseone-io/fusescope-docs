@@ -83,9 +83,12 @@ Your client must send the rest:
 | Resource | `service.version` | The **Release** filter and column. |
 | Resource | `user_agent.original` | **Browser · OS** in recent sessions. |
 | Resource | `telemetry.distro.name` and `.version`, or `telemetry.sdk.name` and `.version` | The SDK badge. Any name other than `@fusescope/browser` shows as **Other client**. |
-| Span named `view` | `url.path`, `fusescope.rum.view.route` | **Views**: one span per page or route the user saw. |
+| Span named `view` | `url.path`, `fusescope.rum.view.route` | **Views**: one span per page or route the user saw. End it when the user leaves the view or hides the page: its duration is the **time on view**. |
+| Span named `view` | `fusescope.rum.view.loading_type` (`initial_load` or `route_change`) | Page loads and route changes in the Views tab. Without it, views are counted apart, marked `*`. |
+| Every span and log record, optional | `session.previous_id`, `user.id` | The **after** link between sessions, and the user column and search. Hash `user.id` yourself if it identifies a person. |
+| Log record, event `browser.user_action.click`, optional | `fusescope.rum.action.target` | The element named on **Click** events in the timeline and breadcrumbs. |
 | HTTP client spans | `http.request.method`, `http.response.status_code`, `url.full`, with `traceparent` sent to the backend | **View backend trace** in recent sessions. |
-| Log record, event `exception` | `exception.type`, `exception.message`, `exception.stacktrace`, `fusescope.rum.error.source` (`onerror`, `unhandledrejection` or `manual`) | **Recent errors** and the error rate. |
+| Log record, event `exception` | `exception.type`, `exception.message`, `exception.stacktrace`, `fusescope.rum.error.source` (`onerror`, `unhandledrejection` or `manual`) | **Errors**, their grouping and the error rate. Send the stack raw, as the browser wrote it: FuseScope symbolicates it with your [source maps](/fusescope-docs/frontend/source-maps/), looked up by `service.version`. |
 | Log record, event `browser.web_vital` | `browser.web_vital.name` (`lcp`, `inp`, `cls`, `fcp`, `ttfb`), `browser.web_vital.value`, `browser.web_vital.rating` (`good`, `needs-improvement`, `poor`) | The vitals, their split bars and **Top routes by LCP**. Values in milliseconds; CLS unitless. |
 
 The upstream `@opentelemetry/browser-instrumentation` package emits the

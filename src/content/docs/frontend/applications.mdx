@@ -1,6 +1,6 @@
 ---
 title: Applications and Overview
-description: A tour of the Frontend screens. The applications list with sessions, error rate, Web Vitals and SDK, and an application's overview with vitals, top routes by LCP, recent errors and recent sessions linked to their backend traces.
+description: A tour of the Frontend screens. The applications list with sessions, error rate, Web Vitals and SDK, and an application's overview with vitals, top routes by LCP, recent errors and recent sessions linked to their backend traces, and the Views, Errors and Sessions tabs.
 ---
 
 import { Aside, Steps } from "@astrojs/starlight/components";
@@ -16,12 +16,14 @@ page.
 All numbers follow the time range at the top right, **Last 30 minutes** by default.
 
 <Aside type="note">
-  In the beta, the Frontend screens are open to the **Admin** and **Editor** roles.
+  Every role can read the Frontend screens, **Viewer** included. Creating, editing and
+  deleting applications, their keys and their source maps needs **Admin** or **Editor**;
+  viewers see the settings read-only and never see keys.
 </Aside>
 
 ## The applications list
 
-![The applications list over the last 30 minutes, numbered: 1 the count line, 2 New application, 3 the KPI strip, 4 search and filters, 5 the application shop-demo, 6 Error rate, 7 LCP p75, 8 SDK, 9 Settings, 10 the supported SDK note.](../../../assets/frontend/frontend-applications.png)
+![The applications list over the last 15 minutes, numbered: 1 the count line, 2 New application, 3 the KPI strip, 4 search and filters, 5 the application shop-demo, 6 Error rate, 7 LCP p75, 8 SDK, 9 Settings, 10 the supported SDK note.](../../../assets/frontend/frontend-applications.png)
 
 1. **Count line**: how many applications there are and how many sessions they had in
    the range.
@@ -47,88 +49,103 @@ All numbers follow the time range at the top right, **Last 30 minutes** by defau
    support badge: **Supported**, **Outdated** (data is still accepted) or
    **Other client** for another OpenTelemetry SDK. **Last seen** shows recent activity
    and when the last data arrived, or **No data yet**.
-9. **Settings** opens the application's sheet: **Settings**, **Public key** and
-   **Install**.
+9. **Settings** opens the application's sheet: **Settings**, **Public key**,
+   **Install** and [Source maps](/fusescope-docs/frontend/source-maps/#the-source-maps-tab).
 10. **Supported SDK**: the SDK this server is tested with. Any OTLP client is
     accepted.
 
 ## The overview
 
-Click an application to open its overview (`/frontend/applications/<id>`).
+Click an application to open its overview (`/frontend/applications/<id>`). Here it is
+narrowed to release `1.0.0`:
 
-![The shop-demo overview, numbered: 1 platform, environment and release, 2 the SDK badge, 3 View traces and View logs, 4 Settings, 5 the Views, Errors and Sessions tabs marked Soon, 6 the Release filter, 7 Sessions, Views and Session error rate, 8 LCP, INP and CLS p75 with their split bars, 9 Top routes by LCP, 10 Recent errors, 11 View in Logs, 12 Recent sessions, 13 View backend trace, 14 All traces for these sessions.](../../../assets/frontend/frontend-overview.png)
+![The shop-demo overview for release 1.0.0, numbered: 1 platform, environment and release, 2 the SDK badge, 3 Create alert, 4 View traces and View logs, 5 Settings, 6 the Overview, Views, Errors and Sessions tabs, 7 the Release filter, 8 Sessions, Views and Session error rate, 9 LCP, INP and CLS p75 with their split bars, 10 Top routes by LCP, 11 Recent errors, 12 an error group, 13 Recent sessions, 14 a session, 15 View backend trace, 16 All traces for these sessions.](../../../assets/frontend/frontend-overview.png)
 
 ### Header
 
-1. **Badges**: the platform (**Web**), the environment and the latest release, which is
-   the `version` your app passes to `init()`.
+1. **Badges**: the platform (**Web**), the environment and the release, which is the
+   `version` your app passes to `init()`: the latest one, or the one selected in
+   **Release**.
 2. **SDK badge**: the SDK and version last seen, such as
-   `@fusescope/browser 0.1.0-beta.0 · Supported`.
-3. **View traces** and **View logs** open the
+   `@fusescope/browser 0.2.0-beta.0 · Supported`.
+3. **Create alert** starts an alert rule from a frontend template: LCP p75, session error
+   rate or JavaScript errors. See [Frontend alerts](/fusescope-docs/frontend/alerts/).
+4. **View traces** and **View logs** open the
    [Traces](/fusescope-docs/explore/traces/) and
    [Logs](/fusescope-docs/explore/logs/) explorers filtered to this application. RUM
    spans (views and requests) are traces; errors, Web Vitals and clicks are logs.
-4. **Settings** opens the application's sheet.
-5. **Views**, **Errors** and **Sessions** are marked **Soon**: per-route details,
-   errors grouped with source maps, and the full session list with a timeline come in a
-   later release.
+5. **Settings** opens the application's sheet: **Settings**, **Public key**,
+   **Install** and **Source maps**.
+6. **Tabs**: this **Overview**, then [Views](/fusescope-docs/frontend/views/) (one row
+   per route), [Errors](/fusescope-docs/frontend/errors/) (errors grouped, with their
+   stack traces) and [Sessions](/fusescope-docs/frontend/sessions/) (every visit, with
+   its timeline). The release and the time range follow you from tab to tab.
 
 ### Key numbers
 
-6. **Release**: narrow the page to one release, to compare a new version with the
+7. **Release**: narrow every tab to one release, to compare a new version with the
    previous one.
-7. **Sessions**, **Views** (with views per session) and **Session error rate**, the
-   share of sessions with at least one error.
-8. **LCP p75**, **INP p75** and **CLS p75**, each with its rating and a bar that splits
+8. **Sessions**, **Views** (with views per session) and **Session error rate**, the
+   share of sessions with at least one error, each compared with the previous period of
+   the same length.
+9. **LCP p75**, **INP p75** and **CLS p75**, each with its rating and a bar that splits
    the page loads into good (green), needs improvement (amber) and poor (red). The line
    under the strip says how many page loads the vitals come from, and the thresholds for
    good.
 
 ### Panels
 
-9. **Top routes by LCP**: one row per route template, slowest LCP first, with the
-   number of **Page loads**, **LCP p75** and its split, **INP p75**, **CLS p75** and
-   **Errors**. Vitals belong to the route the page was loaded on, so a single-page app
-   that is always entered through `/` shows mostly `/` here.
-10. **Recent errors**: JavaScript errors and unhandled rejections grouped by type and
-    message, with the **Route**, the number of **Events** and of **Sessions** affected,
-    and **Last seen**. Stack traces are not symbolicated yet. **Open in Logs** shows all
-    of them in the Logs explorer.
-11. **View in Logs** opens one group's events, with their full stack trace.
-12. **Recent sessions**: the latest sessions with when they **Started**, their
+10. **Top routes by LCP**: one row per route template where pages were loaded, slowest
+    LCP first, with the number of **Page loads**, **LCP p75** and its split, **INP p75**,
+    **CLS p75** and **Errors**. Vitals belong to the route the page was loaded on, so a
+    single-page app that is always entered through `/` shows mostly `/` here. **All
+    views** opens the [Views](/fusescope-docs/frontend/views/) tab, which has every
+    route.
+11. **Recent errors**: JavaScript errors and unhandled rejections grouped by
+    [fingerprint](/fusescope-docs/frontend/errors/#how-errors-are-grouped), with the
+    **Route**, the number of **Events** and of **Sessions** affected, and **Last seen**.
+    **Open in Logs** shows all of them in the Logs explorer; **All errors** opens the
+    Errors tab.
+12. Click an error to open its [detail](/fusescope-docs/frontend/errors/#error-detail),
+    with its stack trace. **View in Logs** opens its events.
+13. **Recent sessions**: the latest sessions with when they **Started**, their
     **Duration**, number of **Views** and **Errors**, **Browser · OS** and **Release**.
-13. **View backend trace** opens, in
+    **All sessions** opens the Sessions tab.
+14. Click a session to open its
+    [timeline](/fusescope-docs/frontend/sessions/#the-session-timeline).
+15. **View backend trace** opens, in
     [Trace details](/fusescope-docs/explore/trace-details/), the backend trace of the
-    session's slowest or failing request, such as `GET /dispatch 200 · 737 ms`.
+    session's slowest or failing request, such as `GET /dispatch 200 · 759 ms`.
     **No backend requests** means the session made no linked request.
-14. **All traces for these sessions** opens the Traces explorer filtered to their
+16. **All traces for these sessions** opens the Traces explorer filtered to their
     `session.id` values.
 
 ## Example: errors, and the backend behind a click
 
-The numbers are from the `shop-demo` sample application over the last 30 minutes. Its
-**Order a ride** button calls the HotROD demo's `/dispatch` API on another origin, and
-two buttons raise JavaScript errors.
+The numbers are from the `shop-demo` sample application. Its **Order a ride** button
+calls the HotROD demo's `/dispatch` API, and two buttons raise JavaScript errors.
+Release `2.0.0` is a bundled build whose source maps are uploaded.
 
 <Steps>
 
-1. **Open the application.** In **Frontend**, the `shop-demo` row shows about 25 sessions
-   and an **Error rate** of 56%: more than half the visits hit an error. LCP, INP and
-   CLS are all **Good**, so the pages are fast; the problem is errors.
+1. **Open the application.** In **Frontend**, the `shop-demo` row shows 22 sessions and
+   an **Error rate** of 68%: more than half the visits hit an error. LCP, INP and CLS are
+   all **Good**, so the pages are fast; the problem is errors.
 
 2. **Read the errors.** In **Recent errors**, `TypeError` *Cannot read properties of
-   undefined (reading 'price')* affected 10 sessions: an uncaught error, a bug in the
-   page's code. `Error` *Failed to fetch: POST /api/cart returned 502* affected 7: an
-   unhandled promise rejection.
+   undefined (reading 'price')* is an uncaught error, a bug in the page's code.
+   `Error` *Failed to fetch: POST /api/cart returned 502* is an unhandled promise
+   rejection.
 
-3. **See the stack trace.** Click **View in Logs** on the `TypeError` row. Each event
-   has its `exception.stacktrace`, the `session.id` and the route.
+3. **See the stack trace.** Click the `TypeError`. Its detail shows the original code
+   when source maps are uploaded for the release, and the clicks and requests that led
+   to it. See [Errors](/fusescope-docs/frontend/errors/).
 
 4. **Open the backend side of a click.** Back on the overview, in **Recent sessions**,
    each row's **Backend trace** shows the session's slowest request, such as
-   `GET /dispatch 200 · 737 ms`. Click **View backend trace**: Trace details opens the
+   `GET /dispatch 200 · 759 ms`. Click **View backend trace**: Trace details opens the
    trace that started in the browser, with the browser's request span and, under it,
-   the spans of the HotROD services that answered it. That is where the 737 ms went.
+   the spans of the HotROD services that answered it. That is where the time went.
 
 </Steps>
 
@@ -138,6 +155,8 @@ span by span.
 
 ## Related
 
+- [Views](/fusescope-docs/frontend/views/), [Errors](/fusescope-docs/frontend/errors/)
+  and [Sessions](/fusescope-docs/frontend/sessions/)
 - [Set up a web application](/fusescope-docs/frontend/set-up-web/)
 - [Keys](/fusescope-docs/frontend/keys/)
 - [Trace details](/fusescope-docs/explore/trace-details/)

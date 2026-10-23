@@ -1,6 +1,6 @@
 ---
 title: Real User Monitoring
-description: What Real User Monitoring (RUM) records in your users' browsers, what Web Vitals mean, how a page load links to its backend trace, and what FuseScope collects about users by default.
+description: What Real User Monitoring (RUM) records in your users' browsers, what Web Vitals mean, how a page load links to its backend trace, the screens that show it, and what FuseScope collects about users by default.
 ---
 
 import { Aside, CardGrid, LinkCard } from "@astrojs/starlight/components";
@@ -26,24 +26,33 @@ behind one user's failing click.
 
 - **Sessions.** A session is one user's visit, from the first page until 15 minutes
   without a click, key press, scroll or touch, or 4 hours at most. All tabs of one
-  browser share it. Every span and event carries its `session.id`. See
-  [session](/fusescope-docs/reference/glossary/#session).
-- **Views.** A view is one page or screen the user saw. Single-page apps count each
-  route change as a new view, named by its **route template**, such as
-  `/product/:id`, so `/product/1234` and `/product/99` count as one route.
+  browser share it. Every span and event carries its `session.id`, and a session that
+  follows an expired one carries its id as `session.previous_id`. See
+  [Sessions](/fusescope-docs/frontend/sessions/).
+- **Views.** A view is one page or screen the user saw, named by its **route
+  template**, such as `/product/:id`, so `/product/1234` and `/product/99` count as one
+  route. The view the page was loaded on is a **page load**; every later view of a
+  single-page app is a **route change**. Each view records how long the user stayed on
+  it, the **time on view**. See [Views](/fusescope-docs/frontend/views/).
 - **Web Vitals.** Google's standard measures of page experience, explained
   [below](#web-vitals-in-plain-words).
 - **JavaScript errors.** Uncaught errors and unhandled promise rejections, with their
-  type, message, stack trace and the route they happened on.
+  type, message, stack trace and the route they happened on, grouped so one bug is one
+  row. With your [source maps](/fusescope-docs/frontend/source-maps/) uploaded, stack
+  traces show your original code. See [Errors](/fusescope-docs/frontend/errors/).
+- **Clicks.** Each click records which element was clicked, as a short selector such as
+  `button#checkout`, never its text.
 - **Browser requests linked to backend traces.** Each `fetch` or `XMLHttpRequest`
   call is a span. The SDK adds the W3C `traceparent` header to it, so the backend's
-  trace becomes a child of the browser's request. From a session, one click opens the
-  backend trace in [Trace details](/fusescope-docs/explore/trace-details/).
+  trace becomes a child of the browser's request. From a session, a route or an error,
+  one click opens the backend trace in
+  [Trace details](/fusescope-docs/explore/trace-details/).
 
 RUM data is stored as ordinary traces and logs, so the
 [Traces explorer](/fusescope-docs/explore/traces/), the
-[Logs explorer](/fusescope-docs/explore/logs/), dashboards and alert rules work on it.
-Filter by `fusescope.rum.application.id` to see one application.
+[Logs explorer](/fusescope-docs/explore/logs/), dashboards and
+[alert rules](/fusescope-docs/frontend/alerts/) work on it. Filter by
+`fusescope.rum.application.id` to see one application.
 
 ## Web Vitals in plain words
 
@@ -58,8 +67,8 @@ Web Vitals are measured on each page load. FuseScope shows the **75th percentile
 | **CLS**, Cumulative Layout Shift | How much the content jumps around while it loads, such as a button moving as an image appears. It has no unit. | ≤ 0.1 | ≤ 0.25 | > 0.25 |
 
 The SDK also records **FCP** (First Contentful Paint, the first text or image) and
-**TTFB** (Time to First Byte, how long the server took to start answering). They are in
-the data but not on the overview yet.
+**TTFB** (Time to First Byte, how long the server took to start answering). Each route's
+[detail](/fusescope-docs/frontend/views/#route-detail) shows their p75.
 
 <Aside>
   Browsers report LCP, CLS and INP late, often after the user has moved to another
@@ -82,8 +91,9 @@ RUM is designed so that no personal data is collected unless you decide otherwis
   only.
 - **Consent hook.** With **Wait for consent** on, the SDK records nothing until your
   consent banner calls `setConsent(true)`.
-- **Users are anonymous** unless you call `setUser()`. The id you pass is then sent as
-  a SHA-256 hash, `user.hash`, unless you turn hashing off.
+- **Users are anonymous** unless you call `setUser()`. The id you pass is then sent in
+  `user.id` as its SHA-256 hash, unless you turn hashing off. You can find a user's
+  sessions by hashing their id the same way, without FuseScope storing who they are.
 
 The application's settings say which of these the server enforces and which the SDK
 applies; see [Set up a web application](/fusescope-docs/frontend/set-up-web/#3-privacy).
@@ -113,5 +123,25 @@ A client configured by hand only needs a few attributes for the screens to fill:
     title="Applications and Overview"
     href="/fusescope-docs/frontend/applications/"
     description="A tour of the screens and what each number means."
+  />
+  <LinkCard
+    title="Views"
+    href="/fusescope-docs/frontend/views/"
+    description="Which pages are slow, and the request that makes them wait."
+  />
+  <LinkCard
+    title="Errors"
+    href="/fusescope-docs/frontend/errors/"
+    description="Errors grouped, with original stack traces and what led to them."
+  />
+  <LinkCard
+    title="Sessions"
+    href="/fusescope-docs/frontend/sessions/"
+    description="One user's visit, step by step, linked to backend traces."
+  />
+  <LinkCard
+    title="Frontend alerts"
+    href="/fusescope-docs/frontend/alerts/"
+    description="Be told when pages get slow or errors rise."
   />
 </CardGrid>

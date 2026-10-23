@@ -1,6 +1,6 @@
 ---
 title: Set up a web application
-description: Create a RUM application, copy its public key, install @fusescope/browser with the generated snippet, link browser requests to backend traces, and fix rejected requests.
+description: Create a RUM application, copy its public key, install @fusescope/browser with the generated snippet, link browser requests to backend traces, upload source maps, and fix rejected requests.
 ---
 
 import { Aside, Steps, Tabs, TabItem } from "@astrojs/starlight/components";
@@ -24,6 +24,8 @@ If you don't know what RUM records yet, start with
 4. [Allow `traceparent`](#allow-traceparent-in-your-apis-cors) in your API's CORS, if
    the API is on another origin.
 5. [Open your site and watch the data arrive](#check-that-data-arrives).
+6. [Upload your source maps](#upload-source-maps) with each release, so errors show your
+   original code.
 
 </Steps>
 
@@ -89,8 +91,8 @@ captured, whatever you choose here.
 10. **Wait for consent**: the SDK records nothing until your consent banner calls
     `setConsent(true)`. Turn it on if you need consent before analytics, as under GDPR
     or LGPD.
-11. **Hash user IDs**: on by default. When your code calls `setUser({ id })`, the id is
-    sent as a SHA-256 hash, `user.hash`, instead of `user.id`. Users are anonymous when
+11. **Hash user IDs**: on by default. When your code calls `setUser({ id })`, `user.id`
+    carries the SHA-256 hash of the id instead of the id itself. Users are anonymous when
     you don't call `setUser()`.
 12. **Create application** saves it, creates its first public key and opens the
     **Install** step.
@@ -135,11 +137,14 @@ origins, within its rate limit. It can't read anything.
 ## Install the SDK
 
 Install [`@fusescope/browser`](https://www.npmjs.com/package/@fusescope/browser) from
-npm:
+npm, with the `next` tag, which has the current beta, `0.2.0-beta.0`:
 
 ```bash
-npm install @fusescope/browser
+npm install @fusescope/browser@next
 ```
+
+The **Install** tab shows `npm install @fusescope/browser` without the tag, which installs
+the older `0.1.0-beta.0`; add `@next`.
 
 Then paste the snippet from the **Install** step **as early as possible** in your app's
 entry point, before your app renders, such as `src/main.tsx` or `src/main.ts`. The
@@ -167,7 +172,13 @@ init({
   host name, replace it with FuseScope's public URL. See
   [Self-hosted FuseScope](#self-hosted-fusescope).
 - Replace `<your app version>` with your app's release, such as the `version` in
-  `package.json`. It fills the **Release** filter and badge on the overview.
+  `package.json`. It is sent as `service.version`, fills the **Release** filter and
+  badge, and must be the `--release` you [upload source maps](#upload-source-maps) for.
+  A bundler can inject it at build time:
+
+  ```ts
+  version: import.meta.env.VITE_APP_VERSION, // Vite, with define in vite.config.ts
+  ```
 - Options left at the SDK's defaults are omitted, so the snippet only shows what this
   application changes. All options are in the
   [SDK reference](/fusescope-docs/frontend/sdk-reference/).
@@ -233,7 +244,7 @@ Deploy your app and open it in a browser. The **Install** step updates by itself
 reads **Waiting for first data…** until the gateway accepts the first request, then
 **Receiving data**:
 
-![The Install tab of shop-demo while it receives data, numbered: 1 the install methods, npm and two script tags marked Soon, 2 the npm install command, 3 the init snippet, 4 the note to replace the masked key, 5 the OpenTelemetry web SDK note, 6 Receiving data with 14 sessions, 64 views, 9 errors and 70 Web Vitals, 7 @fusescope/browser 0.1.0-beta.0 Supported, 8 Open shop-demo.](../../../assets/frontend/frontend-install-receiving.png)
+![The Install tab of shop-demo while it receives data, numbered: 1 the install methods, npm and two script tags marked Soon, 2 the npm install command, 3 the init snippet, 4 the note to replace the masked key, 5 the OpenTelemetry web SDK note, 6 Receiving data with 4 sessions, 20 views, 2 errors and 14 Web Vitals, 7 @fusescope/browser 0.2.0-beta.0 Supported, 8 Open shop-demo.](../../../assets/frontend/frontend-install-receiving.png)
 
 1. **Install method**: **npm**; the two script-tag methods are coming soon.
 2. **Install command**, with a copy button.
@@ -288,6 +299,28 @@ Other things to check when nothing arrives:
   again after a restart and, with several replicas, cover only the replica that
   answers. The data itself is in the explorers either way.
 
+## Upload source maps
+
+Your production bundle is minified, so a JavaScript error's stack trace reads
+`kS · app.4GMSW5AF.js:2:11056`. Upload the source maps of each release and the
+[Errors](/fusescope-docs/frontend/errors/) tab shows `applyCoupon · src/cart/pricing.js:13:11`
+instead. In short:
+
+1. Build with hidden source maps (Vite `build.sourcemap: 'hidden'`, webpack
+   `devtool: 'hidden-source-map'`).
+2. Create a service account with the **Editor** role and a key for it.
+3. After each build, upload with the same release as `version`:
+
+   ```bash
+   FUSESCOPE_URL=https://fusescope.example.com \
+   FUSESCOPE_APP=01a16431-12ca-7064-bae9-6ac64cf20a29 \
+   FUSESCOPE_API_KEY=… \
+     npx @fusescope/cli@next sourcemaps upload ./dist --release 1.8.0 --delete-after
+   ```
+
+The application's **Source maps** tab has these commands filled in. See
+[Source maps](/fusescope-docs/frontend/source-maps/) for the details.
+
 ## Self-hosted FuseScope
 
 The RUM gateway runs inside the FuseScope backend, on its HTTP port (8080), under
@@ -321,5 +354,6 @@ gateway off. See [Install with Helm](/fusescope-docs/install/helm/) for the char
 
 - [Applications and Overview](/fusescope-docs/frontend/applications/): read what
   arrives.
+- [Source maps](/fusescope-docs/frontend/source-maps/): original stack traces.
 - [Keys](/fusescope-docs/frontend/keys/): rotate or revoke the public key.
 - [SDK reference](/fusescope-docs/frontend/sdk-reference/): every `init()` option.

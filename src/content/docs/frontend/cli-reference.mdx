@@ -1,0 +1,158 @@
+---
+title: CLI reference
+description: The @fusescope/cli commands sourcemaps upload, list and delete, their flags and environment variables, how files are found and named, exit codes, npm scripts and CI.
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+[`@fusescope/cli`](https://www.npmjs.com/package/@fusescope/cli) uploads your build's
+[source maps](/fusescope-docs/frontend/source-maps/) to FuseScope and manages them. It
+needs Node 22 or later and has no runtime dependencies. It is licensed Apache-2.0.
+
+The current release is `0.1.0-beta.2`, on npm's `next` tag. It is a beta: flags may
+change before 1.0. Run it with `npx`, or add it to your project:
+
+```bash
+npx @fusescope/cli@next sourcemaps --help
+npm install --save-dev @fusescope/cli@next
+```
+
+<Aside type="caution">
+  Always ask for the `next` tag. The `latest` tag still points to `0.1.0-beta.0`, which
+  mis-names files when the directory is given as `./dist`.
+</Aside>
+
+## Connection
+
+Every command needs three values. Pass them as environment variables, so the key never
+lands in your shell history or in process lists:
+
+| Variable | Flag | What it is |
+|---|---|---|
+| `FUSESCOPE_URL` | `--url <base>` | FuseScope's base URL, such as `https://fusescope.example.com`. |
+| `FUSESCOPE_APP` | `--app <id>` | The RUM application **id**, the `applicationId` of your `init()` snippet, such as `01a16431-12ca-7064-bae9-6ac64cf20a29`. Not its name. |
+| `FUSESCOPE_API_KEY` | `--api-key <key>` | The key of a [service account](/fusescope-docs/administration/service-accounts/) with the **Editor** role. The application's public key does not work. |
+
+The key is sent in the `SigNoz-Api-Key` header and never printed.
+
+## sourcemaps upload
+
+```bash
+npx @fusescope/cli@next sourcemaps upload <dir> --release <v> [options]
+```
+
+Uploads every source map under `<dir>`, the build output, for one release.
+
+| Flag | Environment | Default | What it does |
+|---|---|---|---|
+| `<dir>` | | required | The build output directory, such as `./dist`. |
+| `--release <v>` | `FUSESCOPE_RELEASE` | required | The release. **Must equal `version` in `init()`**, sent as `service.version`. |
+| `--url-prefix <p>` | | `/` | The path the bundles are served from, such as `/static/`. A full URL works; only its path is used. |
+| `--include <glob>` | | `**/*.js.map`, `**/*.mjs.map`, `**/*.cjs.map` | Files to upload. Repeatable; replaces the default. |
+| `--ignore <glob>` | | `**/node_modules/**` | Files to skip. Repeatable; replaces the default. |
+| `--delete-after` | | off | Deletes the uploaded `.map` files from `<dir>`, so they are not deployed. |
+| `--dry-run` | | off | Lists what would be uploaded. Sends nothing and needs no key. |
+
+```text
+$ npx @fusescope/cli@next sourcemaps upload ./dist --release 1.8.0
+[1/1] 14 files, 6.2 MB uploaded
+Uploaded to 01a16431-12ca-7064-bae9-6ac64cf20a29 · release 1.8.0 · 14 files · 6.2 MB
+```
+
+**How files are named.** Each map is uploaded under its URL path: `--url-prefix` plus its
+path relative to `<dir>`. With `./dist/assets/index-abc123.js.map` and the default prefix,
+the path is `/assets/index-abc123.js.map`, which matches the bundle
+`/assets/index-abc123.js` the browser reports. Check the names with `--dry-run` first. If a
+map has a `debugId`, or its bundle ends with a `//# debugId=` comment, it is sent along.
+
+**Globs** match `/`-separated paths relative to `<dir>`: `**` spans folders, `*` and `?`
+don't, `{a,b}` is either, and a glob without `/` matches the file name in any folder.
+
+**Requests.** Files are sent in a few multipart requests of up to 25 MB or 100 files.
+Network errors, HTTP `429` and `5xx` are retried three times with backoff. A file over a
+limit (50 MB per file, 1,000 files per release) is reported and skipped. Uploading a path
+again replaces it.
+
+## sourcemaps list
+
+```bash
+npx @fusescope/cli@next sourcemaps list                  # the application's releases
+npx @fusescope/cli@next sourcemaps list --release 1.8.0  # the files of one release
+npx @fusescope/cli@next sourcemaps list --json           # the server's answer, as JSON
+```
+
+## sourcemaps delete
+
+```bash
+npx @fusescope/cli@next sourcemaps delete --release 1.7.1
+```
+
+Deletes every map of a release. `--release` must be given on the command line;
+`FUSESCOPE_RELEASE` is ignored here, so a CI variable can't delete a release by accident.
+Events are kept, and their stack traces become minified again.
+
+## Exit codes
+
+| Code | Meaning |
+|---|---|
+| `0` | Everything uploaded. |
+| `1` | Some files rejected (listed with the reason), no maps found, unknown application, or the server unreachable after retries. |
+| `2` | Usage error, such as a missing `--release`. |
+| `3` | Authentication or permission error (HTTP `401` or `403`): a wrong key, or a service account without the Editor role. |
+
+## npm script
+
+Upload after every build, with the version from `package.json`:
+
+```json title="package.json"
+{
+  "scripts": {
+    "build": "vite build",
+    "postbuild": "fusescope sourcemaps upload ./dist --release $npm_package_version --delete-after"
+  },
+  "devDependencies": { "@fusescope/cli": "0.1.0-beta.2" }
+}
+```
+
+`$npm_package_version` is set by npm, pnpm and Yarn in POSIX shells; in Windows `cmd`, use
+`%npm_package_version%`, or set `FUSESCOPE_RELEASE`. Pass the same version to the SDK; see
+[Source maps](/fusescope-docs/frontend/source-maps/#upload-with-the-cli).
+
+## CI
+
+Keep the key in a secret and pass everything through the environment. GitHub Actions:
+
+```yaml title=".github/workflows/deploy.yml"
+- run: npm ci && npm run build:app
+- run: npx @fusescope/cli@next sourcemaps upload ./dist --release "$GITHUB_SHA" --delete-after
+  env:
+    FUSESCOPE_URL: https://fusescope.example.com
+    FUSESCOPE_APP: 01a16431-12ca-7064-bae9-6ac64cf20a29
+    FUSESCOPE_API_KEY: ${{ secrets.FUSESCOPE_API_KEY }}
+- run: ./deploy.sh ./dist
+```
+
+Here the release is the commit SHA, so the app must be built with the same value as
+`version`, such as `VITE_APP_VERSION=$GITHUB_SHA`. GitLab CI works the same with a masked
+`FUSESCOPE_API_KEY` variable.
+
+## HTTP API
+
+The CLI wraps three endpoints, which any client can call with the `SigNoz-Api-Key` header:
+
+| Request | What it does |
+|---|---|
+| `POST /api/v1/rum/applications/{id}/sourcemaps?release=<v>` | Uploads maps as `multipart/form-data`: one `file` part per map, its filename being the map's URL path, such as `/assets/index.js.map`. Answers `201` with the files uploaded and rejected. |
+| `GET /api/v1/rum/applications/{id}/sourcemaps[?release=<v>]` | Lists the releases, or the files of one release. |
+| `DELETE /api/v1/rum/applications/{id}/sourcemaps?release=<v>` | Deletes a release's maps. |
+
+```bash
+curl -X POST "$FUSESCOPE_URL/api/v1/rum/applications/$FUSESCOPE_APP/sourcemaps?release=1.8.0" \
+  -H "SigNoz-Api-Key: $FUSESCOPE_API_KEY" \
+  -F "file=@dist/assets/index.js.map;filename=/assets/index.js.map"
+```
+
+## Related
+
+- [Source maps](/fusescope-docs/frontend/source-maps/)
+- [Service accounts](/fusescope-docs/administration/service-accounts/)
