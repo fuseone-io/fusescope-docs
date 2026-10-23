@@ -33,6 +33,24 @@ is pending, succeeded or failed, and refuses a new change while one is still run
   gradually.
 </Aside>
 
+## Set a default on install
+
+To start new installs with a different retention, set a default per signal, in days. On
+startup, and every minute after, FuseScope sets it on each signal that has no retention set
+yet, the same way as the settings page.
+
+| Config key | Environment variable | Helm value |
+|---|---|---|
+| `retention.default.logs` | `SIGNOZ_RETENTION_DEFAULT_LOGS` | `signoz.retention.default.logs` |
+| `retention.default.traces` | `SIGNOZ_RETENTION_DEFAULT_TRACES` | `signoz.retention.default.traces` |
+| `retention.default.metrics` | `SIGNOZ_RETENTION_DEFAULT_METRICS` | `signoz.retention.default.metrics` |
+
+- Unset or `0` keeps the table default above.
+- A period saved in the settings page, by any organization, is never overridden; once a
+  signal has one, the default no longer applies, even if you change it later.
+- It is a regular retention change: it applies to data written afterwards, and its status
+  shows in the settings page. Cold storage is not set.
+
 ## What changes in ClickHouse
 
 For metrics and traces, FuseScope runs `ALTER TABLE … ON CLUSTER … MODIFY TTL` on the
