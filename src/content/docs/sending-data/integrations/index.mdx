@@ -1,0 +1,178 @@
+---
+title: Integrations
+description: Built-in integrations give you a tested collector config and ready-made dashboards for common databases, web servers and AWS services.
+---
+
+import { Aside, Steps, Tabs, TabItem } from "@astrojs/starlight/components";
+
+A built-in integration is a recipe for one technology, such as PostgreSQL or Nginx. It
+gives you an OpenTelemetry Collector config that collects the right metrics and logs, and
+FuseScope adds matching dashboards when you connect it.
+
+**Use this page when** you want to monitor a database, web server or AWS service that has
+a built-in integration, or want to know how integrations work in the app.
+
+## Available integrations
+
+| Integration | Metrics | Logs | Dashboards |
+|---|---|---|---|
+| [ClickHouse](/fusescope-docs/sending-data/integrations/clickhouse/) | Server Prometheus endpoint | Server log file | Clickhouse Overview |
+| [MongoDB](/fusescope-docs/sending-data/integrations/mongodb/) | `mongodb` receiver | Server log file | Mongo overview |
+| [Nginx](/fusescope-docs/sending-data/integrations/nginx/) | None | Access and error log files | None |
+| [PostgreSQL](/fusescope-docs/sending-data/integrations/postgresql/) | `postgresql` receiver | Server log file | Postgres overview |
+| [Redis](/fusescope-docs/sending-data/integrations/redis/) | `redis` receiver | Server log file | Redis overview |
+| [AWS RDS for MySQL](/fusescope-docs/sending-data/integrations/aws-rds-mysql/) | CloudWatch and `mysql` receiver | CloudWatch Logs | AWS RDS MySQL, MySQL |
+| [AWS RDS for PostgreSQL](/fusescope-docs/sending-data/integrations/aws-rds-postgresql/) | CloudWatch and `postgresql` receiver | CloudWatch Logs | AWS RDS Postgres, Postgres overview |
+| [AWS ElastiCache for Redis](/fusescope-docs/sending-data/integrations/aws-elasticache-redis/) | CloudWatch and `redis` receiver | CloudWatch Logs | AWS ElastiCache Redis |
+
+No integration ships log pipelines or alert rules. Log parsing happens in the collector
+config itself, with `filelog` operators. To parse further, or to parse the raw AWS logs,
+add a [log pipeline](/fusescope-docs/sending-data/log-pipelines/). To get alerted, create
+[alert rules](/fusescope-docs/alerts/alert-rules/) on the collected data.
+
+## How it works
+
+You run the collector. FuseScope does not reach into your systems.
+
+<Steps>
+
+1. **Run a collector next to the service.** Use the upstream `otelcol-contrib`
+   distribution, version v0.88.0 or newer; the examples use 0.139.0. See
+   [Collector in Docker](/fusescope-docs/sending-data/collector-docker/) or
+   [Collector on a VM](/fusescope-docs/sending-data/collector-vm/).
+2. **Add the integration's config files.** Each integration page has one file for
+   metrics and one for logs. They export to FuseScope over OTLP gRPC.
+3. **Connect the integration in FuseScope.** This adds its dashboards and turns on the
+   connection test.
+
+</Steps>
+
+## Connect an integration in the app
+
+<Steps>
+
+1. Open **Integrations** in the sidebar and click the integration. Use
+   **Search for an integration...** to filter the list.
+2. The detail page has three tabs:
+   - **Overview**: what the integration collects.
+   - **Configure**: the setup steps, the same as on these pages.
+   - **Data Collected**: every log attribute and metric, with type, unit and
+     description.
+3. Click **Connect &lt;name&gt;** in the header, for example **Connect PostgreSQL**.
+4. In the **Connect &lt;name&gt;** dialog, click **Show Configuration Steps** to open the
+   **Configure** tab, or **I have already configured** once the collector runs.
+
+</Steps>
+
+**I have already configured** installs the integration. Its dashboards appear in
+[Dashboards](/fusescope-docs/dashboards/dashboards/), and the header button becomes
+**Test Connection**. A badge shows the status:
+
+| Status | Meaning |
+|---|---|
+| Listening for data... | Installed, nothing received yet. |
+| This integration is working properly | FuseScope has received matching data. |
+| This integration has not received data in a while :/ | Nothing received for 7 days. |
+
+**Test Connection** opens a dialog with where the last data came from and when.
+FuseScope counts two kinds of data:
+
+- **Logs** that carry the attribute `source` with the integration's value, such as
+  `source = postgres`. Every config on these pages sets it. Keep it.
+- **Metrics** whose names are listed on the **Data Collected** tab.
+
+To remove an integration, click **Remove from FuseScope** at the bottom of its page,
+then **Remove Integration**. This deletes its dashboards and stops the connection test.
+It does not change your collector: remove the config there to stop sending data.
+
+## Send to FuseScope
+
+Every config on these pages ends with the same exporter:
+
+```yaml
+exporters:
+  otlp/fusescope:
+    endpoint: ${env:OTLP_DESTINATION_ENDPOINT}
+    tls:
+      insecure: true
+```
+
+Set `OTLP_DESTINATION_ENDPOINT` to the FuseScope collector's gRPC address, port 4317:
+
+| Where the collector runs | Value |
+|---|---|
+| Same Kubernetes cluster | `fusescope-otel-collector.fusescope.svc.cluster.local:4317` |
+| Outside the cluster | `fusescope-collector.example.com:4317`, see [From outside the cluster](/fusescope-docs/sending-data/otlp/#from-outside-the-cluster) |
+
+`insecure: true` sends plain text. Set it to `false` when the endpoint uses TLS.
+Self-hosted FuseScope needs no ingestion key or token header.
+
+<Aside type="tip" title="Already running a collector agent?">
+  If a collector on the host already forwards to FuseScope, point the integration's
+  exporter at it instead: `endpoint: localhost:4317` with `insecure: true`.
+</Aside>
+
+## Run the collector
+
+The collector accepts several `--config` flags and merges the files. Add the
+integration files next to your main config.
+
+<Tabs>
+<TabItem label="Docker">
+
+```bash
+docker run -d --name otelcol \
+  -e OTLP_DESTINATION_ENDPOINT=fusescope-collector.example.com:4317 \
+  -e POSTGRESQL_ENDPOINT=db.internal:5432 \
+  -e POSTGRESQL_USERNAME=monitoring \
+  -e POSTGRESQL_PASSWORD='<password>' \
+  -v "$PWD/postgres-metrics.yaml:/etc/otelcol-contrib/postgres-metrics.yaml:ro" \
+  otel/opentelemetry-collector-contrib:0.139.0 \
+  --config /etc/otelcol-contrib/postgres-metrics.yaml
+```
+
+To read log files, also mount the log directory read-only, for example
+`-v /var/log/postgresql:/var/log/postgresql:ro`.
+
+</TabItem>
+<TabItem label="Linux package">
+
+Copy the files to `/etc/otelcol-contrib/`, then list them in
+`/etc/otelcol-contrib/otelcol-contrib.conf` with the environment variables:
+
+```bash title="/etc/otelcol-contrib/otelcol-contrib.conf"
+OTELCOL_OPTIONS="--config=/etc/otelcol-contrib/config.yaml --config=/etc/otelcol-contrib/postgres-metrics.yaml --config=/etc/otelcol-contrib/postgres-logs.yaml"
+OTLP_DESTINATION_ENDPOINT=fusescope-collector.example.com:4317
+POSTGRESQL_ENDPOINT=localhost:5432
+POSTGRESQL_USERNAME=monitoring
+POSTGRESQL_PASSWORD=<password>
+POSTGRESQL_LOG_FILE=/var/log/postgresql/postgresql.log
+```
+
+```bash
+sudo systemctl restart otelcol-contrib
+```
+
+The `otelcol-contrib` user must be able to read the log files.
+
+</TabItem>
+</Tabs>
+
+## Anything else
+
+The integrations cover a handful of common services. The
+[collector-contrib](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver)
+distribution has receivers for many more, such as Kafka, RabbitMQ, Elasticsearch,
+Apache and IIS. Configure the receiver, export with the exporter above, and build a
+[dashboard](/fusescope-docs/dashboards/dashboards/) on the metrics. Services that expose
+Prometheus metrics work with the
+[Prometheus receiver](/fusescope-docs/sending-data/prometheus/). For log files, see
+[Log files](/fusescope-docs/sending-data/logs-files/).
+
+## Related
+
+- [OTLP](/fusescope-docs/sending-data/otlp/)
+- [Collector in Docker](/fusescope-docs/sending-data/collector-docker/)
+- [Collector on a VM](/fusescope-docs/sending-data/collector-vm/)
+- [Log pipelines](/fusescope-docs/sending-data/log-pipelines/)
+- [Dashboards](/fusescope-docs/dashboards/dashboards/)

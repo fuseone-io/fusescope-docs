@@ -1,0 +1,290 @@
+---
+title: Go
+description: Send traces, metrics and logs from a Go service to FuseScope with the OpenTelemetry Go SDK and instrumentation libraries.
+---
+
+import { Aside, Steps, Tabs, TabItem } from "@astrojs/starlight/components";
+
+Go has no runtime agent. You set up the
+[OpenTelemetry Go SDK](https://opentelemetry.io/docs/languages/go/) in `main`, then wrap
+handlers and clients with instrumentation libraries such as `otelhttp` and `otelgrpc`. The
+SDK still reads the standard `OTEL_*` environment variables.
+
+**Use this page when** you run a Go service and want it in FuseScope.
+
+| Signal | Status | What is sent |
+|---|---|---|
+| Traces | Stable | Spans from wrapped handlers and clients, plus your own. |
+| Metrics | Stable | HTTP metrics from `otelhttp`, Go runtime metrics, plus your own. |
+| Logs | Release candidate | `log/slog` records through the `otelslog` bridge, with trace IDs. |
+
+## Prerequisites
+
+- A Go release supported by OpenTelemetry Go, which follows the two latest Go releases.
+  Current modules need Go 1.26.
+- A FuseScope collector you can reach on port 4317 or 4318. See [OTLP](/fusescope-docs/sending-data/otlp/).
+
+## Install
+
+```bash
+go get go.opentelemetry.io/otel \
+  go.opentelemetry.io/otel/sdk \
+  go.opentelemetry.io/otel/sdk/metric \
+  go.opentelemetry.io/otel/sdk/log \
+  go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc \
+  go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc \
+  go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc \
+  go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp \
+  go.opentelemetry.io/contrib/instrumentation/runtime \
+  go.opentelemetry.io/contrib/bridges/otelslog
+```
+
+## Set up the SDK
+
+This `main.go` sets up traces, metrics and logs over OTLP gRPC, builds the resource from
+`OTEL_SERVICE_NAME` and `OTEL_RESOURCE_ATTRIBUTES`, and serves an instrumented HTTP handler:
+
+```go title="main.go"
+package main
+
+import (
+	"context"
+	"errors"
+	"log"
+	"net/http"
+	"os"
+	"os/signal"
+
+	"go.opentelemetry.io/contrib/bridges/otelslog"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/contrib/instrumentation/runtime"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc"
+	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	"go.opentelemetry.io/otel/log/global"
+	"go.opentelemetry.io/otel/propagation"
+	sdklog "go.opentelemetry.io/otel/sdk/log"
+	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
+	"go.opentelemetry.io/otel/sdk/resource"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+)
+
+func setupOTel(ctx context.Context) (func(context.Context) error, error) {
+	res, err := resource.New(ctx,
+		resource.WithFromEnv(),
+		resource.WithTelemetrySDK(),
+		resource.WithHost(),
+		resource.WithProcessRuntimeName(),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	traceExp, err := otlptracegrpc.New(ctx)
+	if err != nil {
+		return nil, err
+	}
+	tp := sdktrace.NewTracerProvider(sdktrace.WithBatcher(traceExp), sdktrace.WithResource(res))
+	otel.SetTracerProvider(tp)
+	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(
+		propagation.TraceContext{}, propagation.Baggage{}))
+
+	metricExp, err := otlpmetricgrpc.New(ctx)
+	if err != nil {
+		return nil, err
+	}
+	mp := sdkmetric.NewMeterProvider(
+		sdkmetric.WithReader(sdkmetric.NewPeriodicReader(metricExp)), sdkmetric.WithResource(res))
+	otel.SetMeterProvider(mp)
+
+	logExp, err := otlploggrpc.New(ctx)
+	if err != nil {
+		return nil, err
+	}
+	lp := sdklog.NewLoggerProvider(
+		sdklog.WithProcessor(sdklog.NewBatchProcessor(logExp)), sdklog.WithResource(res))
+	global.SetLoggerProvider(lp)
+
+	return func(ctx context.Context) error {
+		return errors.Join(tp.Shutdown(ctx), mp.Shutdown(ctx), lp.Shutdown(ctx))
+	}, nil
+}
+
+func main() {
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer stop()
+
+	shutdown, err := setupOTel(ctx)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer func() { _ = shutdown(context.Background()) }()
+
+	if err := runtime.Start(); err != nil {
+		log.Fatal(err)
+	}
+
+	logger := otelslog.NewLogger("checkout")
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/hello", func(w http.ResponseWriter, r *http.Request) {
+		logger.InfoContext(r.Context(), "saying hello")
+		_, _ = w.Write([]byte("hello\n"))
+	})
+
+	srv := &http.Server{Addr: ":8080", Handler: otelhttp.NewHandler(mux, "server")}
+	go func() { _ = srv.ListenAndServe() }()
+	<-ctx.Done()
+	_ = srv.Shutdown(context.Background())
+}
+```
+
+Then run it:
+
+```bash
+export OTEL_SERVICE_NAME=checkout
+export OTEL_RESOURCE_ATTRIBUTES=deployment.environment.name=production,service.version=1.4.2
+export OTEL_EXPORTER_OTLP_ENDPOINT=http://fusescope-collector.example.com:4317
+go run .
+```
+
+<Aside>
+  Each Go exporter speaks one protocol: the `…grpc` packages always use gRPC and ignore
+  `OTEL_EXPORTER_OTLP_PROTOCOL`. For OTLP/HTTP, import `otlptracehttp`, `otlpmetrichttp`
+  and `otlploghttp` instead. To pick the exporter from environment variables at run time,
+  use [`autoexport`](https://pkg.go.dev/go.opentelemetry.io/contrib/exporters/autoexport).
+</Aside>
+
+Wrap outgoing HTTP calls with `otelhttp.NewTransport(http.DefaultTransport)`, and gRPC
+servers and clients with `otelgrpc.NewServerHandler()` / `otelgrpc.NewClientHandler()`.
+Instrumentation for `database/sql`, Kafka, Redis and others is listed in the
+[OpenTelemetry registry](https://opentelemetry.io/ecosystem/registry/?language=go).
+
+### Zero-code options
+
+OpenTelemetry is also building
+[eBPF-based auto-instrumentation](https://github.com/open-telemetry/opentelemetry-go-instrumentation/)
+and [compile-time instrumentation](https://opentelemetry.io/docs/zero-code/go/compile-time/)
+for Go. Upstream lists both as work in progress (October 2026); use the SDK for production
+services.
+
+## Send to FuseScope
+
+<Tabs>
+  <TabItem label="Direct (gRPC 4317)">
+
+```bash
+OTEL_EXPORTER_OTLP_ENDPOINT=http://fusescope-collector.example.com:4317
+```
+
+The `http://` scheme makes the gRPC exporter use plain text. Use `https://` for TLS.
+
+  </TabItem>
+  <TabItem label="Direct (HTTP 4318)">
+
+Switch the imports to `otlptracehttp`, `otlpmetrichttp` and `otlploghttp` (same `New(ctx)`
+calls), then:
+
+```bash
+OTEL_EXPORTER_OTLP_ENDPOINT=http://fusescope-collector.example.com:4318
+```
+
+Behind the chart ingress, use `https://otlp.example.com`. See
+[from outside the cluster](/fusescope-docs/sending-data/otlp/#from-outside-the-cluster).
+
+  </TabItem>
+  <TabItem label="Through a local collector">
+
+```bash
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
+```
+
+Use `http://localhost:4318` with the HTTP exporters. Run the collector with
+[Docker](/fusescope-docs/sending-data/collector-docker/), on a
+[VM](/fusescope-docs/sending-data/collector-vm/) or in
+[Kubernetes](/fusescope-docs/sending-data/kubernetes/).
+
+  </TabItem>
+</Tabs>
+
+## Docker
+
+The SDK is compiled in, so the image needs only the binary:
+
+```dockerfile title="Dockerfile"
+FROM golang:1.26 AS build
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN CGO_ENABLED=0 go build -o /checkout .
+
+FROM gcr.io/distroless/static-debian12
+COPY --from=build /checkout /checkout
+ENTRYPOINT ["/checkout"]
+```
+
+```bash
+docker run \
+  -e OTEL_SERVICE_NAME=checkout \
+  -e OTEL_RESOURCE_ATTRIBUTES=deployment.environment.name=production \
+  -e OTEL_EXPORTER_OTLP_ENDPOINT=http://fusescope-collector.example.com:4317 \
+  checkout:latest
+```
+
+## Kubernetes
+
+Set the variables in the pod spec. The downward API adds the pod name and namespace:
+
+```yaml title="deployment.yaml"
+env:
+  - name: OTEL_SERVICE_NAME
+    value: checkout
+  - name: OTEL_EXPORTER_OTLP_ENDPOINT
+    value: http://fusescope-otel-collector.fusescope.svc.cluster.local:4317
+  - name: K8S_POD_NAME
+    valueFrom:
+      fieldRef:
+        fieldPath: metadata.name
+  - name: K8S_NAMESPACE_NAME
+    valueFrom:
+      fieldRef:
+        fieldPath: metadata.namespace
+  - name: OTEL_RESOURCE_ATTRIBUTES
+    value: deployment.environment.name=production,k8s.pod.name=$(K8S_POD_NAME),k8s.namespace.name=$(K8S_NAMESPACE_NAME)
+```
+
+`$(VAR)` only expands variables defined earlier in the list, so keep
+`OTEL_RESOURCE_ATTRIBUTES` last.
+
+## Logs
+
+The [`otelslog`](https://pkg.go.dev/go.opentelemetry.io/contrib/bridges/otelslog) bridge
+turns `log/slog` records into OpenTelemetry logs. Use the `…Context` methods
+(`InfoContext`, `ErrorContext`) and pass the request context: the record then carries the
+trace and span IDs of the active span.
+
+To keep your existing stdout output too, fan out to both handlers, for example with
+`slog.New(slog.NewMultiHandler(otelslog.NewHandler("checkout"), slog.NewJSONHandler(os.Stdout, nil)))`
+(Go 1.26+). Bridges for zap, logrus and zerolog are in the
+[OpenTelemetry registry](https://opentelemetry.io/ecosystem/registry/?language=go).
+
+## Check that data arrives
+
+1. Send a few requests to the service.
+2. Open [Services](/fusescope-docs/apm/services/). The service appears under its
+   `OTEL_SERVICE_NAME` within a minute.
+3. Open the [Traces explorer](/fusescope-docs/explore/traces/) and filter by
+   `service.name`.
+
+Nothing arrives? Check that `shutdown` runs on exit (it flushes the last batch), that
+handlers are wrapped with `otelhttp`, and that the exporter package matches the port (gRPC
+on 4317, HTTP on 4318).
+
+## Related
+
+- [Instrument applications](/fusescope-docs/sending-data/instrumentation/)
+- [OTLP](/fusescope-docs/sending-data/otlp/)
+- [Go getting started](https://opentelemetry.io/docs/languages/go/getting-started/)
+- [Go exporters](https://opentelemetry.io/docs/languages/go/exporters/)

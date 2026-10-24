@@ -1,0 +1,265 @@
+---
+title: ClickHouse
+description: Scrape ClickHouse's Prometheus endpoint, parse its server log, and get the Clickhouse Overview dashboard.
+---
+
+import { Aside, Steps, Tabs, TabItem } from "@astrojs/starlight/components";
+
+The ClickHouse integration scrapes the server's built-in Prometheus endpoint with the
+collector's `prometheus` receiver and parses the ClickHouse server log. Connecting it
+adds the **Clickhouse Overview** dashboard. In the app the integration is called
+**Clickhouse**.
+
+**Use this page when** you want to monitor a ClickHouse server or cluster of your own,
+such as the one behind an analytics product.
+
+## Prerequisites
+
+- **ClickHouse v23 or newer.** Check with `SELECT version();`.
+- **An `otelcol-contrib` collector**, v0.88.0 or newer, where you can add config files
+  and environment variables. See [Integrations](/fusescope-docs/sending-data/integrations/#how-it-works).
+- **For metrics:** ClickHouse exposes Prometheus metrics, and the collector can reach
+  that port. Turn it on with the
+  [`prometheus`](https://clickhouse.com/docs/en/operations/server-configuration-parameters/settings#prometheus)
+  server setting, for example:
+
+  ```xml title="/etc/clickhouse-server/config.d/prometheus.xml"
+  <clickhouse>
+    <prometheus>
+      <endpoint>/metrics</endpoint>
+      <port>9363</port>
+      <metrics>true</metrics>
+      <events>true</events>
+      <asynchronous_metrics>true</asynchronous_metrics>
+      <errors>true</errors>
+    </prometheus>
+  </clickhouse>
+  ```
+
+- **For logs:** the collector can read the server log file, usually
+  `/var/log/clickhouse-server/clickhouse-server.log`. The
+  [`logger`](https://clickhouse.com/docs/en/operations/server-configuration-parameters/settings#logger)
+  setting shows where it is.
+
+## Collect metrics and logs
+
+<Tabs>
+<TabItem label="Metrics">
+
+```yaml title="clickhouse-metrics.yaml"
+receivers:
+  prometheus/clickhouse:
+    config:
+      global:
+        scrape_interval: 60s
+      scrape_configs:
+        - job_name: clickhouse
+          static_configs:
+            - targets:
+                - ${env:CLICKHOUSE_PROM_METRICS_ENDPOINT}
+          metrics_path: ${env:CLICKHOUSE_PROM_METRICS_PATH}
+
+processors:
+  # Adds host.name. Remove when the collector runs on another host.
+  resourcedetection/system:
+    detectors: ["system"]
+    system:
+      hostname_sources: ["os"]
+
+exporters:
+  otlp/fusescope:
+    endpoint: ${env:OTLP_DESTINATION_ENDPOINT}
+    tls:
+      insecure: true
+
+service:
+  pipelines:
+    metrics/clickhouse:
+      receivers: [prometheus/clickhouse]
+      processors: [resourcedetection/system]
+      exporters: [otlp/fusescope]
+```
+
+| Variable | Example | Description |
+|---|---|---|
+| `CLICKHOUSE_PROM_METRICS_ENDPOINT` | `clickhouse:9363` | Prometheus `host:port` on the ClickHouse server. |
+| `CLICKHOUSE_PROM_METRICS_PATH` | `/metrics` | Prometheus path. |
+| `OTLP_DESTINATION_ENDPOINT` | `fusescope-collector.example.com:4317` | FuseScope collector, OTLP gRPC. |
+
+</TabItem>
+<TabItem label="Logs">
+
+The parser reads ClickHouse's default text format and joins multi-line entries, such as
+stack traces, into one record.
+
+```yaml title="clickhouse-logs.yaml"
+receivers:
+  filelog/clickhouse:
+    include: ["${env:CLICKHOUSE_LOG_FILE}"]
+    operators:
+      - type: recombine
+        source_identifier: attributes["log.file.name"]
+        is_first_entry: body matches '^\\d{4}\\.\\d{2}\\.\\d{2}\\s+'
+        combine_field: body
+        overwrite_with: oldest
+      - type: regex_parser
+        parse_from: body
+        if: body matches '^(?P<ts>\\d{4}\\.\\d{2}\\.\\d{2} \\d{2}:\\d{2}:\\d{2}.?[0-9]*)\\s+\\[\\s+(\\x1b.*?m)?(?P<thread_id>\\d*)(\\x1b.*?m)?\\s+\\]\\s+{((\\x1b.*?m)?(?P<query_id>[0-9a-zA-Z-_]*)(\\x1b.*?m)?)?}\\s+<(\\x1b.*?m)?(?P<log_level>\\w*)(\\x1b.*?m)?>\\s+((\\x1b.*?m)?(?P<clickhouse_component>[a-zA-Z0-9_]+)(\\x1b.*?m)?:)?\\s+(?s)(?P<message>.*)$'
+        regex: '^(?P<ts>\d{4}\.\d{2}\.\d{2} \d{2}:\d{2}:\d{2}.?[0-9]*)\s+\[\s+(\x1b.*?m)?(?P<thread_id>\d*)(\x1b.*?m)?\s+\]\s+{((\x1b.*?m)?(?P<query_id>[0-9a-zA-Z-_]*)(\x1b.*?m)?)?}\s+<(\x1b.*?m)?(?P<log_level>\w*)(\x1b.*?m)?>\s+((\x1b.*?m)?(?P<clickhouse_component>[a-zA-Z0-9_]+)(\x1b.*?m)?:)?\s+(?s)(?P<message>.*)$'
+      - type: time_parser
+        if: attributes.ts != nil
+        parse_from: attributes.ts
+        layout_type: gotime
+        layout: 2006.01.02 15:04:05.999999
+        location: ${env:CLICKHOUSE_TIMEZONE}
+      - type: remove
+        if: attributes.ts != nil
+        field: attributes.ts
+      - type: severity_parser
+        if: attributes.log_level != nil
+        parse_from: attributes.log_level
+        overwrite_text: true
+        mapping:
+          trace: [Trace, Test]
+          debug: Debug
+          info: [Information, Notice]
+          warn: Warning
+          error: Error
+          fatal: [Fatal, Critical]
+      - type: remove
+        if: attributes.log_level != nil
+        field: attributes.log_level
+      - type: move
+        if: attributes.message != nil
+        from: attributes.message
+        to: body
+      - type: add
+        field: attributes.source
+        value: clickhouse
+
+processors:
+  batch:
+    send_batch_size: 10000
+    send_batch_max_size: 11000
+    timeout: 10s
+
+exporters:
+  otlp/fusescope:
+    endpoint: ${env:OTLP_DESTINATION_ENDPOINT}
+    tls:
+      insecure: true
+
+service:
+  pipelines:
+    logs/clickhouse:
+      receivers: [filelog/clickhouse]
+      processors: [batch]
+      exporters: [otlp/fusescope]
+```
+
+| Variable | Example | Description |
+|---|---|---|
+| `CLICKHOUSE_LOG_FILE` | `/var/log/clickhouse-server/clickhouse-server.log` | Server log file. |
+| `CLICKHOUSE_TIMEZONE` | `Etc/UTC` | The server's [`timezone`](https://clickhouse.com/docs/en/operations/server-configuration-parameters/settings#timezone), as an IANA name. ClickHouse writes log timestamps without a zone. |
+| `OTLP_DESTINATION_ENDPOINT` | `fusescope-collector.example.com:4317` | FuseScope collector, OTLP gRPC. |
+
+</TabItem>
+</Tabs>
+
+Run the collector with `--config clickhouse-metrics.yaml --config clickhouse-logs.yaml`,
+as shown in [Run the collector](/fusescope-docs/sending-data/integrations/#run-the-collector).
+Set `insecure: false` in the exporter when the FuseScope endpoint uses TLS.
+
+<Aside type="note" title="Query logs from system.query_log">
+  The **Configure** tab in the app also has a step that reads `system.query_log` with the
+  `clickhousesystemtablesreceiver`. That receiver is not part of `otelcol-contrib`, so
+  this page does not cover it. From the release after v0.153.0 the step says so itself;
+  on older versions it does not. To get query logs with `otelcol-contrib`, query the table
+  with the [`sqlquery`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/sqlqueryreceiver)
+  receiver, as a user that can `SELECT` on `system.query_log`.
+</Aside>
+
+## Connect it in FuseScope
+
+<Steps>
+
+1. Open **Integrations** › **Clickhouse**.
+2. Click **Connect Clickhouse**, then **I have already configured**.
+3. Click **Test Connection**. The badge reads **This integration is working properly**
+   once logs with `source = clickhouse` or ClickHouse metrics arrive. Until then it reads
+   **Listening for data...**.
+
+</Steps>
+
+## What's included
+
+**Clickhouse Overview** dashboard, with a `host.name` variable:
+
+- Rate of Queries, Failed Queries, Total Query Time
+- Inserted Rows, Inserted Data, Rejected Writes
+- Background Merges Launched, Total Time spent for Background Merges
+- Memory Usage, CPU, Disk, Network Traffic
+
+No log pipelines and no alert rules. Parsing happens in the collector config; see
+[Log pipelines](/fusescope-docs/sending-data/log-pipelines/) for more.
+
+## Data collected
+
+### Logs
+
+| Field | Path | Type |
+|---|---|---|
+| Timestamp | `timestamp` | timestamp |
+| Severity Text | `severity_text` | string |
+| Severity Number | `severity_number` | number |
+| Thread ID | `attributes.thread_id` | string |
+| Query ID | `attributes.query_id` | string |
+| Clickhouse Component | `attributes.clickhouse_component` | string |
+| Source | `attributes.source` (`clickhouse`) | string |
+
+### Metrics
+
+The Prometheus endpoint exposes more than 1,700 metrics in four families:
+
+| Prefix | Count | What it is |
+|---|---|---|
+| `ClickHouseProfileEvents_` | 525 | Counters of events since start, from `system.events`. |
+| `ClickHouseMetrics_` | 248 | Current values, from `system.metrics`. |
+| `ClickHouseAsyncMetrics_` | 362 | Values computed in the background, from `system.asynchronous_metrics`. |
+| `ClickHouseErrorMetric_` | 582 | Errors by error code since the last restart, from `system.errors`. |
+
+The dashboard uses these. The **Data Collected** tab lists them all.
+
+| Metric | Type | Unit | Description |
+|---|---|---|---|
+| `ClickHouseProfileEvents_Query` | Counter | Number | Queries to be interpreted and potentially executed. |
+| `ClickHouseProfileEvents_SelectQuery` | Counter | Number | `SELECT` queries. |
+| `ClickHouseProfileEvents_InsertQuery` | Counter | Number | `INSERT` queries. |
+| `ClickHouseProfileEvents_FailedQuery` | Counter | Number | Failed queries. |
+| `ClickHouseProfileEvents_FailedSelectQuery` | Counter | Number | Failed `SELECT` queries. |
+| `ClickHouseProfileEvents_FailedInsertQuery` | Counter | Number | Failed `INSERT` queries. |
+| `ClickHouseProfileEvents_QueryTimeMicroseconds` | Counter | Microseconds | Total time of all queries. |
+| `ClickHouseProfileEvents_SelectQueryTimeMicroseconds` | Counter | Microseconds | Total time of `SELECT` queries. |
+| `ClickHouseProfileEvents_InsertQueryTimeMicroseconds` | Counter | Microseconds | Total time of `INSERT` queries. |
+| `ClickHouseProfileEvents_InsertedRows` | Counter | Number | Rows inserted into all tables. |
+| `ClickHouseProfileEvents_InsertedBytes` | Counter | Number | Uncompressed bytes inserted into all tables. |
+| `ClickHouseProfileEvents_AsyncInsertQuery` | Counter | Number | Asynchronous `INSERT` queries. |
+| `ClickHouseProfileEvents_RejectedInserts` | Counter | Number | Inserts rejected with "Too many parts". |
+| `ClickHouseProfileEvents_RejectedMutations` | Counter | Number | Mutations rejected with "Too many mutations". |
+| `ClickHouseProfileEvents_Merge` | Counter | Number | Background merges launched. |
+| `ClickHouseProfileEvents_MergesTimeMilliseconds` | Counter | Milliseconds | Time spent on background merges. |
+| `ClickHouseMetrics_MemoryTracking` | Gauge | Bytes | Memory allocated by the server. |
+| `ClickHouseMetrics_Query` | Gauge | Number | Queries running now. |
+| `ClickHouseProfileEvents_OSCPUVirtualTimeMicroseconds` | Counter | Microseconds | CPU time seen by the OS. |
+| `ClickHouseProfileEvents_OSCPUWaitMicroseconds` | Counter | Microseconds | Time waiting for CPU. |
+| `ClickHouseProfileEvents_OSReadBytes` | Counter | Number | Bytes read from disk, excluding page cache. |
+| `ClickHouseProfileEvents_OSWriteBytes` | Counter | Number | Bytes written to disk. |
+| `ClickHouseProfileEvents_NetworkReceiveBytes` | Counter | Number | Bytes received from the network. |
+| `ClickHouseProfileEvents_NetworkSendBytes` | Counter | Number | Bytes sent to the network. |
+
+## Related
+
+- [Integrations](/fusescope-docs/sending-data/integrations/)
+- [Prometheus metrics](/fusescope-docs/sending-data/prometheus/)
+- [Log pipelines](/fusescope-docs/sending-data/log-pipelines/)
+- [`prometheus` receiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/prometheusreceiver)

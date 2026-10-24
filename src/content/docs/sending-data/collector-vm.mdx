@@ -1,0 +1,246 @@
+---
+title: Collector on a VM
+description: Install the OpenTelemetry Collector on a Linux server or virtual machine as a systemd service and forward telemetry to FuseScope.
+---
+
+import { Aside, Steps, Tabs, TabItem } from "@astrojs/starlight/components";
+
+This page installs the upstream OpenTelemetry Collector (`otelcol-contrib`) on a Linux
+machine from the official packages. It runs as a systemd service, receives OTLP from
+apps on the machine and forwards it to FuseScope.
+
+**Use this page when** your apps run on a virtual machine or bare-metal server, outside
+Docker and Kubernetes, or when you want [host metrics](/fusescope-docs/sending-data/hosts/)
+from that machine.
+
+For why a local collector helps (batching, retries, enrichment, one egress point), see
+[Collector on Docker](/fusescope-docs/sending-data/collector-docker/#why-run-a-local-collector).
+
+## Install
+
+Packages are published on the
+[opentelemetry-collector-releases](https://github.com/open-telemetry/opentelemetry-collector-releases/releases)
+page. This example pins `0.139.0` on `amd64`; use `arm64` in the file name for ARM
+machines.
+
+<Tabs syncKey="linux-package">
+<TabItem label="Debian / Ubuntu">
+
+```bash
+curl -fLO https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v0.139.0/otelcol-contrib_0.139.0_linux_amd64.deb
+sudo dpkg -i otelcol-contrib_0.139.0_linux_amd64.deb
+```
+
+</TabItem>
+<TabItem label="RHEL / Fedora">
+
+```bash
+curl -fLO https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v0.139.0/otelcol-contrib_0.139.0_linux_amd64.rpm
+sudo rpm -ivh otelcol-contrib_0.139.0_linux_amd64.rpm
+```
+
+</TabItem>
+<TabItem label="Tarball">
+
+Use the tarball where no package fits. It contains only the binary: you write the
+config and run it yourself (or with your own service unit).
+
+```bash
+curl -fLO https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v0.139.0/otelcol-contrib_0.139.0_linux_amd64.tar.gz
+tar -xzf otelcol-contrib_0.139.0_linux_amd64.tar.gz otelcol-contrib
+sudo install -m 0755 otelcol-contrib /usr/local/bin/
+otelcol-contrib --config=/etc/otelcol-contrib/config.yaml
+```
+
+</TabItem>
+</Tabs>
+
+The deb and rpm packages set up:
+
+| Item | Value |
+|---|---|
+| Binary | `/usr/bin/otelcol-contrib` |
+| systemd service | `otelcol-contrib`, enabled and started on install |
+| Config file | `/etc/otelcol-contrib/config.yaml` (a sample; kept on upgrade) |
+| Options file | `/etc/otelcol-contrib/otelcol-contrib.conf`, sets `OTELCOL_OPTIONS` |
+| User | `otelcol-contrib`, a system user without a shell |
+
+<Aside type="note" title="otelcol or otelcol-contrib">
+  The OpenTelemetry install guide shows the core `otelcol` package, with
+  `/etc/otelcol/` and the `otelcol` service. Use `otelcol-contrib`: it includes the
+  `hostmetrics`, `prometheus`, `filelog` and `resourcedetection` components the other
+  FuseScope pages use.
+</Aside>
+
+## Configure
+
+Replace the sample `/etc/otelcol-contrib/config.yaml`. This is the same base config as
+on Docker, with OTLP bound to `localhost` so only apps on this machine can send:
+
+<Tabs syncKey="otlp-protocol">
+<TabItem label="OTLP/HTTP">
+
+```yaml title="/etc/otelcol-contrib/config.yaml"
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: localhost:4317
+      http:
+        endpoint: localhost:4318
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_percentage: 80
+    spike_limit_percentage: 25
+  batch: {}
+
+exporters:
+  otlphttp:
+    endpoint: http://fusescope-collector.example.com:4318
+
+extensions:
+  health_check:
+    endpoint: localhost:13133
+
+service:
+  extensions: [health_check]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [otlphttp]
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [otlphttp]
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [otlphttp]
+```
+
+</TabItem>
+<TabItem label="OTLP gRPC">
+
+```yaml title="/etc/otelcol-contrib/config.yaml"
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: localhost:4317
+      http:
+        endpoint: localhost:4318
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_percentage: 80
+    spike_limit_percentage: 25
+  batch: {}
+
+exporters:
+  otlp:
+    endpoint: fusescope-collector.example.com:4317
+    tls:
+      insecure: true
+
+extensions:
+  health_check:
+    endpoint: localhost:13133
+
+service:
+  extensions: [health_check]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [otlp]
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [otlp]
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [otlp]
+```
+
+</TabItem>
+</Tabs>
+
+- Replace `fusescope-collector.example.com` with your FuseScope collector address; see
+  [From outside the cluster](/fusescope-docs/sending-data/otlp/#from-outside-the-cluster).
+  Self-hosted FuseScope needs no ingestion key.
+- To accept data from other machines, use `0.0.0.0:4317` and `0.0.0.0:4318`, and
+  restrict access with a firewall: the receivers have no authentication.
+- Point apps on the machine at `http://localhost:4318` with
+  `OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf`, or `http://localhost:4317` with `grpc`.
+
+Command-line flags go in `/etc/otelcol-contrib/otelcol-contrib.conf`:
+
+```bash title="/etc/otelcol-contrib/otelcol-contrib.conf"
+OTELCOL_OPTIONS="--config=/etc/otelcol-contrib/config.yaml"
+```
+
+The service reads this file as its systemd `EnvironmentFile`. Variables you add there
+are also available in the config as `${env:NAME}`.
+
+## Run and check
+
+<Steps>
+
+1. Validate the config:
+
+   ```bash
+   sudo -u otelcol-contrib otelcol-contrib validate --config=/etc/otelcol-contrib/config.yaml
+   ```
+
+2. Restart the service and check its state:
+
+   ```bash
+   sudo systemctl restart otelcol-contrib
+   sudo systemctl status otelcol-contrib
+   ```
+
+3. Read its logs:
+
+   ```bash
+   sudo journalctl -u otelcol-contrib -f
+   ```
+
+   Look for `Everything is ready. Begin running and processing data.` Export errors,
+   such as `connection refused`, also appear here.
+
+4. Check the health endpoint:
+
+   ```bash
+   curl http://localhost:13133/
+   ```
+
+5. If data still doesn't show in FuseScope, add the `debug` exporter (`verbosity:
+   detailed`) to a pipeline, restart, and watch the journal to see what the collector
+   receives. See
+   [Collector on Docker](/fusescope-docs/sending-data/collector-docker/#check-that-it-works).
+
+</Steps>
+
+<Aside type="caution" title="The service runs as otelcol-contrib">
+  The service doesn't run as root. Receivers that read files, such as `filelog`, or
+  other users' processes, such as the `hostmetrics` `process` scraper, only see what
+  that user may read. Add the user to the right group (for example `adm` for
+  `/var/log`), or run the service as root with a systemd drop-in if you accept that.
+</Aside>
+
+## Upgrade
+
+Install the newer package the same way. Your `config.yaml` and `otelcol-contrib.conf`
+are kept, and the service restarts.
+
+## Related
+
+- [Hosts](/fusescope-docs/sending-data/hosts/): CPU, memory, disk and network of this machine
+- [Prometheus metrics](/fusescope-docs/sending-data/prometheus/)
+- [Collector on Docker](/fusescope-docs/sending-data/collector-docker/)
+- [OTLP endpoints](/fusescope-docs/sending-data/otlp/)

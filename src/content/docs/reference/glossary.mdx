@@ -61,8 +61,11 @@ The database FuseScope stores traces, logs and metrics in.
 ## Collector
 
 The OpenTelemetry Collector: a program that receives telemetry from your applications,
-processes it and writes it to ClickHouse. FuseScope ships its own build. See
-[Architecture](/fusescope-docs/reference/architecture/).
+processes it and writes it to ClickHouse. FuseScope ships its own build. Next to your
+applications you can run the upstream `otelcol-contrib` build as an agent, with
+[receivers](#receiver) and [exporters](#exporter) of its own. See
+[Architecture](/fusescope-docs/reference/architecture/) and
+[Collector on Docker](/fusescope-docs/sending-data/collector-docker/).
 
 ## Consumer lag
 
@@ -88,8 +91,9 @@ See [Dashboard variables](/fusescope-docs/dashboards/variables/).
 
 ## Data source catalog
 
-The **Get Started** screen listing the languages, services and clouds you can send data
-from. See [Data source catalog](/fusescope-docs/sending-data/data-source-catalog/).
+The **Get Started** page, organised by goal, that lists the languages, log sources,
+infrastructure and integrations you can send data from, each with its setup page. See
+[Data source catalog](/fusescope-docs/sending-data/data-source-catalog/).
 
 ## Downstream
 
@@ -136,6 +140,12 @@ message and stack trace. See [Exceptions](/fusescope-docs/apm/exceptions/).
 A [histogram](#histogram) whose buckets grow exponentially in size, so it covers a wide
 range of values without bucket settings.
 
+## Exporter
+
+A collector component that sends data on, such as `otlp` (gRPC) or `otlphttp` to
+FuseScope, or `debug` to the collector's own output. See
+[OTLP](/fusescope-docs/sending-data/otlp/#from-another-collector).
+
 ## External domain
 
 A host your services call over HTTP, such as `api.stripe.com` or `10.0.4.11`, taken
@@ -162,6 +172,12 @@ that called it. See [Trace details](/fusescope-docs/explore/trace-details/#flame
 
 A metric type for a current value that goes up and down, such as memory in use. See
 [Metric types](/fusescope-docs/explore/metrics/#metric-types-and-temporality).
+
+## GenAI semantic conventions
+
+The OpenTelemetry attribute names for LLM, tool and agent calls, such as
+`gen_ai.request.model` and `gen_ai.usage.input_tokens`. AI Observability reads them. See
+[AI Observability for Python](/fusescope-docs/analyze/ai-observability-python/).
 
 ## Group by
 
@@ -199,6 +215,12 @@ with a dashed outline.
 The code or agent that makes an application produce traces, logs and metrics. See
 [Instrument applications](/fusescope-docs/sending-data/instrumentation/).
 
+## Integration
+
+A ready-made setup for one product, such as PostgreSQL or Redis: a collector
+configuration, dashboards and a connection check. See
+[Integrations](/fusescope-docs/sending-data/integrations/).
+
 ## Latency
 
 How long a request takes to get a response.
@@ -232,6 +254,12 @@ A named number measured over time, such as requests per second.
 ## Monotonic
 
 Said of a counter that only goes up, such as total requests served.
+
+## Multiline log
+
+A log entry that spans several lines, such as a Java stack trace. A collector joins
+the lines into one record with a pattern that matches the first line. See
+[Logs from files](/fusescope-docs/sending-data/logs-files/).
 
 ## Node and pod
 
@@ -328,6 +356,12 @@ Measuring what real users experience in their browser: page loads, Web Vitals,
 JavaScript errors and the requests each page makes, linked to backend traces. See
 [Real User Monitoring](/fusescope-docs/frontend/real-user-monitoring/).
 
+## Receiver
+
+A collector component that gets data in, by listening (`otlp`, `syslog`,
+`fluentforward`) or by reading and scraping (`filelog`, `hostmetrics`, `prometheus`,
+`postgresql`).
+
 ## RED metrics
 
 Rate, errors and duration: how many requests a service handles, how many fail and how
@@ -391,6 +425,11 @@ provider sends FuseScope a signed assertion with the user's email. See
 One value of a metric at one moment, also called a data point. The Metrics explorer
 counts them per metric. See
 [Samples and time series](/fusescope-docs/explore/metrics/#samples-and-time-series).
+
+## Scraper
+
+A part of the `hostmetrics` receiver that reads one kind of host metric, such as
+`cpu`, `memory` or `filesystem`. See [Hosts](/fusescope-docs/sending-data/hosts/).
 
 ## Section
 
@@ -529,3 +568,8 @@ Google's measures of page experience: LCP (loading), INP (responsiveness) and CL
 (visual stability), each rated good, needs improvement or poor. See
 [Web Vitals in plain words](/fusescope-docs/frontend/real-user-monitoring/#web-vitals-in-plain-words).
 
+## Zero-code instrumentation
+
+An agent or launcher that instruments common frameworks and libraries without
+changing your code, such as the OpenTelemetry Java agent or `opentelemetry-instrument`
+for Python. See [Instrument applications](/fusescope-docs/sending-data/instrumentation/).

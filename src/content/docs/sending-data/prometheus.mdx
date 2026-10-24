@@ -1,0 +1,222 @@
+---
+title: Prometheus metrics
+description: Scrape Prometheus /metrics endpoints with the OpenTelemetry Collector, or with the k8s-infra chart's pod-annotation preset, and query them in FuseScope.
+---
+
+import { Aside, Steps, Tabs, TabItem } from "@astrojs/starlight/components";
+
+Many programs expose metrics in the Prometheus format on an HTTP endpoint, usually
+`/metrics`. The OpenTelemetry Collector's `prometheus` receiver scrapes those endpoints,
+like a Prometheus server would, and the collector sends the metrics to FuseScope over
+OTLP.
+
+**Use this page when** an app, exporter (such as `node_exporter` or a database
+exporter) or library exposes a Prometheus endpoint and you want its metrics in
+FuseScope.
+
+## How it works
+
+| Where it runs | How you set it up |
+|---|---|
+| A VM or Docker | A collector with a `prometheus` receiver and your `scrape_configs`. See [the receiver](#the-prometheus-receiver). |
+| Kubernetes | The `k8s-infra` chart's `presets.prometheus`, which scrapes annotated pods. See [On Kubernetes](#on-kubernetes). |
+
+FuseScope doesn't accept Prometheus remote-write. Use one of the two above to scrape
+and forward over OTLP.
+
+## The prometheus receiver
+
+The receiver takes a Prometheus `scrape_configs` list under `config`. Add it to a
+collector from [Collector on a VM](/fusescope-docs/sending-data/collector-vm/) or
+[Collector on Docker](/fusescope-docs/sending-data/collector-docker/):
+
+```yaml title="config.yaml"
+receivers:
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: payments
+          scrape_interval: 30s
+          metrics_path: /metrics
+          static_configs:
+            - targets: ["localhost:9100", "10.0.1.15:8080"]
+              labels:
+                env: production
+
+processors:
+  batch: {}
+
+exporters:
+  otlphttp:
+    endpoint: http://fusescope-collector.example.com:4318
+
+service:
+  pipelines:
+    metrics/prometheus:
+      receivers: [prometheus]
+      processors: [batch]
+      exporters: [otlphttp]
+```
+
+- Each `job_name` and target becomes the `service.name` and `service.instance.id`
+  resource attributes, so the metrics are grouped like a service.
+- `scrape_interval` sets how often each target is read.
+- The receiver supports Prometheus service discovery (`static_configs`,
+  `file_sd_configs`, `kubernetes_sd_configs`, `ec2_sd_configs` and others) and
+  `relabel_configs`.
+
+### Escape `$` as `$$`
+
+The collector expands `$NAME` and `${env:NAME}` in its config before the receiver sees
+it. Prometheus relabeling uses `$1` for regex groups, so write it as `$$1`:
+
+```yaml
+relabel_configs:
+  - source_labels: [__address__]
+    regex: "([^:]+):\\d+"
+    target_label: host
+    replacement: "$$1"
+```
+
+A single `$1` is read as an environment variable reference, and the relabeling breaks.
+
+### Scrape Kubernetes pods by annotation
+
+A collector running inside a cluster can discover pods with `kubernetes_sd_configs` and
+keep only those that opt in with annotations. This example uses `prometheus.io/*`
+annotations; its service account needs permission to list and watch pods.
+
+```yaml title="config.yaml"
+receivers:
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: kubernetes-pods
+          scrape_interval: 30s
+          kubernetes_sd_configs:
+            - role: pod
+          relabel_configs:
+            - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+              action: keep
+              regex: "true"
+            - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+              action: replace
+              target_label: __metrics_path__
+              regex: (.+)
+            - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+              action: replace
+              regex: ([^:]+)(?::\d+)?;(\d+)
+              replacement: "$$1:$$2"
+              target_label: __address__
+            - source_labels: [__meta_kubernetes_namespace]
+              target_label: k8s_namespace_name
+            - source_labels: [__meta_kubernetes_pod_name]
+              target_label: k8s_pod_name
+```
+
+If you install the `k8s-infra` chart, you don't need to write this: use its preset.
+
+## On Kubernetes
+
+The `k8s-infra` chart ([Kubernetes](/fusescope-docs/sending-data/kubernetes/)) has a
+preset that scrapes every pod carrying an opt-in annotation. It runs in the
+`otel-deployment` collector, a single replica, so each pod is scraped once.
+
+<Steps>
+
+1. Turn on the preset in your `k8s-infra` values and upgrade the release:
+
+   ```yaml title="values-k8s-infra.yaml"
+   presets:
+     prometheus:
+       enabled: true
+       scrapeInterval: 30s
+   ```
+
+   ```bash
+   helm upgrade k8s-infra fusescope/k8s-infra -n fusescope -f values-k8s-infra.yaml
+   ```
+
+2. Annotate the pods to scrape, in the pod template of a Deployment, StatefulSet or
+   DaemonSet:
+
+   ```yaml
+   spec:
+     template:
+       metadata:
+         annotations:
+           signoz.io/scrape: "true"
+           signoz.io/port: "8080"
+           signoz.io/path: /metrics
+   ```
+
+</Steps>
+
+| Annotation | Required | Meaning |
+|---|---|---|
+| `signoz.io/scrape` | Yes | `"true"` to scrape the pod. |
+| `signoz.io/port` | Yes | The port of the metrics endpoint, as a string. |
+| `signoz.io/path` | No | The endpoint path. Default `/metrics`. |
+
+The `signoz.io/` prefix is an [internal name](/fusescope-docs/configuration/config-file/#internal-names)
+kept from SigNoz. Change it with `presets.prometheus.annotationsPrefix`, for example to
+`prometheus.io` if your pods already carry those annotations.
+
+### Preset values
+
+| Value | Default | Description |
+|---|---|---|
+| `presets.prometheus.enabled` | `false` | Turn the preset on. |
+| `presets.prometheus.annotationsPrefix` | `signoz.io` | Prefix of the pod annotations above. |
+| `presets.prometheus.scrapeInterval` | `60s` | How often each pod is scraped. |
+| `presets.prometheus.namespaceScoped` | `false` | Only scrape pods in the collector's own namespace. |
+| `presets.prometheus.namespaces` | `[]` | Only scrape pods in these namespaces. Empty means all. |
+| `presets.prometheus.includePodLabel` | `false` | Copy every pod label onto the metrics. Can add many series. |
+| `presets.prometheus.includeContainerName` | `false` | Add `k8s_container_name`. Not recommended for pods with several containers. |
+| `presets.prometheus.scrapeConfigs` | `[]` | Extra Prometheus scrape configs, added after the annotation job. Only used when `enabled` is `true`. Escape `$` as `$$`. |
+
+Metrics from the annotation job carry `job_name: signoz-scraper` and these labels:
+`k8s_namespace_name`, `k8s_pod_name`, `k8s_pod_uid`, `k8s_node_name`, `k8s_pod_ready`,
+`k8s_pod_phase`, and `signoz_k8s_name`, `signoz_k8s_instance` and
+`signoz_k8s_component` from the pod's `app.kubernetes.io/name`, `instance` and
+`component` labels.
+
+## Find the metrics in FuseScope
+
+Open [Metrics](/fusescope-docs/explore/metrics/) and search for the metric name, such
+as `http_requests_total` or `process_resident_memory_bytes`. Prometheus labels become
+attributes you can filter and group by. Depending on the collector version, the
+receiver may drop type and unit suffixes such as `_total`; search by the start of the
+name if the full name isn't found.
+
+You can chart them with the query builder, or with PromQL in dashboards and alerts:
+
+```text
+sum(rate(http_requests_total[5m])) by ("service.name")
+```
+
+Names and labels with dots must be quoted; see
+[PromQL](/fusescope-docs/querying/clickhouse-promql/#promql).
+
+<Aside type="caution" title="Watch the number of series">
+  Every distinct label combination is a new series. Labels such as user IDs, request
+  IDs or full URLs can create millions. Drop them with `metric_relabel_configs`
+  (`action: labeldrop`) before they reach FuseScope.
+</Aside>
+
+## Check that it works
+
+1. In the collector logs, look for `Failed to scrape Prometheus endpoint` with the
+   target and the error, such as `connection refused` or `404`.
+2. `curl http://<target>:<port>/metrics` from where the collector runs should return
+   text metrics.
+3. Search for `up` in Metrics: it is `1` for each target the receiver reached, `0` for
+   failed ones.
+
+## Related
+
+- [Kubernetes](/fusescope-docs/sending-data/kubernetes/)
+- [Collector on a VM](/fusescope-docs/sending-data/collector-vm/)
+- [Collector on Docker](/fusescope-docs/sending-data/collector-docker/)
+- [Metrics explorer](/fusescope-docs/explore/metrics/)
+- [ClickHouse SQL and PromQL](/fusescope-docs/querying/clickhouse-promql/)

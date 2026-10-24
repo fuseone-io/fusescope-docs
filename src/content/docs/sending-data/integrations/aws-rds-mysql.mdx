@@ -1,0 +1,334 @@
+---
+title: AWS RDS for MySQL
+description: Collect CloudWatch metrics and logs for Amazon RDS for MySQL, plus MySQL engine metrics, and get the AWS RDS MySQL and MySQL dashboards.
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+
+The AWS RDS for MySQL integration combines three sources:
+
+| Source | Component | Data |
+|---|---|---|
+| CloudWatch metrics (`AWS/RDS`) | Prometheus [CloudWatch exporter](https://github.com/prometheus/cloudwatch_exporter), scraped by the collector's `prometheus` receiver | Instance CPU, memory, storage, IOPS, latency, network |
+| MySQL engine | Collector's `mysql` receiver, connecting to the instance | Connections, row operations, locks, buffer pool, threads |
+| CloudWatch Logs | Collector's `awscloudwatch` receiver | Error, slow query, general and audit logs |
+
+Connecting it adds the **AWS RDS MySQL** and **MySQL** dashboards. In the app the
+integration is called **AWS RDS (MySQL)**.
+
+**Use this page when** your MySQL database runs on Amazon RDS.
+
+## Prerequisites
+
+- **An `otelcol-contrib` collector**, v0.88.0 or newer, where you can add config files
+  and environment variables. See [Integrations](/fusescope-docs/sending-data/integrations/#how-it-works).
+- **Java 11 or newer** for the CloudWatch exporter, or Docker to run its
+  [image](https://github.com/prometheus/cloudwatch_exporter#docker-images) instead.
+- **AWS credentials** for the exporter and the collector. Both use the standard AWS SDK
+  chain: `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`, a shared profile, an EC2
+  instance profile, or an EKS or ECS role.
+- **IAM permissions:**
+
+  ```json title="iam-policy.json"
+  {
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Action": [
+          "cloudwatch:ListMetrics",
+          "cloudwatch:GetMetricStatistics",
+          "cloudwatch:GetMetricData",
+          "tag:GetResources",
+          "logs:DescribeLogGroups",
+          "logs:FilterLogEvents"
+        ],
+        "Resource": "*"
+      }
+    ]
+  }
+  ```
+
+  `tag:GetResources` is only needed if you filter by tag with `aws_tag_select`.
+- **For engine metrics (optional):** network access from the collector to the instance
+  endpoint on port 3306, and a monitoring user, for example:
+
+  ```sql
+  CREATE USER 'monitoring'@'%' IDENTIFIED BY '<password>';
+  GRANT PROCESS, REPLICATION CLIENT ON *.* TO 'monitoring'@'%';
+  GRANT SELECT ON performance_schema.* TO 'monitoring'@'%';
+  ```
+
+- **For logs:** the instance publishes its logs to CloudWatch Logs. Turn this on under
+  **Log exports** when you modify the instance in the RDS console. Each log type gets a
+  group named `/aws/rds/instance/<db-instance-id>/<type>`, such as `.../error` or
+  `.../slowquery`.
+
+## Collect metrics
+
+<Steps>
+
+1. **Run the CloudWatch exporter.** Download the JAR:
+
+   ```bash
+   curl -sLSO https://github.com/prometheus/cloudwatch_exporter/releases/download/v0.15.5/cloudwatch_exporter-0.15.5-jar-with-dependencies.jar
+   ```
+
+   Save this config and set `region`:
+
+   ```yaml title="aws-rds-mysql-metrics.yaml"
+   region: us-east-1
+   metrics:
+     - {aws_namespace: AWS/RDS, aws_metric_name: BinLogDiskUsage, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: BurstBalance, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: CheckpointLag, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average, Maximum]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: ConnectionAttempts, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average, Maximum]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: CPUUtilization, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average, Maximum]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: DatabaseConnections, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average, Maximum]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: DiskQueueDepth, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: DiskQueueDepthLogVolume, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: EBSByteBalance%, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: EBSIOBalance%, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: FreeableMemory, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average, Maximum]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: FreeLocalStorage, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: FreeStorageSpace, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: FreeStorageSpaceLogVolume, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: MaximumUsedTransactionIDs, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: NetworkReceiveThroughput, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average, Maximum]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: NetworkTransmitThroughput, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average, Maximum]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: OldestReplicationSlotLag, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average, Maximum]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: ReadIOPS, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average, Maximum]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: ReadIOPSLocalStorage, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average, Maximum]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: ReadIOPSLogVolume, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average, Maximum]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: ReadLatency, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average, Maximum]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: ReadLatencyLocalStorage, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average, Maximum]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: ReadLatencyLogVolume, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average, Maximum]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: ReadThroughput, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average, Maximum]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: ReadThroughputLogVolume, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average, Maximum]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: ReplicaLag, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average, Maximum]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: ReplicationChannelLag, aws_dimensions: [DBInstanceIdentifier]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: ReplicationSlotDiskUsage, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: TransactionLogsDiskUsage, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: TransactionLogsGeneration, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: WriteIOPS, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average, Maximum]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: WriteLatency, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average, Maximum]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: WriteThroughput, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average, Maximum]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: SwapUsage, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average, Maximum]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: DBLoad, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average, Maximum]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: DBLoadCPU, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average, Maximum]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: DBLoadNonCPU, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average, Maximum]}
+   ```
+
+   Start it on port 9106:
+
+   ```bash
+   java -jar cloudwatch_exporter-0.15.5-jar-with-dependencies.jar 9106 aws-rds-mysql-metrics.yaml
+   ```
+
+   Open `http://localhost:9106/metrics` and check that `aws_rds_*` metrics appear.
+
+2. **Configure the collector.** It scrapes the exporter and, optionally, connects to
+   MySQL. Drop the `mysql` receiver if you only want CloudWatch metrics.
+
+   ```yaml title="mysql-metrics.yaml"
+   receivers:
+     mysql:
+       endpoint: ${env:MYSQL_ENDPOINT}
+       username: ${env:MYSQL_USERNAME}
+       password: ${env:MYSQL_PASSWORD}
+       collection_interval: 60s
+       # Query limits for mysql.statement_events.count and .wait.time.
+       statement_events:
+         digest_text_limit: 120
+         time_limit: 24h
+         limit: 250
+       metrics:
+         mysql.client.network.io:
+           enabled: true
+         mysql.commands:
+           enabled: true
+         mysql.connection.count:
+           enabled: true
+         mysql.connection.errors:
+           enabled: true
+         mysql.joins:
+           enabled: true
+         mysql.query.count:
+           enabled: true
+         mysql.query.slow.count:
+           enabled: true
+         mysql.replica.sql_delay:
+           enabled: true
+         mysql.replica.time_behind_source:
+           enabled: true
+
+     prometheus/cloudwatch:
+       config:
+         scrape_configs:
+           - job_name: aws-cloudwatch-metrics
+             scrape_interval: 300s
+             scrape_timeout: 120s
+             static_configs:
+               - targets: ["${env:CLOUDWATCH_EXPORTER_ENDPOINT}"]
+
+   exporters:
+     otlp/fusescope:
+       endpoint: ${env:OTLP_DESTINATION_ENDPOINT}
+       tls:
+         insecure: true
+
+   service:
+     pipelines:
+       metrics/mysql:
+         receivers: [mysql, prometheus/cloudwatch]
+         exporters: [otlp/fusescope]
+   ```
+
+   | Variable | Example | Description |
+   |---|---|---|
+   | `MYSQL_ENDPOINT` | `mydb.abc123.us-east-1.rds.amazonaws.com:3306` | RDS instance endpoint. |
+   | `MYSQL_USERNAME` | `monitoring` | Monitoring user. |
+   | `MYSQL_PASSWORD` | | Its password. |
+   | `CLOUDWATCH_EXPORTER_ENDPOINT` | `localhost:9106` | Where the CloudWatch exporter listens. |
+   | `OTLP_DESTINATION_ENDPOINT` | `fusescope-collector.example.com:4317` | FuseScope collector, OTLP gRPC. |
+
+3. **Run the collector** with `--config mysql-metrics.yaml`, as shown in
+   [Run the collector](/fusescope-docs/sending-data/integrations/#run-the-collector).
+
+</Steps>
+
+<Aside type="caution" title="CloudWatch API cost">
+  CloudWatch bills `GetMetricData` and `GetMetricStatistics` calls. The exporter queries
+  every metric in the config for every instance in the region on each scrape. Keep the
+  300-second interval, and limit instances with `aws_dimension_select`, for example
+  `aws_dimension_select: {DBInstanceIdentifier: [mydb]}`.
+</Aside>
+
+## Collect logs
+
+The `awscloudwatch` receiver polls the log groups you name. It does not parse the
+entries: the body holds the raw MySQL log line.
+
+```yaml title="mysql-logs.yaml"
+receivers:
+  awscloudwatch/rds_mysql_logs:
+    region: us-east-1
+    logs:
+      poll_interval: 1m
+      groups:
+        named:
+          /aws/rds/instance/mydb/error:
+          /aws/rds/instance/mydb/slowquery:
+
+processors:
+  attributes/add_source_mysql:
+    actions:
+      - key: source
+        value: rds_mysql
+        action: insert
+  batch:
+    send_batch_size: 10000
+    send_batch_max_size: 11000
+    timeout: 10s
+
+exporters:
+  otlp/fusescope:
+    endpoint: ${env:OTLP_DESTINATION_ENDPOINT}
+    tls:
+      insecure: true
+
+service:
+  pipelines:
+    logs/mysql:
+      receivers: [awscloudwatch/rds_mysql_logs]
+      processors: [attributes/add_source_mysql, batch]
+      exporters: [otlp/fusescope]
+```
+
+Set `region`, replace the group names with yours, and set `OTLP_DESTINATION_ENDPOINT`.
+Run the collector with `--config mysql-logs.yaml`. To parse the entries, add a
+[log pipeline](/fusescope-docs/sending-data/log-pipelines/) that matches
+`source = rds_mysql`.
+
+Set `insecure: false` in the exporter when the FuseScope endpoint uses TLS.
+
+## Connect it in FuseScope
+
+<Steps>
+
+1. Open **Integrations** › **AWS RDS (MySQL)**.
+2. Click **Connect AWS RDS (MySQL)**, then **I have already configured**.
+3. Click **Test Connection**. The badge reads **This integration is working properly**
+   once logs with `source = rds_mysql` or `aws_rds_*` metrics arrive. Until then it
+   reads **Listening for data...**. CloudWatch metrics can take a few minutes to show.
+
+</Steps>
+
+## What's included
+
+**AWS RDS MySQL** dashboard, with a `dbinstance_identifier` variable:
+
+- CPUUtilization, FreeableMemory, SwapUsage
+- DatabaseConnections
+- FreeStorageSpace, BinLogDiskUsage, DiskQueueDepth, EBSIOBalance%, EBSByteBalance%
+- ReadIOPS, WriteIOPS, ReadLatency, WriteLatency, ReadThroughput, WriteThroughput
+- Network transmit/receive
+
+**MySQL** dashboard, from the `mysql` receiver, with a `mysql.instance.endpoint` variable:
+
+- Connection/Errors, Thread type count, Open resources count
+- Row operations, Row locks, MySQL locks, count of table I/O wait events
+- Buffer pool usage by status, Buffer pool pages by kind, Total buffer pool page flushes
+- Data pages by status, InnoDB log operations, Count by handlers, Prepared statement count
+
+No log pipelines and no alert rules.
+
+## Data collected
+
+### Logs
+
+| Field | Path | Type |
+|---|---|---|
+| Timestamp | `timestamp` | timestamp |
+| Body | `body` | string |
+| Source | `attributes.source` (`rds_mysql`) | string |
+
+### Metrics
+
+CloudWatch metrics are named `aws_rds_<metric>_<statistic>` and carry the
+`dbinstance_identifier` label. The most useful ones are below. The **Data Collected** tab
+lists all of them.
+
+| Metric | CloudWatch unit | Description |
+|---|---|---|
+| `aws_rds_cpuutilization_average` | Percent | CPU use. |
+| `aws_rds_freeable_memory_average` | Bytes | Available memory. |
+| `aws_rds_swap_usage_average` | Bytes | Swap in use. |
+| `aws_rds_database_connections_average` | Count | Client connections. |
+| `aws_rds_free_storage_space_average` | Bytes | Free storage. |
+| `aws_rds_bin_log_disk_usage_average` | Bytes | Disk used by binary logs. |
+| `aws_rds_disk_queue_depth_average` | Count | Outstanding I/O requests. |
+| `aws_rds_read_iops_average` | Count/Second | Read operations per second. |
+| `aws_rds_write_iops_average` | Count/Second | Write operations per second. |
+| `aws_rds_read_latency_average` | Seconds | Time per read. |
+| `aws_rds_write_latency_average` | Seconds | Time per write. |
+| `aws_rds_read_throughput_average` | Bytes/Second | Bytes read from disk. |
+| `aws_rds_write_throughput_average` | Bytes/Second | Bytes written to disk. |
+| `aws_rds_network_receive_throughput_average` | Bytes/Second | Incoming network traffic. |
+| `aws_rds_network_transmit_throughput_average` | Bytes/Second | Outgoing network traffic. |
+| `aws_rds_ebsiobalance__average` | Percent | Remaining EBS I/O burst credits. |
+| `aws_rds_ebsbyte_balance__average` | Percent | Remaining EBS throughput burst credits. |
+| `aws_rds_replica_lag_average` | Seconds | Read replica lag. |
+| `aws_rds_dbload_average` | None | Average active sessions (Performance Insights). |
+
+The `mysql` receiver adds `mysql.*` metrics, such as `mysql.connection.count`,
+`mysql.row_operations`, `mysql.buffer_pool.pages` and `mysql.threads`. See the
+[receiver's list](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/receiver/mysqlreceiver/documentation.md).
+
+## Related
+
+- [Integrations](/fusescope-docs/sending-data/integrations/)
+- [AWS RDS for PostgreSQL](/fusescope-docs/sending-data/integrations/aws-rds-postgresql/)
+- [Log pipelines](/fusescope-docs/sending-data/log-pipelines/)
+- [CloudWatch exporter](https://github.com/prometheus/cloudwatch_exporter)
+- [`awscloudwatch` receiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/awscloudwatchreceiver)

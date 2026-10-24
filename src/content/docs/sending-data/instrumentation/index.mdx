@@ -1,0 +1,89 @@
+---
+title: Instrument applications
+description: Send traces, metrics and logs from your services with the OpenTelemetry SDKs and zero-code agents.
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+FuseScope has no agent of its own. Applications use the standard
+[OpenTelemetry](https://opentelemetry.io/docs/languages/) SDKs and send
+[OTLP](/fusescope-docs/sending-data/otlp/) to a collector.
+
+**Use this page when** you want an application to send traces, metrics and logs, and need
+to pick the right guide for its language.
+
+## Zero-code or SDK
+
+| Approach | What you do | Best for |
+|---|---|---|
+| **Zero-code** | Attach an agent or run your app through a launcher. Frameworks, HTTP clients and database drivers are instrumented without code changes. | Getting started; most services. |
+| **SDK** | Add the SDK and instrumentation libraries, and initialise them in code. | Go, custom spans and metrics, fine control. |
+
+You can mix both: start zero-code, then add custom spans with the OpenTelemetry API.
+
+## Languages
+
+Signal status as published by OpenTelemetry (checked October 2026).
+
+| Language | Approach | Traces | Metrics | Logs |
+|---|---|---|---|---|
+| [Java](/fusescope-docs/sending-data/instrumentation/java/) | Zero-code Java agent | Stable | Stable | Stable |
+| [.NET](/fusescope-docs/sending-data/instrumentation/dotnet/) | Zero-code automatic instrumentation | Stable | Stable | Stable |
+| [Node.js](/fusescope-docs/sending-data/instrumentation/nodejs/) | Zero-code `auto-instrumentations-node` | Stable | Stable | Development |
+| [Python](/fusescope-docs/sending-data/instrumentation/python/) | Zero-code `opentelemetry-instrument` | Stable | Stable | Development |
+| [Go](/fusescope-docs/sending-data/instrumentation/go/) | SDK in code + instrumentation libraries | Stable | Stable | Release candidate |
+| [Ruby](/fusescope-docs/sending-data/instrumentation/ruby/) | SDK + `opentelemetry-instrumentation-all` | Stable | Development | Development |
+| [PHP](/fusescope-docs/sending-data/instrumentation/php/) | Extension + auto-instrumentation packages | Stable | Stable | Stable |
+
+**Development** means the signal works but its API and output can still change. Other
+languages are listed in the [OpenTelemetry docs](https://opentelemetry.io/docs/languages/).
+
+## Configure the exporter
+
+Every SDK reads the same
+[environment variables](https://opentelemetry.io/docs/languages/sdk-configuration/):
+
+| Variable | Example | Purpose |
+|---|---|---|
+| `OTEL_SERVICE_NAME` | `checkout` | Service name shown in APM and traces. |
+| `OTEL_RESOURCE_ATTRIBUTES` | `deployment.environment.name=production,service.version=1.4.2` | Extra resource attributes, comma separated. |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://fusescope-collector.example.com:4318` | Where to send. |
+| `OTEL_EXPORTER_OTLP_PROTOCOL` | `http/protobuf` | `http/protobuf` on port 4318 or `grpc` on port 4317. |
+| `OTEL_TRACES_EXPORTER`, `OTEL_METRICS_EXPORTER`, `OTEL_LOGS_EXPORTER` | `otlp` | Which signals to export. `none` turns one off. |
+
+<Aside>
+  Set `deployment.environment.name` on every service: FuseScope uses it to filter services
+  and traces by environment. The older `deployment.environment` is also accepted.
+</Aside>
+
+## Where to send
+
+| Option | Endpoint | When |
+|---|---|---|
+| **Direct** to the FuseScope collector | `http://fusescope-collector.example.com:4318` (HTTP) or `fusescope-collector.example.com:4317` (gRPC). In the cluster: `http://fusescope-otel-collector.fusescope.svc.cluster.local:4318`. | Simple setups; one hop. |
+| **Through a local collector** | `http://localhost:4318` | You want batching, retries, host metrics, or one place to change the destination. |
+
+To run a local collector, see [collector in Docker](/fusescope-docs/sending-data/collector-docker/),
+[collector on a VM](/fusescope-docs/sending-data/collector-vm/) or
+[Kubernetes](/fusescope-docs/sending-data/kubernetes/). For endpoints from outside the
+cluster, see [OTLP](/fusescope-docs/sending-data/otlp/#from-outside-the-cluster).
+
+## Logs
+
+Applications can send logs in two ways:
+
+- **Over OTLP from the SDK.** The log record carries the trace and span IDs, so you can jump
+  from a trace to its logs. Each language page explains how to turn it on.
+- **To stdout or files**, collected by a collector such as the
+  [k8s-infra agent](/fusescope-docs/sending-data/kubernetes/) or
+  [file log collection](/fusescope-docs/sending-data/logs-files/), and parsed with
+  [log pipelines](/fusescope-docs/sending-data/log-pipelines/).
+
+Pick one per service, or you store each line twice.
+
+## Related
+
+- [OTLP](/fusescope-docs/sending-data/otlp/)
+- [Services](/fusescope-docs/apm/services/)
+- [Traces explorer](/fusescope-docs/explore/traces/)
+- [Logs explorer](/fusescope-docs/explore/logs/)

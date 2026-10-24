@@ -1,0 +1,222 @@
+---
+title: Redis
+description: Collect Redis metrics and server logs with an OpenTelemetry Collector and get the Redis overview dashboard.
+---
+
+import { Aside, Steps, Tabs, TabItem } from "@astrojs/starlight/components";
+
+The Redis integration reads server statistics with the collector's `redis` receiver
+(the `INFO` command) and parses the Redis log file. Connecting it adds the
+**Redis overview** dashboard.
+
+**Use this page when** you run Redis yourself. For Amazon ElastiCache, see
+[AWS ElastiCache for Redis](/fusescope-docs/sending-data/integrations/aws-elasticache-redis/).
+
+## Prerequisites
+
+- **Redis newer than 3.0.**
+- **An `otelcol-contrib` collector**, v0.88.0 or newer, where you can add config files
+  and environment variables. See [Integrations](/fusescope-docs/sending-data/integrations/#how-it-works).
+- **For metrics:** the collector can connect to Redis as a client. If the server sets
+  `requirepass`, you need that password.
+- **For logs:** the collector can read the Redis log file. Find it with
+  `redis-cli CONFIG GET logfile`.
+
+## Collect metrics and logs
+
+<Tabs>
+<TabItem label="Metrics">
+
+```yaml title="redis-metrics.yaml"
+receivers:
+  redis:
+    endpoint: ${env:REDIS_ENDPOINT}
+    password: ${env:REDIS_PASSWORD}
+    collection_interval: 60s
+    # tls:
+    #   insecure: false
+    #   ca_file: /etc/ssl/certs/ca-certificates.crt
+    metrics:
+      redis.maxmemory:
+        enabled: true
+      redis.cmd.latency:
+        enabled: true
+
+processors:
+  # Adds host.name. Remove when the collector runs on another host.
+  resourcedetection/system:
+    detectors: ["system"]
+    system:
+      hostname_sources: ["os"]
+
+exporters:
+  otlp/fusescope:
+    endpoint: ${env:OTLP_DESTINATION_ENDPOINT}
+    tls:
+      insecure: true
+
+service:
+  pipelines:
+    metrics/redis:
+      receivers: [redis]
+      processors: [resourcedetection/system]
+      exporters: [otlp/fusescope]
+```
+
+| Variable | Example | Description |
+|---|---|---|
+| `REDIS_ENDPOINT` | `localhost:6379` | Redis `host:port`, reachable from the collector. |
+| `REDIS_PASSWORD` | | The `requirepass` password. Leave empty when none is set. |
+| `OTLP_DESTINATION_ENDPOINT` | `fusescope-collector.example.com:4317` | FuseScope collector, OTLP gRPC. |
+
+</TabItem>
+<TabItem label="Logs">
+
+The parser reads the default Redis format, `pid:role timestamp level message`.
+
+```yaml title="redis-logs.yaml"
+receivers:
+  filelog/redis:
+    include: ["${env:REDIS_LOG_FILE}"]
+    operators:
+      - type: regex_parser
+        if: body matches '^(?P<pid>\\d+):(?P<role>\\w+) (?P<ts>\\d{2} \\w+ \\d{4} \\d{2}:\\d{2}:\\d{2}\\.\\d+) (?P<log_level>[.\\-*#]) (?P<message>.*)$'
+        parse_from: body
+        regex: '^(?P<pid>\d+):(?P<role>\w+) (?P<ts>\d{2} \w+ \d{4} \d{2}:\d{2}:\d{2}\.\d+) (?P<log_level>[.\-*#]) (?P<message>.*)$'
+        timestamp:
+          parse_from: attributes.ts
+          layout: '02 Jan 2006 15:04:05.000'
+          layout_type: gotime
+        severity:
+          parse_from: attributes.log_level
+          overwrite_text: true
+          mapping:
+            debug: '.'
+            info: ['-', '*']
+            warn: '#'
+        on_error: send
+      - type: move
+        if: attributes.message != nil
+        from: attributes.message
+        to: body
+      - type: remove
+        if: attributes.log_level != nil
+        field: attributes.log_level
+      - type: remove
+        if: attributes.ts != nil
+        field: attributes.ts
+      - type: add
+        field: attributes.source
+        value: redis
+
+processors:
+  batch:
+    send_batch_size: 10000
+    send_batch_max_size: 11000
+    timeout: 10s
+
+exporters:
+  otlp/fusescope:
+    endpoint: ${env:OTLP_DESTINATION_ENDPOINT}
+    tls:
+      insecure: true
+
+service:
+  pipelines:
+    logs/redis:
+      receivers: [filelog/redis]
+      processors: [batch]
+      exporters: [otlp/fusescope]
+```
+
+| Variable | Example | Description |
+|---|---|---|
+| `REDIS_LOG_FILE` | `/var/log/redis/redis-server.log` | Redis log file. |
+| `OTLP_DESTINATION_ENDPOINT` | `fusescope-collector.example.com:4317` | FuseScope collector, OTLP gRPC. |
+
+</TabItem>
+</Tabs>
+
+Run the collector with `--config redis-metrics.yaml --config redis-logs.yaml`, as shown
+in [Run the collector](/fusescope-docs/sending-data/integrations/#run-the-collector).
+Set `insecure: false` in the exporter when the FuseScope endpoint uses TLS.
+
+<Aside type="note" title="Collector on another host">
+  The dashboard filters by `host.name`, which `resourcedetection/system` sets to the
+  collector's host. When the collector does not run on the Redis host, remove that
+  processor and set `host.name` yourself with a `resource` processor.
+</Aside>
+
+## Connect it in FuseScope
+
+<Steps>
+
+1. Open **Integrations** › **Redis**.
+2. Click **Connect Redis**, then **I have already configured**.
+3. Click **Test Connection**. The badge reads **This integration is working properly**
+   once logs with `source = redis` or Redis metrics arrive. Until then it reads
+   **Listening for data...**.
+
+</Steps>
+
+## What's included
+
+**Redis overview** dashboard, with a `host.name` variable:
+
+- Command/s, Hits/s
+- Memory usage, RSS Memory, Fragmentation ratio
+- Eviction rate, Keyspace Keys
+- Clients blocked, Unsaved changes
+
+No log pipelines and no alert rules. Parsing happens in the collector config; see
+[Log pipelines](/fusescope-docs/sending-data/log-pipelines/) for more.
+
+## Data collected
+
+### Logs
+
+| Field | Path | Type |
+|---|---|---|
+| Timestamp | `timestamp` | timestamp |
+| Severity Text | `severity_text` | string |
+| Severity Number | `severity_number` | number |
+| Process ID | `attributes.pid` | string |
+| Process Role | `attributes.role` | string |
+| Source | `attributes.source` (`redis`) | string |
+
+### Metrics
+
+The most useful of the 31 metrics. The **Data Collected** tab lists them all.
+
+| Metric | Type | Unit | Description |
+|---|---|---|---|
+| `redis_commands` | Gauge | ops/s | Commands processed per second. |
+| `redis_commands_processed` | Sum | number | Total commands processed. |
+| `redis_cmd_latency` | Gauge | s | Command execution latency. |
+| `redis_keyspace_hits` | Sum | number | Successful key lookups. |
+| `redis_keyspace_misses` | Sum | number | Failed key lookups. |
+| `redis_db_keys` | Gauge | number | Keys in the keyspace. |
+| `redis_db_expires` | Gauge | number | Keys with an expiration. |
+| `redis_db_avg_ttl` | Gauge | ms | Average key TTL. |
+| `redis_keys_evicted` | Sum | number | Keys evicted by the `maxmemory` limit. |
+| `redis_keys_expired` | Sum | number | Key expiration events. |
+| `redis_memory_used` | Gauge | Bytes | Bytes allocated by Redis. |
+| `redis_memory_rss` | Gauge | Bytes | Bytes allocated as seen by the OS. |
+| `redis_memory_peak` | Gauge | Bytes | Peak memory. |
+| `redis_memory_fragmentation_ratio` | Gauge | number | RSS divided by used memory. |
+| `redis_maxmemory` | Gauge | Bytes | The `maxmemory` setting. |
+| `redis_clients_connected` | Sum | number | Client connections, excluding replicas. |
+| `redis_clients_blocked` | Sum | number | Clients waiting on a blocking call. |
+| `redis_connections_rejected` | Sum | number | Connections rejected by `maxclients`. |
+| `redis_net_input` | Sum | Bytes | Bytes read from the network. |
+| `redis_net_output` | Sum | Bytes | Bytes written to the network. |
+| `redis_rdb_changes_since_last_save` | Sum | number | Changes since the last dump. |
+| `redis_slaves_connected` | Sum | number | Connected replicas. |
+| `redis_uptime` | Sum | s | Seconds since server start. |
+
+## Related
+
+- [Integrations](/fusescope-docs/sending-data/integrations/)
+- [AWS ElastiCache for Redis](/fusescope-docs/sending-data/integrations/aws-elasticache-redis/)
+- [Log pipelines](/fusescope-docs/sending-data/log-pipelines/)
+- [`redis` receiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/redisreceiver)

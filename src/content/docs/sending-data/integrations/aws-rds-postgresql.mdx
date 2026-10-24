@@ -1,0 +1,329 @@
+---
+title: AWS RDS for PostgreSQL
+description: Collect CloudWatch metrics and logs for Amazon RDS for PostgreSQL, plus PostgreSQL engine metrics, and get the AWS RDS Postgres and Postgres overview dashboards.
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+
+The AWS RDS for PostgreSQL integration combines three sources:
+
+| Source | Component | Data |
+|---|---|---|
+| CloudWatch metrics (`AWS/RDS`) | Prometheus [CloudWatch exporter](https://github.com/prometheus/cloudwatch_exporter), scraped by the collector's `prometheus` receiver | Instance CPU, memory, storage, IOPS, latency, network |
+| PostgreSQL engine | Collector's `postgresql` receiver, connecting to the instance | Connections, row operations, locks, deadlocks, index scans |
+| CloudWatch Logs | Collector's `awscloudwatch` receiver | PostgreSQL and upgrade logs |
+
+Connecting it adds the **AWS RDS Postgres** and **Postgres overview** dashboards. In the
+app the integration is called **AWS RDS (PostgreSQL)**.
+
+**Use this page when** your PostgreSQL database runs on Amazon RDS. For PostgreSQL you
+run yourself, see [PostgreSQL](/fusescope-docs/sending-data/integrations/postgresql/).
+
+## Prerequisites
+
+- **An `otelcol-contrib` collector**, v0.88.0 or newer, where you can add config files
+  and environment variables. See [Integrations](/fusescope-docs/sending-data/integrations/#how-it-works).
+- **Java 11 or newer** for the CloudWatch exporter, or Docker to run its
+  [image](https://github.com/prometheus/cloudwatch_exporter#docker-images) instead.
+- **AWS credentials** for the exporter and the collector. Both use the standard AWS SDK
+  chain: `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`, a shared profile, an EC2
+  instance profile, or an EKS or ECS role.
+- **IAM permissions:**
+
+  ```json title="iam-policy.json"
+  {
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Action": [
+          "cloudwatch:ListMetrics",
+          "cloudwatch:GetMetricStatistics",
+          "cloudwatch:GetMetricData",
+          "logs:DescribeLogGroups",
+          "logs:FilterLogEvents"
+        ],
+        "Resource": "*"
+      }
+    ]
+  }
+  ```
+
+  Add `tag:GetResources` if you filter by tag with the exporter's `aws_tag_select`.
+- **For engine metrics (optional):** network access from the collector to the instance
+  endpoint on port 5432, and a monitoring user:
+
+  ```sql
+  CREATE USER monitoring WITH PASSWORD '<password>';
+  GRANT pg_monitor TO monitoring;
+  GRANT SELECT ON pg_stat_database TO monitoring;
+  ```
+
+- **For logs:** the instance publishes its logs to CloudWatch Logs. Turn this on under
+  **Log exports** when you modify the instance in the RDS console. Each log type gets a
+  group named `/aws/rds/instance/<db-instance-id>/<type>`, such as `.../postgresql`.
+
+## Collect metrics
+
+<Steps>
+
+1. **Run the CloudWatch exporter.** Download the JAR:
+
+   ```bash
+   curl -sLSO https://github.com/prometheus/cloudwatch_exporter/releases/download/v0.15.5/cloudwatch_exporter-0.15.5-jar-with-dependencies.jar
+   ```
+
+   Save this config and set `region`:
+
+   ```yaml title="aws-rds-postgres-metrics.yaml"
+   region: us-east-1
+   metrics:
+     - {aws_namespace: AWS/RDS, aws_metric_name: BinLogDiskUsage, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: BurstBalance, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: CheckpointLag, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average, Maximum]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: ConnectionAttempts, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average, Maximum]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: CPUUtilization, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average, Maximum]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: DatabaseConnections, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average, Maximum]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: DiskQueueDepth, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: DiskQueueDepthLogVolume, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: EBSByteBalance%, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: EBSIOBalance%, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: FreeableMemory, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average, Maximum]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: FreeLocalStorage, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: FreeStorageSpace, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: FreeStorageSpaceLogVolume, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: MaximumUsedTransactionIDs, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: NetworkReceiveThroughput, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average, Maximum]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: NetworkTransmitThroughput, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average, Maximum]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: OldestReplicationSlotLag, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average, Maximum]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: ReadIOPS, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average, Maximum]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: ReadIOPSLocalStorage, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average, Maximum]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: ReadIOPSLogVolume, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average, Maximum]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: ReadLatency, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average, Maximum]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: ReadLatencyLocalStorage, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average, Maximum]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: ReadLatencyLogVolume, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average, Maximum]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: ReadThroughput, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average, Maximum]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: ReadThroughputLogVolume, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average, Maximum]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: ReplicaLag, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average, Maximum]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: ReplicationChannelLag, aws_dimensions: [DBInstanceIdentifier]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: ReplicationSlotDiskUsage, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: TransactionLogsDiskUsage, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: TransactionLogsGeneration, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: WriteIOPS, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average, Maximum]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: WriteLatency, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average, Maximum]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: WriteThroughput, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average, Maximum]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: SwapUsage, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average, Maximum]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: DBLoad, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average, Maximum]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: DBLoadCPU, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average, Maximum]}
+     - {aws_namespace: AWS/RDS, aws_metric_name: DBLoadNonCPU, aws_dimensions: [DBInstanceIdentifier], aws_statistics: [Average, Maximum]}
+   ```
+
+   Start it on port 9106:
+
+   ```bash
+   java -jar cloudwatch_exporter-0.15.5-jar-with-dependencies.jar 9106 aws-rds-postgres-metrics.yaml
+   ```
+
+   Open `http://localhost:9106/metrics` and check that `aws_rds_*` metrics appear.
+
+2. **Configure the collector.** It scrapes the exporter and, optionally, connects to
+   PostgreSQL. Drop the `postgresql` receiver if you only want CloudWatch metrics.
+
+   ```yaml title="postgres-metrics.yaml"
+   receivers:
+     postgresql:
+       endpoint: ${env:POSTGRESQL_ENDPOINT}
+       username: ${env:POSTGRESQL_USERNAME}
+       password: ${env:POSTGRESQL_PASSWORD}
+       collection_interval: 60s
+       # Empty list: all non-template databases.
+       databases: []
+       tls:
+         insecure_skip_verify: true
+       metrics:
+         postgresql.database.locks:
+           enabled: true
+         postgresql.deadlocks:
+           enabled: true
+         postgresql.sequential_scans:
+           enabled: true
+
+     prometheus/cloudwatch:
+       config:
+         scrape_configs:
+           - job_name: aws-cloudwatch-metrics
+             scrape_interval: 300s
+             scrape_timeout: 120s
+             static_configs:
+               - targets: ["${env:CLOUDWATCH_EXPORTER_ENDPOINT}"]
+
+   exporters:
+     otlp/fusescope:
+       endpoint: ${env:OTLP_DESTINATION_ENDPOINT}
+       tls:
+         insecure: true
+
+   service:
+     pipelines:
+       metrics/postgresql:
+         receivers: [postgresql, prometheus/cloudwatch]
+         exporters: [otlp/fusescope]
+   ```
+
+   `insecure_skip_verify` connects over TLS without checking the RDS certificate. To
+   verify it, set `ca_file` to the
+   [RDS certificate bundle](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/UsingWithRDS.SSL.html)
+   instead.
+
+   | Variable | Example | Description |
+   |---|---|---|
+   | `POSTGRESQL_ENDPOINT` | `mydb.abc123.us-east-1.rds.amazonaws.com:5432` | RDS instance endpoint. |
+   | `POSTGRESQL_USERNAME` | `monitoring` | Monitoring user. |
+   | `POSTGRESQL_PASSWORD` | | Its password. |
+   | `CLOUDWATCH_EXPORTER_ENDPOINT` | `localhost:9106` | Where the CloudWatch exporter listens. |
+   | `OTLP_DESTINATION_ENDPOINT` | `fusescope-collector.example.com:4317` | FuseScope collector, OTLP gRPC. |
+
+3. **Run the collector** with `--config postgres-metrics.yaml`, as shown in
+   [Run the collector](/fusescope-docs/sending-data/integrations/#run-the-collector).
+
+</Steps>
+
+<Aside type="caution" title="CloudWatch API cost">
+  CloudWatch bills `GetMetricData` and `GetMetricStatistics` calls. The exporter queries
+  every metric in the config for every instance in the region on each scrape. Keep the
+  300-second interval, and limit instances with `aws_dimension_select`, for example
+  `aws_dimension_select: {DBInstanceIdentifier: [mydb]}`.
+</Aside>
+
+## Collect logs
+
+The `awscloudwatch` receiver polls the log groups you name. It does not parse the
+entries: the body holds the raw PostgreSQL log line.
+
+```yaml title="postgres-logs.yaml"
+receivers:
+  awscloudwatch/rds_postgres_logs:
+    region: us-east-1
+    logs:
+      poll_interval: 1m
+      groups:
+        named:
+          /aws/rds/instance/mydb/postgresql:
+
+processors:
+  attributes/add_source_postgres:
+    actions:
+      - key: source
+        value: rds_postgres
+        action: insert
+  batch:
+    send_batch_size: 10000
+    send_batch_max_size: 11000
+    timeout: 10s
+
+exporters:
+  otlp/fusescope:
+    endpoint: ${env:OTLP_DESTINATION_ENDPOINT}
+    tls:
+      insecure: true
+
+service:
+  pipelines:
+    logs/postgres:
+      receivers: [awscloudwatch/rds_postgres_logs]
+      processors: [attributes/add_source_postgres, batch]
+      exporters: [otlp/fusescope]
+```
+
+Set `region`, replace the group names with yours, and set `OTLP_DESTINATION_ENDPOINT`.
+Run the collector with `--config postgres-logs.yaml`. To parse the entries, add a
+[log pipeline](/fusescope-docs/sending-data/log-pipelines/) that matches
+`source = rds_postgres`.
+
+Set `insecure: false` in the exporter when the FuseScope endpoint uses TLS.
+
+## Connect it in FuseScope
+
+<Steps>
+
+1. Open **Integrations** › **AWS RDS (PostgreSQL)**.
+2. Click **Connect AWS RDS (PostgreSQL)**, then **I have already configured**.
+3. Click **Test Connection**. The badge reads **This integration is working properly**
+   once logs with `source = rds_postgres`, or `aws_rds_*` or `postgresql_*` metrics,
+   arrive. Until then it reads **Listening for data...**. CloudWatch metrics can take a
+   few minutes to show.
+
+</Steps>
+
+## What's included
+
+**AWS RDS Postgres** dashboard, with a `dbinstance_identifier` variable:
+
+- CPUUtilization, FreeableMemory, SwapUsage
+- DatabaseConnections, ReplicaLag, CheckpointLag
+- FreeStorageSpace, DiskQueueDepth, EBSIOBalance%, EBSByteBalance%
+- ReadIOPS, WriteIOPS, ReadLatency, WriteLatency, ReadThroughput, WriteThroughput
+- Network transmit/receive
+
+**Postgres overview** dashboard, from the `postgresql` receiver, with `db_name` and
+`table_name` variables:
+
+- Connections per db, Operation by database, Table stats
+- Inserts, Updates, Deleted, Heap updates, Dead rows
+- Index scans by index
+- Locks by lock mode, Deadlocks count
+
+No log pipelines and no alert rules.
+
+## Data collected
+
+### Logs
+
+| Field | Path | Type |
+|---|---|---|
+| Timestamp | `timestamp` | timestamp |
+| Body | `body` | string |
+| Source | `attributes.source` (`rds_postgres`) | string |
+
+### Metrics
+
+CloudWatch metrics are named `aws_rds_<metric>_<statistic>` and carry the
+`dbinstance_identifier` label. The most useful ones are below. The **Data Collected** tab
+lists all of them.
+
+| Metric | CloudWatch unit | Description |
+|---|---|---|
+| `aws_rds_cpuutilization_average` | Percent | CPU use. |
+| `aws_rds_freeable_memory_average` | Bytes | Available memory. |
+| `aws_rds_swap_usage_average` | Bytes | Swap in use. |
+| `aws_rds_database_connections_average` | Count | Client connections. |
+| `aws_rds_free_storage_space_average` | Bytes | Free storage. |
+| `aws_rds_disk_queue_depth_average` | Count | Outstanding I/O requests. |
+| `aws_rds_read_iops_average` | Count/Second | Read operations per second. |
+| `aws_rds_write_iops_average` | Count/Second | Write operations per second. |
+| `aws_rds_read_latency_average` | Seconds | Time per read. |
+| `aws_rds_write_latency_average` | Seconds | Time per write. |
+| `aws_rds_read_throughput_average` | Bytes/Second | Bytes read from disk. |
+| `aws_rds_write_throughput_average` | Bytes/Second | Bytes written to disk. |
+| `aws_rds_network_receive_throughput_average` | Bytes/Second | Incoming network traffic. |
+| `aws_rds_network_transmit_throughput_average` | Bytes/Second | Outgoing network traffic. |
+| `aws_rds_ebsiobalance__average` | Percent | Remaining EBS I/O burst credits. |
+| `aws_rds_ebsbyte_balance__average` | Percent | Remaining EBS throughput burst credits. |
+| `aws_rds_replica_lag_average` | Seconds | Read replica lag. |
+| `aws_rds_checkpoint_lag_average` | Seconds | Time since the most recent checkpoint. |
+| `aws_rds_maximum_used_transaction_ids_average` | Count | Highest transaction ID used, to watch for wraparound. |
+| `aws_rds_dbload_average` | None | Average active sessions (Performance Insights). |
+
+The `postgresql` receiver adds `postgresql_*` metrics, such as `postgresql_backends`,
+`postgresql_commits`, `postgresql_deadlocks` and `postgresql_db_size`. The
+[PostgreSQL](/fusescope-docs/sending-data/integrations/postgresql/#metrics) page lists
+them.
+
+## Related
+
+- [Integrations](/fusescope-docs/sending-data/integrations/)
+- [PostgreSQL](/fusescope-docs/sending-data/integrations/postgresql/)
+- [AWS RDS for MySQL](/fusescope-docs/sending-data/integrations/aws-rds-mysql/)
+- [Log pipelines](/fusescope-docs/sending-data/log-pipelines/)
+- [CloudWatch exporter](https://github.com/prometheus/cloudwatch_exporter)
+- [`awscloudwatch` receiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/awscloudwatchreceiver)

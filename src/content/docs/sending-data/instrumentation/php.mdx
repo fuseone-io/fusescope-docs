@@ -1,0 +1,243 @@
+---
+title: PHP
+description: Send traces, metrics and logs from a PHP application to FuseScope with the OpenTelemetry extension and auto-instrumentation packages.
+---
+
+import { Aside, Steps, Tabs, TabItem } from "@astrojs/starlight/components";
+
+PHP [auto-instrumentation](https://opentelemetry.io/docs/zero-code/php/) has two parts: the
+`opentelemetry` PHP extension, which hooks into function calls, and Composer packages that
+use those hooks for Laravel, Symfony, Slim, PDO, Guzzle, PSR-18 clients and
+[more](https://github.com/open-telemetry/opentelemetry-php-contrib/tree/main/src/Instrumentation).
+You don't change your code.
+
+**Use this page when** you run a PHP application (Laravel, Symfony, WordPress or plain PHP)
+and want it in FuseScope.
+
+| Signal | Status | What is sent |
+|---|---|---|
+| Traces | Stable | Spans for requests, HTTP calls, database queries. |
+| Metrics | Stable | What your code records through the API. |
+| Logs | Stable | PSR-3 logger records (Monolog, Laravel) with trace IDs. |
+
+## Prerequisites
+
+- PHP 8.1 or later (the extension supports 8.0, current SDK packages need 8.1).
+- Composer, with your app using its autoloader (`vendor/autoload.php`).
+- To build the extension from source: `gcc`, `make` and `autoconf`.
+- A FuseScope collector you can reach on port 4317 or 4318. See [OTLP](/fusescope-docs/sending-data/otlp/).
+
+## Install
+
+<Steps>
+
+1. Install the extension, with one of:
+
+   ```bash
+   pecl install opentelemetry
+   # or, with PIE
+   pie install open-telemetry/ext-opentelemetry
+   # or, in Docker images with docker-php-extension-installer
+   install-php-extensions opentelemetry
+   ```
+
+2. Enable it in `php.ini` (PIE and `install-php-extensions` do this for you):
+
+   ```ini title="php.ini"
+   [opentelemetry]
+   extension=opentelemetry
+   ```
+
+   Check it loads with `php --ri opentelemetry`.
+
+3. Add the SDK, the OTLP exporter, an HTTP client for the exporter, and the instrumentation
+   for your framework and libraries:
+
+   ```bash
+   composer require \
+     open-telemetry/sdk \
+     open-telemetry/exporter-otlp \
+     php-http/guzzle7-adapter \
+     open-telemetry/opentelemetry-auto-laravel \
+     open-telemetry/opentelemetry-auto-pdo \
+     open-telemetry/opentelemetry-auto-guzzle
+   ```
+
+   Swap `auto-laravel` for `auto-symfony`, `auto-slim`, `auto-wordpress` and so on. Each
+   package is listed in the
+   [OpenTelemetry registry](https://opentelemetry.io/ecosystem/registry/?language=php&component=instrumentation).
+
+</Steps>
+
+## Configure and run
+
+```bash
+export OTEL_PHP_AUTOLOAD_ENABLED=true
+export OTEL_SERVICE_NAME=checkout
+export OTEL_RESOURCE_ATTRIBUTES=deployment.environment.name=production,service.version=1.4.2
+export OTEL_TRACES_EXPORTER=otlp
+export OTEL_METRICS_EXPORTER=otlp
+export OTEL_LOGS_EXPORTER=otlp
+export OTEL_EXPORTER_OTLP_ENDPOINT=http://fusescope-collector.example.com:4318
+export OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+export OTEL_PROPAGATORS=baggage,tracecontext
+php -S localhost:8080 -t public
+```
+
+`OTEL_PHP_AUTOLOAD_ENABLED=true` makes the SDK start itself from `vendor/autoload.php`.
+Without it, nothing is sent.
+
+<Aside type="caution" title="PHP-FPM drops environment variables">
+  By default PHP-FPM clears the environment before running scripts, so `OTEL_*` variables set
+  on the container or service never reach PHP. Set `clear_env = no` in the pool config, add
+  `env[OTEL_SERVICE_NAME] = checkout` lines to it, or put the settings in `php.ini`
+  (`OTEL_SERVICE_NAME=checkout`, no `export`).
+</Aside>
+
+Another option on Linux is the
+[PHP distro](https://opentelemetry.io/docs/zero-code/php/distro/): deb, rpm and apk
+packages with production defaults, installed without Composer.
+
+## Send to FuseScope
+
+<Tabs>
+  <TabItem label="Direct (gRPC 4317)">
+
+gRPC needs the `grpc` extension and a transport package:
+
+```bash
+pecl install grpc
+composer require open-telemetry/transport-grpc
+```
+
+```bash
+OTEL_EXPORTER_OTLP_ENDPOINT=http://fusescope-collector.example.com:4317
+OTEL_EXPORTER_OTLP_PROTOCOL=grpc
+```
+
+The `grpc` extension takes a long time to compile. HTTP is usually simpler.
+
+  </TabItem>
+  <TabItem label="Direct (HTTP 4318)">
+
+```bash
+OTEL_EXPORTER_OTLP_ENDPOINT=http://fusescope-collector.example.com:4318
+OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+```
+
+Behind the chart ingress, use `https://otlp.example.com`. See
+[from outside the cluster](/fusescope-docs/sending-data/otlp/#from-outside-the-cluster).
+
+  </TabItem>
+  <TabItem label="Through a local collector">
+
+```bash
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
+OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+```
+
+A local collector also keeps export off the request path: PHP sends at the end of each
+request, so a nearby collector answers faster. Run it with
+[Docker](/fusescope-docs/sending-data/collector-docker/), on a
+[VM](/fusescope-docs/sending-data/collector-vm/) or in
+[Kubernetes](/fusescope-docs/sending-data/kubernetes/).
+
+  </TabItem>
+</Tabs>
+
+## Docker
+
+This example installs the extension with `install-php-extensions` from
+[mlocati/docker-php-extension-installer](https://github.com/mlocati/docker-php-extension-installer),
+which also enables it:
+
+```dockerfile title="Dockerfile"
+FROM php:8.3-apache
+COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr/local/bin/
+RUN install-php-extensions opentelemetry zip
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+WORKDIR /var/www/html
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --no-scripts --no-autoloader
+COPY . .
+RUN composer dump-autoload --optimize
+```
+
+```bash
+docker run -p 8080:80 \
+  -e OTEL_PHP_AUTOLOAD_ENABLED=true \
+  -e OTEL_SERVICE_NAME=checkout \
+  -e OTEL_RESOURCE_ATTRIBUTES=deployment.environment.name=production \
+  -e OTEL_EXPORTER_OTLP_ENDPOINT=http://fusescope-collector.example.com:4318 \
+  -e OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf \
+  checkout:latest
+```
+
+With a `php:*-fpm` image, apply the PHP-FPM caution above.
+
+## Kubernetes
+
+Set the variables in the pod spec. The downward API adds the pod name and namespace:
+
+```yaml title="deployment.yaml"
+env:
+  - name: OTEL_PHP_AUTOLOAD_ENABLED
+    value: "true"
+  - name: OTEL_SERVICE_NAME
+    value: checkout
+  - name: OTEL_EXPORTER_OTLP_ENDPOINT
+    value: http://fusescope-otel-collector.fusescope.svc.cluster.local:4318
+  - name: OTEL_EXPORTER_OTLP_PROTOCOL
+    value: http/protobuf
+  - name: K8S_POD_NAME
+    valueFrom:
+      fieldRef:
+        fieldPath: metadata.name
+  - name: K8S_NAMESPACE_NAME
+    valueFrom:
+      fieldRef:
+        fieldPath: metadata.namespace
+  - name: OTEL_RESOURCE_ATTRIBUTES
+    value: deployment.environment.name=production,k8s.pod.name=$(K8S_POD_NAME),k8s.namespace.name=$(K8S_NAMESPACE_NAME)
+```
+
+`$(VAR)` only expands variables defined earlier in the list, so keep
+`OTEL_RESOURCE_ATTRIBUTES` last.
+
+## Logs
+
+Any PSR-3 logger, which includes Monolog and the Laravel and Symfony loggers, can be
+captured by the PSR-3 instrumentation:
+
+```bash
+composer require open-telemetry/opentelemetry-auto-psr3
+```
+
+| `OTEL_PHP_PSR3_MODE` | Effect |
+|---|---|
+| `inject` | Adds `trace_id` and `span_id` to each record's context, for your own log output. |
+| `export` | Also exports each record over OTLP (needs `OTEL_LOGS_EXPORTER=otlp`). |
+
+The PSR-3 package is still `0.x`. To attach OpenTelemetry to Monolog yourself instead, add
+the handler from `open-telemetry/opentelemetry-logger-monolog`. If a collector already reads
+your log files or stdout, use `inject` so each line is stored once.
+
+## Check that data arrives
+
+1. Send a few requests to the application.
+2. Open [Services](/fusescope-docs/apm/services/). The service appears under its
+   `OTEL_SERVICE_NAME` within a minute.
+3. Open the [Traces explorer](/fusescope-docs/explore/traces/) and filter by
+   `service.name`.
+
+Nothing arrives? Check that the extension is loaded where requests run (`phpinfo()` lists
+`opentelemetry`; the CLI and PHP-FPM can use different `php.ini` files), that
+`OTEL_PHP_AUTOLOAD_ENABLED=true` reaches PHP (print `getenv('OTEL_PHP_AUTOLOAD_ENABLED')`),
+and that an HTTP client such as `php-http/guzzle7-adapter` is installed.
+
+## Related
+
+- [Instrument applications](/fusescope-docs/sending-data/instrumentation/)
+- [OTLP](/fusescope-docs/sending-data/otlp/)
+- [PHP auto-instrumentation](https://opentelemetry.io/docs/zero-code/php/auto/)
+- [PHP exporters](https://opentelemetry.io/docs/languages/php/exporters/)

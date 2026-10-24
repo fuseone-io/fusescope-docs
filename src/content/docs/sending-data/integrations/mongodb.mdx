@@ -1,0 +1,271 @@
+---
+title: MongoDB
+description: Collect MongoDB metrics and structured server logs with an OpenTelemetry Collector and get the Mongo overview dashboard.
+---
+
+import { Aside, Steps, Tabs, TabItem } from "@astrojs/starlight/components";
+
+The MongoDB integration collects server statistics with the collector's `mongodb`
+receiver and parses MongoDB's structured JSON log. Connecting it adds the
+**Mongo overview** dashboard. In the app the integration is called **Mongo**.
+
+**Use this page when** you run MongoDB yourself, standalone, as a replica set or
+sharded.
+
+## Prerequisites
+
+- **MongoDB 4.4 or newer.** Check with `db.version()`.
+- **An `otelcol-contrib` collector**, v0.88.0 or newer, where you can add config files
+  and environment variables. See [Integrations](/fusescope-docs/sending-data/integrations/#how-it-works).
+- **For metrics:** a least-privilege user with the `clusterMonitor` role, and network
+  access from the collector to MongoDB.
+- **For logs:** the collector can read the MongoDB log file. The `systemLog.path`
+  setting in `mongod.conf` shows where it is.
+
+Create the monitoring user:
+
+```js
+use admin
+db.createUser({
+  user: "monitoring",
+  pwd: "<password>",
+  roles: ["clusterMonitor"]
+});
+```
+
+## Collect metrics and logs
+
+<Tabs>
+<TabItem label="Metrics">
+
+```yaml title="mongodb-metrics.yaml"
+receivers:
+  mongodb:
+    # Standalone: the mongod. Replica set: its members (others are discovered
+    # when replica_set is set). Sharded: the mongos hosts.
+    hosts:
+      - endpoint: ${env:MONGODB_ENDPOINT}
+    username: ${env:MONGODB_USERNAME}
+    password: ${env:MONGODB_PASSWORD}
+    collection_interval: 60s
+    tls:
+      insecure: true
+      insecure_skip_verify: true
+    #   ca_file: /etc/ssl/certs/ca-certificates.crt
+    #   cert_file: /etc/ssl/certs/mongodb.crt
+    #   key_file: /etc/ssl/certs/mongodb.key
+    metrics:
+      mongodb.lock.acquire.count:
+        enabled: true
+      mongodb.lock.acquire.time:
+        enabled: true
+      mongodb.lock.acquire.wait_count:
+        enabled: true
+      mongodb.lock.deadlock.count:
+        enabled: true
+      mongodb.operation.latency.time:
+        enabled: true
+
+processors:
+  # Adds host.name. Remove when the collector runs on another host.
+  resourcedetection/system:
+    detectors: ["system"]
+    system:
+      hostname_sources: ["os"]
+
+exporters:
+  otlp/fusescope:
+    endpoint: ${env:OTLP_DESTINATION_ENDPOINT}
+    tls:
+      insecure: true
+
+service:
+  pipelines:
+    metrics/mongodb:
+      receivers: [mongodb]
+      processors: [resourcedetection/system]
+      exporters: [otlp/fusescope]
+```
+
+| Variable | Example | Description |
+|---|---|---|
+| `MONGODB_ENDPOINT` | `localhost:27017` | MongoDB `host:port`, reachable from the collector. |
+| `MONGODB_USERNAME` | `monitoring` | Monitoring user. |
+| `MONGODB_PASSWORD` | | Its password. |
+| `OTLP_DESTINATION_ENDPOINT` | `fusescope-collector.example.com:4317` | FuseScope collector, OTLP gRPC. |
+
+When MongoDB uses TLS, set `insecure: false` in the receiver's `tls` block and fill in
+the certificate files.
+
+</TabItem>
+<TabItem label="Logs">
+
+The parser reads MongoDB's
+[structured log format](https://www.mongodb.com/docs/manual/reference/log-messages/#structured-logging),
+the default since 4.4.
+
+```yaml title="mongodb-logs.yaml"
+receivers:
+  filelog/mongodb:
+    include: ["${env:MONGODB_LOG_FILE}"]
+    operators:
+      - type: json_parser
+        if: body matches '^\\s*{\\s*".*}\\s*$'
+        parse_from: body
+        parse_to: attributes
+        timestamp:
+          parse_from: attributes.t.$$date
+          layout: '2006-01-02T15:04:05.000-07:00'
+          layout_type: gotime
+        severity:
+          parse_from: attributes.s
+          overwrite_text: true
+          mapping:
+            debug: [D1, D2, D3, D4, D5]
+            info: I
+            warn: W
+            error: E
+            fatal: F
+      - type: flatten
+        if: attributes.attr != nil
+        field: attributes.attr
+      - type: move
+        if: attributes.msg != nil
+        from: attributes.msg
+        to: body
+      - type: move
+        if: attributes.c != nil
+        from: attributes.c
+        to: attributes.component
+      - type: move
+        if: attributes.id != nil
+        from: attributes.id
+        to: attributes.mongo_log_id
+      - type: remove
+        if: attributes.t != nil
+        field: attributes.t
+      - type: remove
+        if: attributes.s != nil
+        field: attributes.s
+      - type: add
+        field: attributes.source
+        value: mongodb
+
+processors:
+  batch:
+    send_batch_size: 10000
+    send_batch_max_size: 11000
+    timeout: 10s
+
+exporters:
+  otlp/fusescope:
+    endpoint: ${env:OTLP_DESTINATION_ENDPOINT}
+    tls:
+      insecure: true
+
+service:
+  pipelines:
+    logs/mongodb:
+      receivers: [filelog/mongodb]
+      processors: [batch]
+      exporters: [otlp/fusescope]
+```
+
+`$$date` escapes the `$` so the collector does not treat it as an environment variable.
+
+| Variable | Example | Description |
+|---|---|---|
+| `MONGODB_LOG_FILE` | `/var/log/mongodb/mongod.log` | MongoDB log file. |
+| `OTLP_DESTINATION_ENDPOINT` | `fusescope-collector.example.com:4317` | FuseScope collector, OTLP gRPC. |
+
+</TabItem>
+</Tabs>
+
+Run the collector with `--config mongodb-metrics.yaml --config mongodb-logs.yaml`, as
+shown in [Run the collector](/fusescope-docs/sending-data/integrations/#run-the-collector).
+Set `insecure: false` in the exporter when the FuseScope endpoint uses TLS.
+
+<Aside type="note" title="Collector on another host">
+  The dashboard filters by `host.name`, which `resourcedetection/system` sets to the
+  collector's host. When the collector does not run on the MongoDB host, remove that
+  processor and set `host.name` yourself with a `resource` processor.
+</Aside>
+
+## Connect it in FuseScope
+
+<Steps>
+
+1. Open **Integrations** › **Mongo**.
+2. Click **Connect Mongo**, then **I have already configured**.
+3. Click **Test Connection**. The badge reads **This integration is working properly**
+   once logs with `source = mongodb` or MongoDB metrics arrive. Until then it reads
+   **Listening for data...**.
+
+</Steps>
+
+## What's included
+
+**Mongo overview** dashboard, with a `host.name` variable:
+
+- Operations count, Total operations time
+- Read latency, Write latency, Command latency
+- Cache operations
+- Network IO
+
+No log pipelines and no alert rules. Parsing happens in the collector config; see
+[Log pipelines](/fusescope-docs/sending-data/log-pipelines/) for more.
+
+## Data collected
+
+### Logs
+
+| Field | Path | Type |
+|---|---|---|
+| Timestamp | `timestamp` | timestamp |
+| Severity Text | `severity_text` | string |
+| Severity Number | `severity_number` | number |
+| MongoDB Component | `attributes.component` | string |
+| Source | `attributes.source` (`mongodb`) | string |
+
+The fields of each entry's `attr` object are flattened into attributes as well.
+
+### Metrics
+
+| Metric | Type | Unit | Description |
+|---|---|---|---|
+| `mongodb_operation_count` | Sum | number | Operations executed. |
+| `mongodb_operation_time` | Sum | ms | Total time spent on operations. |
+| `mongodb_operation_latency_time` | Gauge | us | Operation latency. |
+| `mongodb_operation_repl_count` | Sum | number | Replicated operations executed. |
+| `mongodb_document_operation_count` | Sum | number | Document operations executed. |
+| `mongodb_cache_operations` | Sum | number | Cache operations. |
+| `mongodb_connection_count` | Sum | number | Connections. |
+| `mongodb_session_count` | Sum | number | Active sessions. |
+| `mongodb_cursor_count` | Sum | number | Open cursors. |
+| `mongodb_cursor_timeout_count` | Sum | number | Cursors that timed out. |
+| `mongodb_network_io_receive` | Sum | Bytes | Bytes received. |
+| `mongodb_network_io_transmit` | Sum | Bytes | Bytes transmitted. |
+| `mongodb_network_request_count` | Sum | number | Requests received. |
+| `mongodb_memory_usage` | Sum | Bytes | Memory used. |
+| `mongodb_global_lock_time` | Sum | ms | Time the global lock was held. |
+| `mongodb_lock_acquire_count` | Sum | number | Lock acquisitions per mode. |
+| `mongodb_lock_acquire_wait_count` | Sum | number | Lock acquisitions that had to wait. |
+| `mongodb_lock_acquire_time` | Sum | microseconds | Cumulative lock wait time. |
+| `mongodb_lock_deadlock_count` | Sum | number | Lock acquisitions that hit a deadlock. |
+| `mongodb_database_count` | Sum | number | Databases. |
+| `mongodb_collection_count` | Sum | number | Collections. |
+| `mongodb_object_count` | Sum | number | Objects. |
+| `mongodb_data_size` | Sum | Bytes | Uncompressed collection size. |
+| `mongodb_storage_size` | Sum | Bytes | Storage allocated to collections. |
+| `mongodb_index_count` | Sum | number | Indexes. |
+| `mongodb_index_size` | Sum | Bytes | Space allocated to indexes. |
+| `mongodb_index_access_count` | Sum | number | Index accesses. |
+| `mongodb_extent_count` | Sum | number | Extents. |
+| `mongodb_health` | Gauge | number | Server health status. |
+| `mongodb_uptime` | Sum | ms | Time the server has been running. |
+
+## Related
+
+- [Integrations](/fusescope-docs/sending-data/integrations/)
+- [Log pipelines](/fusescope-docs/sending-data/log-pipelines/)
+- [`mongodb` receiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/mongodbreceiver)

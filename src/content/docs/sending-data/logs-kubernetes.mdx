@@ -1,0 +1,280 @@
+---
+title: Kubernetes logs
+description: Collect pod logs and Kubernetes events with the k8s-infra chart, choose which namespaces and pods to read, join multiline logs and set service.name.
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+The `k8s-infra` chart reads the log files of every container on every node and sends
+them to FuseScope. You don't change your applications: anything a container writes to
+stdout or stderr arrives as a log, labelled with its pod, namespace and node.
+
+**Use this page when** you installed the `k8s-infra` chart and want to choose which pod
+logs it collects, join multiline logs such as Java stack traces, or give pod logs a
+`service.name`.
+
+To install the chart, see [Kubernetes](/fusescope-docs/sending-data/kubernetes/#install).
+Its main values are in [Key values](/fusescope-docs/sending-data/kubernetes/#key-values).
+
+## How it works
+
+The `otel-agent` DaemonSet runs one collector per node. It mounts the node's
+`/var/log` and runs a `filelog` receiver, `filelog/k8s`, over the pod log files:
+
+```text
+/var/log/pods/<namespace>_<pod>_<pod-uid>/<container>/<restart>.log
+```
+
+For each line it:
+
+1. Parses the container runtime format (CRI-O, containerd or Docker) with the
+   `container` operator. The body becomes the line your app wrote, the timestamp comes
+   from the runtime, and `log.iostream` says `stdout` or `stderr`. Lines the runtime
+   split into parts are joined again.
+2. Reads the pod from the file path and adds `k8s.namespace.name`, `k8s.pod.name`,
+   `k8s.pod.uid`, `k8s.container.name` and `k8s.container.restart_count`.
+3. Adds more Kubernetes attributes with the `k8sattributes` processor: by default
+   `k8s.deployment.name`, `k8s.statefulset.name`, `k8s.daemonset.name`,
+   `k8s.cronjob.name`, `k8s.job.name`, `k8s.node.name`, `k8s.node.uid` and
+   `k8s.pod.start_time`.
+4. Adds `k8s.cluster.name` from `global.clusterName` and `deployment.environment` from
+   `global.deploymentEnvironment`, when set.
+
+## Values
+
+All keys are under `presets.logsCollection`.
+
+| Value | Default | Description |
+|---|---|---|
+| `enabled` | `true` | Collect pod logs. |
+| `startAt` | `end` | Where to start in a file seen for the first time: `end` (new lines only) or `beginning`. |
+| `include` | `[/var/log/pods/*/*/*.log]` | Files to read. Ignored when `whitelist.enabled` is `true`. |
+| `includeFilePath` | `true` | Adds `log.file.path`. The `container` operator needs it to read the pod from the path. |
+| `includeFileName` | `false` | Adds `log.file.name`. |
+| `multiline` | `null` | Joins lines in the raw file. See [Multiline logs](#multiline-logs). |
+| `operators` | a `container` parser | Steps run on each log. See [Add parsing operators](#add-parsing-operators). |
+| `blacklist.enabled` | `true` | Turns on the exclusions below. |
+| `blacklist.namespaces` | `[kube-system]` | Namespaces not to collect. |
+| `blacklist.pods` | `[hotrod, locust]` | Pods not to collect, matched by name prefix. |
+| `blacklist.containers` | `[]` | Container names not to collect. |
+| `blacklist.additionalExclude` | `[]` | More file globs not to collect. |
+| `blacklist.signozLogs` | `true` | Skips the agent and deployment pods of this release, and the pods of the FuseScope release (`fusescope.release`). |
+| `whitelist.enabled` | `false` | Collect only the namespaces, pods and containers listed below. |
+| `whitelist.namespaces` | `[]` | Namespaces to collect. |
+| `whitelist.pods` | `[]` | Pods to collect, matched by name prefix. |
+| `whitelist.containers` | `[]` | Container names to collect. |
+| `whitelist.additionalInclude` | `[]` | More file globs to collect. |
+| `whitelist.signozLogs` | `true` | Also collects the pods of the FuseScope release. |
+| `fusescope.release` | `fusescope` | Release name of the FuseScope chart, for `signozLogs`. Empty leaves its pods alone. |
+| `fusescope.namespace` | `""` | Its namespace. Empty means the k8s-infra release namespace. |
+
+`signozLogs` uses [internal names](/fusescope-docs/configuration/config-file/#internal-names).
+
+<Aside type="note" title="Default exclusions">
+  Out of the box the chart skips `kube-system` and pods whose names start with
+  `hotrod` or `locust`. When you set `blacklist.namespaces` or `blacklist.pods`, your
+  list replaces the default, so repeat the entries you still want.
+</Aside>
+
+From k8s-infra chart 0.17.2, `signozLogs` skips `<ns>_k8s-infra-otel-agent-*`,
+`<ns>_k8s-infra-otel-deployment-*` and `<ns>_fusescope-*` with the release names used in
+these docs. Set `fusescope.release` and `fusescope.namespace` when FuseScope runs under
+another name or namespace.
+
+Chart 0.17.1 and older match `<release>*-signoz-*` and `<release>*-k8s-infra-*`, which
+miss those pods, so the agent collects its own logs. Exclude them by name there:
+
+```yaml title="values-k8s-infra.yaml"
+presets:
+  logsCollection:
+    blacklist:
+      pods:
+        - hotrod
+        - locust
+        - k8s-infra-otel
+```
+
+## Exclude a namespace
+
+```yaml title="values-k8s-infra.yaml"
+presets:
+  logsCollection:
+    blacklist:
+      enabled: true
+      namespaces:
+        - kube-system
+        - monitoring
+        - cert-manager
+```
+
+## Collect only some namespaces
+
+Turn on the whitelist. Only the files it lists are read; `include` is ignored.
+
+```yaml title="values-k8s-infra.yaml"
+presets:
+  logsCollection:
+    whitelist:
+      enabled: true
+      namespaces:
+        - shop
+        - payments
+      containers:
+        - nginx
+```
+
+The blacklist still applies on top: a pod in `shop` whose name starts with a
+blacklisted prefix is still skipped.
+
+Apply a change with `helm upgrade`:
+
+```bash
+helm upgrade k8s-infra fusescope/k8s-infra -n fusescope -f values-k8s-infra.yaml
+```
+
+## Multiline logs
+
+A Java stack trace is written as many lines, so by default each line arrives as its
+own log. Join them with a `recombine` operator after the container parser. Limit it
+with `if` to the containers that write multiline logs, so other pods are not affected:
+
+```yaml title="values-k8s-infra.yaml"
+presets:
+  logsCollection:
+    operators:
+      - id: container-parser
+        type: container
+      - id: java-multiline
+        type: recombine
+        if: resource["k8s.namespace.name"] == "shop" && resource["k8s.container.name"] == "checkout"
+        combine_field: body
+        is_first_entry: body matches "^\\d{4}-\\d{2}-\\d{2}"
+        source_identifier: attributes["log.file.path"]
+```
+
+Every log of `checkout` starts with a date such as `2026-10-23 14:02:11.532`, so a line
+that doesn't start with one is joined to the log before it.
+
+<Aside type="caution" title="multiline sees the raw file">
+  `presets.logsCollection.multiline` works on the raw file lines, before the
+  `container` operator removes the runtime prefix such as
+  `2026-10-23T14:02:11.532Z stdout F`. A pattern that matches your app's own format
+  doesn't match those lines, and it applies to every pod. Prefer `recombine` as shown.
+</Aside>
+
+## Add parsing operators
+
+`operators` is a list, and Helm replaces lists instead of merging them. When you set
+it, keep the `container-parser` entry first, or logs keep the runtime prefix and lose
+their Kubernetes attributes.
+
+```yaml title="values-k8s-infra.yaml"
+presets:
+  logsCollection:
+    operators:
+      - id: container-parser
+        type: container
+      - id: json
+        type: json_parser
+        if: body matches "^\\{"
+        severity:
+          parse_from: attributes.level
+```
+
+For most parsing, a FuseScope [log pipeline](/fusescope-docs/sending-data/log-pipelines/)
+is easier: you build and preview it in the UI and don't redeploy the chart. The
+operators are those of the
+[filelog receiver](/fusescope-docs/sending-data/logs-files/#parse-fields).
+
+## Set service.name
+
+The chart doesn't set `service.name` on pod logs by default, so they show under an
+unknown service until you add it. The `k8sattributes` processor can derive it: add
+`service.name` to `presets.kubernetesAttributes.extractMetadatas`. Repeat the default
+entries, since the list is replaced:
+
+```yaml title="values-k8s-infra.yaml"
+presets:
+  kubernetesAttributes:
+    extractMetadatas:
+      - k8s.namespace.name
+      - k8s.deployment.name
+      - k8s.statefulset.name
+      - k8s.daemonset.name
+      - k8s.cronjob.name
+      - k8s.job.name
+      - k8s.node.name
+      - k8s.node.uid
+      - k8s.pod.name
+      - k8s.pod.uid
+      - k8s.pod.start_time
+      - service.name
+```
+
+The processor then takes, in order:
+
+1. The pod label `app.kubernetes.io/instance`.
+2. The pod label `app.kubernetes.io/name`.
+3. The name of the workload that owns the pod: Deployment, StatefulSet, DaemonSet,
+   CronJob or Job.
+4. The pod name.
+
+To set it explicitly per pod, read an annotation into `service.name`:
+
+```yaml title="values-k8s-infra.yaml"
+presets:
+  kubernetesAttributes:
+    extractAnnotations:
+      - tag_name: service.name
+        key: resource.opentelemetry.io/service.name
+        from: pod
+```
+
+```yaml title="deployment.yaml"
+spec:
+  template:
+    metadata:
+      annotations:
+        resource.opentelemetry.io/service.name: checkout
+```
+
+The processor never overwrites a value that is already set, so traces and logs whose
+SDK sets `service.name` keep it. Use the same name your SDK uses, so a service's logs
+and traces line up in [Services](/fusescope-docs/apm/services/).
+
+## Kubernetes events
+
+`presets.k8sEvents` runs the `k8s_events` receiver in the `otel-deployment` collector
+and sends cluster events, such as `Back-off restarting failed container` or
+`FailedScheduling`, as logs.
+
+| Value | Default | Description |
+|---|---|---|
+| `presets.k8sEvents.enabled` | `true` | Collect events. |
+| `presets.k8sEvents.authType` | `serviceAccount` | How the receiver reaches the API: `serviceAccount` or `kubeconfig`. |
+| `presets.k8sEvents.namespaces` | `[]` | Namespaces to watch. Empty watches all. |
+
+Events also appear on the **Events** tab of a pod, node or other object on the
+[Infrastructure](/fusescope-docs/observe/infrastructure/) page. See
+[Kubernetes events](/fusescope-docs/sending-data/kubernetes/#kubernetes-events).
+
+## Check that data arrives
+
+1. Run a pod that writes a line:
+   `kubectl run log-test --image=busybox --restart=Never -- sh -c 'echo hello FuseScope'`.
+2. Open the [Logs explorer](/fusescope-docs/explore/logs/) and filter by
+   `k8s.pod.name = log-test`. With the default `startAt: end`, only lines written after
+   the agent started arrive.
+3. If nothing arrives, check that the namespace isn't excluded, then read the agent's
+   logs: `kubectl logs -n fusescope daemonset/k8s-infra-otel-agent`.
+4. Delete the pod: `kubectl delete pod log-test`.
+
+## Related
+
+- [Kubernetes](/fusescope-docs/sending-data/kubernetes/): install the chart and its
+  other presets.
+- [Log pipelines](/fusescope-docs/sending-data/log-pipelines/): parse pod logs in
+  FuseScope.
+- [Logs from files](/fusescope-docs/sending-data/logs-files/): the `filelog` receiver
+  outside Kubernetes.
+- [Logs explorer](/fusescope-docs/explore/logs/): search the logs.

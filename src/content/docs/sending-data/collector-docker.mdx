@@ -1,0 +1,266 @@
+---
+title: Collector on Docker
+description: Run the OpenTelemetry Collector in a Docker container next to your apps and forward their traces, metrics and logs to FuseScope.
+---
+
+import { Aside, Steps, Tabs, TabItem } from "@astrojs/starlight/components";
+
+This page runs the upstream OpenTelemetry Collector (`otelcol-contrib`) as a Docker
+container. Your apps send OTLP to it, and it forwards everything to FuseScope.
+
+**Use this page when** your apps run in Docker or Docker Compose and you want a local
+collector between them and FuseScope.
+
+## Why run a local collector
+
+Apps can send straight to FuseScope (see
+[OTLP](/fusescope-docs/sending-data/otlp/#from-an-application)). A collector next to
+them adds:
+
+| Benefit | What it does |
+|---|---|
+| Batching | Groups data into fewer, larger requests. |
+| Retries | Queues data and retries when FuseScope is briefly unreachable. |
+| Enrichment | Adds attributes such as `host.name` or `deployment.environment.name` in one place. |
+| One egress point | Only the collector needs network access to FuseScope. Apps only talk to `localhost` or the Compose network. |
+| Extra sources | The same collector can read [host metrics](/fusescope-docs/sending-data/hosts/), [Prometheus endpoints](/fusescope-docs/sending-data/prometheus/) and log files. |
+
+## Write the config
+
+Create `config.yaml`. It receives OTLP on 4317 (gRPC) and 4318 (HTTP) and exports to
+FuseScope. Pick the exporter that matches how you reach FuseScope:
+
+<Tabs syncKey="otlp-protocol">
+<TabItem label="OTLP/HTTP">
+
+```yaml title="config.yaml"
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_percentage: 80
+    spike_limit_percentage: 25
+  batch: {}
+
+exporters:
+  otlphttp:
+    endpoint: http://fusescope-collector.example.com:4318
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+service:
+  extensions: [health_check]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [otlphttp]
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [otlphttp]
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [otlphttp]
+```
+
+For an `https://` address, such as `https://otlp.example.com` behind the chart's
+ingress, put that URL in `endpoint`. No other change is needed.
+
+</TabItem>
+<TabItem label="OTLP gRPC">
+
+```yaml title="config.yaml"
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_percentage: 80
+    spike_limit_percentage: 25
+  batch: {}
+
+exporters:
+  otlp:
+    endpoint: fusescope-collector.example.com:4317
+    tls:
+      insecure: true
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+service:
+  extensions: [health_check]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [otlp]
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [otlp]
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [otlp]
+```
+
+`tls.insecure: true` sends plain text. Remove it when FuseScope's gRPC port is behind TLS.
+
+</TabItem>
+</Tabs>
+
+Replace `fusescope-collector.example.com` with your FuseScope collector address; see
+[From outside the cluster](/fusescope-docs/sending-data/otlp/#from-outside-the-cluster).
+Self-hosted FuseScope needs no ingestion key or token header.
+
+What each part does:
+
+| Part | Purpose |
+|---|---|
+| `otlp` receiver | Listens for your apps. `0.0.0.0` is needed in a container; the default `localhost` is unreachable from other containers. |
+| `memory_limiter` | Refuses data before the collector runs out of memory. Put it first. |
+| `batch` | Groups data before export. Put it last. |
+| `otlphttp` / `otlp` exporter | Sends to FuseScope. Both queue and retry on failure by default. |
+| `health_check` | Answers `http://<collector>:13133/` when the collector is up. |
+
+<Aside>
+  Collector configs read environment variables with `${env:NAME}`, for example
+  `endpoint: ${env:FUSESCOPE_OTLP_ENDPOINT}`. Pass the variable with `docker run -e` or
+  the Compose `environment` key.
+</Aside>
+
+## Run with docker run
+
+<Steps>
+
+1. Start the collector with the config mounted at the image's default path:
+
+   ```bash
+   docker run -d --name otel-collector \
+     -p 4317:4317 -p 4318:4318 -p 13133:13133 \
+     -v "$(pwd)/config.yaml:/etc/otelcol-contrib/config.yaml:ro" \
+     otel/opentelemetry-collector-contrib:0.139.0
+   ```
+
+2. Point apps on the same machine at it:
+
+   ```bash
+   OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
+   OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+   ```
+
+</Steps>
+
+## Run with Docker Compose
+
+The app reaches the collector by its service name, `otel-collector`:
+
+```yaml title="compose.yaml"
+services:
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.139.0
+    volumes:
+      - ./config.yaml:/etc/otelcol-contrib/config.yaml:ro
+    ports:
+      - "13133:13133"
+    restart: unless-stopped
+
+  checkout:
+    image: example/checkout:1.4.2
+    environment:
+      OTEL_SERVICE_NAME: checkout
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      OTEL_RESOURCE_ATTRIBUTES: deployment.environment.name=production,service.version=1.4.2
+    depends_on:
+      - otel-collector
+```
+
+```bash
+docker compose up -d
+```
+
+Ports 4317 and 4318 need no `ports:` entry when only containers in the same Compose
+project send to the collector. Publish them if apps outside Compose send too.
+
+<Aside type="note" title="No shell in the image">
+  The image is built `FROM scratch`: it has no shell or `curl`, so a Compose
+  `healthcheck` with `curl` can't run inside it. Check health from the host instead:
+  `curl http://localhost:13133/`.
+</Aside>
+
+## Check that it works
+
+<Steps>
+
+1. Validate the config before starting. The image's entrypoint is the collector, so
+   pass the subcommand:
+
+   ```bash
+   docker run --rm \
+     -v "$(pwd)/config.yaml:/etc/otelcol-contrib/config.yaml:ro" \
+     otel/opentelemetry-collector-contrib:0.139.0 \
+     validate --config=/etc/otelcol-contrib/config.yaml
+   ```
+
+   No output means the config is valid.
+
+2. Check that the collector is up:
+
+   ```bash
+   curl http://localhost:13133/
+   docker logs otel-collector
+   ```
+
+   Look for `Everything is ready. Begin running and processing data.` Export errors,
+   such as `connection refused`, also appear here.
+
+3. To see what the collector receives, add the `debug` exporter next to the FuseScope
+   exporter, restart, and watch `docker logs -f otel-collector`:
+
+   ```yaml
+   exporters:
+     debug:
+       verbosity: detailed
+
+   service:
+     pipelines:
+       traces:
+         receivers: [otlp]
+         processors: [memory_limiter, batch]
+         exporters: [otlphttp, debug]
+   ```
+
+   Remove it afterwards; it is verbose.
+
+4. In FuseScope, open [Traces](/fusescope-docs/explore/traces/) or
+   [APM › Services](/fusescope-docs/apm/services/) and look for your service.
+
+</Steps>
+
+## Related
+
+- [Collector on a VM](/fusescope-docs/sending-data/collector-vm/)
+- [Hosts](/fusescope-docs/sending-data/hosts/): add host metrics to this collector
+- [Prometheus metrics](/fusescope-docs/sending-data/prometheus/)
+- [OTLP endpoints](/fusescope-docs/sending-data/otlp/)
+- [Instrument your application](/fusescope-docs/sending-data/instrumentation/)

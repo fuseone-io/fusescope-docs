@@ -1,0 +1,304 @@
+---
+title: AI Observability for Node.js
+description: Trace the LLM calls of a Node.js application with the OpenTelemetry OpenAI instrumentation, OpenLLMetry or OpenLIT, send them to FuseScope, and see cost, tokens and latency per model.
+---
+
+import { Aside, Steps, Tabs, TabItem } from "@astrojs/starlight/components";
+
+This page adds tracing for language model calls to a Node.js application, such as one
+that uses the `openai`, Anthropic or Bedrock clients, or LangChain.js. The spans go to
+FuseScope over OTLP like any other trace and fill
+[AI Observability](/fusescope-docs/analyze/ai-observability/).
+
+**Use this page when** your Node.js service calls an LLM and you want to see each
+call, its tokens and its cost in FuseScope.
+
+## What you get
+
+- **One span per LLM call**, named after the operation and model, such as
+  `chat gpt-4o-mini`. It carries the model, the provider, the input and output token
+  counts, the finish reason, the duration and any error.
+- **Cost** per call, once the model has a price under
+  [Model pricing](/fusescope-docs/analyze/ai-observability/#model-pricing).
+- **Agent and tool spans** when you use a framework that has them, such as
+  LangChain.js: one agent run becomes one trace with every model and tool call in it.
+- **Prompts and responses**, only if you turn them on.
+
+## Choose an instrumentation
+
+All options below export plain OpenTelemetry spans under a permissive licence. Use
+**one** instrumentation per library; two of them patching the same client produce
+duplicate spans.
+
+| Option | Packages | Content captured by default | Best for |
+|---|---|---|---|
+| [A. OpenTelemetry](#option-a-opentelemetry-openai-instrumentation) | `@opentelemetry/instrumentation-openai` | No | OpenAI and OpenAI-compatible APIs, zero-code |
+| [B. OpenLLMetry](#option-b-openllmetry) | `@traceloop/instrumentation-openai`, `-anthropic`, `-bedrock`, `-langchain`, … | Yes | Anthropic, Bedrock, LangChain.js and other libraries |
+| [C. OpenLIT](#option-c-openlit) | `openlit` | Yes | One package for many libraries, with time to first token |
+
+## Option A: OpenTelemetry OpenAI instrumentation
+
+[`@opentelemetry/instrumentation-openai`](https://github.com/open-telemetry/opentelemetry-js-contrib/tree/main/packages/instrumentation-openai)
+(Apache-2.0, from opentelemetry-js-contrib) traces the `openai` package, versions
+4.19 up to, but not including, 7: chat completions, the Responses API and embeddings.
+It also covers OpenAI-compatible APIs reached through that client, such as Azure
+OpenAI, Groq or a local Ollama.
+
+It is part of `@opentelemetry/auto-instrumentations-node` and turned on by default, so
+zero-code instrumentation picks it up with nothing else to install:
+
+```bash
+npm install @opentelemetry/api @opentelemetry/auto-instrumentations-node
+node --require @opentelemetry/auto-instrumentations-node/register app.js
+```
+
+OpenTelemetry JavaScript has no official instrumentation for Anthropic, Bedrock or
+LangChain.js; use [Option B](#option-b-openllmetry) or
+[Option C](#option-c-openlit) for those.
+
+### Prompts and responses
+
+Message content is **not** recorded by default. Set
+`OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true` to record prompts,
+completions and tool call arguments, or pass `captureMessageContent: true` when you
+create the instrumentation in code.
+
+<Aside type="caution" title="Privacy">
+  Prompts and responses often hold personal data, customer documents or secrets
+  pasted by users. Everyone who can read traces in FuseScope can read them. Leave
+  content off in production unless you need it, and scrub it in a collector if you
+  turn it on.
+</Aside>
+
+## Option B: OpenLLMetry
+
+[OpenLLMetry for JavaScript](https://github.com/traceloop/openllmetry-js)
+(Apache-2.0, by Traceloop) publishes plain OpenTelemetry instrumentations on npm:
+
+| Library | Package |
+|---|---|
+| OpenAI | `@traceloop/instrumentation-openai` |
+| Anthropic | `@traceloop/instrumentation-anthropic` |
+| AWS Bedrock | `@traceloop/instrumentation-bedrock` |
+| LangChain.js | `@traceloop/instrumentation-langchain` |
+
+Register them with the plain OpenTelemetry Node SDK. You don't need the Traceloop SDK
+or a Traceloop account.
+
+```bash
+npm install @opentelemetry/api @opentelemetry/sdk-node \
+  @traceloop/instrumentation-anthropic
+```
+
+```js title="tracing.js"
+const { NodeSDK } = require("@opentelemetry/sdk-node");
+const { AnthropicInstrumentation } = require("@traceloop/instrumentation-anthropic");
+
+const sdk = new NodeSDK({
+  instrumentations: [new AnthropicInstrumentation({ traceContent: false })],
+});
+sdk.start();
+
+process.on("SIGTERM", () => sdk.shutdown().finally(() => process.exit(0)));
+```
+
+```bash
+node --require ./tracing.js app.js
+```
+
+OpenLLMetry **records prompts and completions by default**; `traceContent: false`
+turns that off. If you also use `auto-instrumentations-node` together with
+`@traceloop/instrumentation-openai`, set
+`OTEL_NODE_DISABLED_INSTRUMENTATIONS=openai` so OpenAI calls are traced once.
+
+## Option C: OpenLIT
+
+[OpenLIT](https://github.com/openlit/openlit) instruments many LLM clients,
+frameworks and vector databases, and records the time to first token of streamed
+responses. The repository is Apache-2.0; the npm package declares ISC. It sets up its
+own OpenTelemetry exporter, so call it before you load the LLM client:
+
+```bash
+npm install openlit
+```
+
+```js title="app.js"
+const openlit = require("openlit").default;
+
+openlit.init({
+  applicationName: "chat-api",
+  environment: "production",
+  traceContent: false,
+});
+```
+
+OpenLIT sends over OTLP/HTTP and reads `OTEL_EXPORTER_OTLP_ENDPOINT`, so point it at
+port 4318. It records message content unless you pass `traceContent: false`.
+
+## Send to FuseScope
+
+The OpenTelemetry Node SDK reads the standard exporter variables:
+
+```bash
+OTEL_SERVICE_NAME=chat-api
+OTEL_RESOURCE_ATTRIBUTES=deployment.environment.name=production,service.version=1.4.2
+OTEL_TRACES_EXPORTER=otlp
+OTEL_EXPORTER_OTLP_ENDPOINT=http://fusescope-collector.example.com:4318
+OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+```
+
+<Tabs>
+  <TabItem label="Direct to FuseScope">
+    From inside the Kubernetes cluster that runs FuseScope, use
+    `http://fusescope-otel-collector.fusescope.svc.cluster.local:4318`. From outside,
+    use the address you exposed, such as `https://otlp.example.com`; see
+    [From outside the cluster](/fusescope-docs/sending-data/otlp/#from-outside-the-cluster).
+    For gRPC, use port 4317 and `OTEL_EXPORTER_OTLP_PROTOCOL=grpc`.
+  </TabItem>
+  <TabItem label="Through a local collector">
+    Point the app at a collector on the same host or node, such as
+    `http://localhost:4318`, and let the collector forward to FuseScope. That is also
+    the place to drop or redact prompt content. See
+    [From another collector](/fusescope-docs/sending-data/otlp/#from-another-collector).
+  </TabItem>
+</Tabs>
+
+Self-hosted FuseScope needs no ingestion key or token header.
+
+<Aside>
+  From the release after v0.153.0, the **Environment** variable of the AI Observability
+  Overview and its quick filters read `deployment.environment.name`, and fall back to
+  `deployment.environment` on spans without it. On v0.153.0 and older they read only
+  `deployment.environment`: to filter by environment there, also add
+  `deployment.environment=production` to `OTEL_RESOURCE_ATTRIBUTES`.
+</Aside>
+
+## Example: an OpenAI chat app
+
+A complete app with Option A. You need Node.js 18 or newer and an OpenAI API key.
+
+<Steps>
+
+1. Create the project and install the dependencies:
+
+   ```bash
+   mkdir chat-demo && cd chat-demo
+   npm init -y
+   npm install openai@6 @opentelemetry/api @opentelemetry/auto-instrumentations-node
+   ```
+
+   `openai@6` because the instrumentation supports versions below 7.
+
+2. Create the app. It uses CommonJS (`require`), which the `--require` hook
+   instruments without extra loader flags:
+
+   ```js title="app.js"
+   const OpenAI = require("openai");
+
+   async function main() {
+     const client = new OpenAI();
+     const completion = await client.chat.completions.create({
+       model: process.env.CHAT_MODEL || "gpt-4o-mini",
+       messages: [
+         { role: "user", content: "Explain OpenTelemetry in one sentence." },
+       ],
+     });
+     console.log(completion.choices[0].message.content);
+   }
+
+   main();
+   ```
+
+3. Set the configuration:
+
+   ```bash
+   export OPENAI_API_KEY=sk-...
+   export OTEL_SERVICE_NAME=chat-demo
+   export OTEL_RESOURCE_ATTRIBUTES=deployment.environment.name=development
+   export OTEL_TRACES_EXPORTER=otlp
+   export OTEL_METRICS_EXPORTER=none
+   export OTEL_LOGS_EXPORTER=none
+   export OTEL_EXPORTER_OTLP_ENDPOINT=http://fusescope-collector.example.com:4318
+   export OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+   ```
+
+4. Run it with the OpenTelemetry hook:
+
+   ```bash
+   node --require @opentelemetry/auto-instrumentations-node/register app.js
+   ```
+
+   The SDK flushes the span when the process exits.
+
+5. Open **Analyze › AI Observability › Explorer**. A `chat gpt-4o-mini` span from
+   `chat-demo` appears within a few seconds.
+
+</Steps>
+
+## Docker and Kubernetes
+
+Install the packages in your image and start Node with the hook, for example
+`CMD ["node", "--require", "@opentelemetry/auto-instrumentations-node/register", "app.js"]`,
+or set `NODE_OPTIONS="--require @opentelemetry/auto-instrumentations-node/register"`.
+Pass the `OTEL_*` variables as container environment; on Kubernetes, point them at
+the in-cluster address. See
+[Node.js instrumentation](/fusescope-docs/sending-data/instrumentation/nodejs/).
+
+## Semantic conventions
+
+The OpenTelemetry
+[GenAI semantic conventions](https://github.com/open-telemetry/semantic-conventions-genai)
+are in **Development** status, so attribute names still change between versions:
+
+| What | Current name | Older names you may see |
+|---|---|---|
+| Provider | `gen_ai.provider.name` | `gen_ai.system` |
+| Input tokens | `gen_ai.usage.input_tokens` | `gen_ai.usage.prompt_tokens`, `llm.usage.prompt_tokens`, `ai.usage.promptTokens` |
+| Output tokens | `gen_ai.usage.output_tokens` | `gen_ai.usage.completion_tokens`, `llm.usage.completion_tokens`, `ai.usage.completionTokens` |
+| Model | `gen_ai.request.model` | `llm.request.model`, `ai.model.id` |
+
+`@opentelemetry/instrumentation-openai` follows semantic conventions v1.36.0 for chat
+completions, which still write `gen_ai.system`, and v1.38.0 for the Responses API,
+which writes `gen_ai.provider.name`. The `ai.*` names come from the Vercel AI SDK.
+
+You don't need to rename anything yourself: FuseScope's
+[attribute mappings](/fusescope-docs/analyze/ai-observability/#attribute-mapping)
+copy these older names onto the current ones before the spans are stored.
+
+## See it in FuseScope
+
+<Steps>
+
+1. **Explorer**: open **Analyze › AI Observability › Explorer**. **Trace View** lists
+   each trace with LLM, tool or agent spans; **List View** lists the spans. Filter by
+   **Service**, **Model** or **Provider**.
+2. **Model pricing**: the cost stays `0` until the model has a price. Check
+   **Unpriced models** and add or map a price. See
+   [Model pricing](/fusescope-docs/analyze/ai-observability/#model-pricing).
+3. **Attribute Mapping**: if spans arrive but show no model or tokens, paste one in
+   **Attribute Mapping › Test** to see what FuseScope picks up.
+4. **Overview**: cost, tokens, latency and errors per model, over time.
+
+</Steps>
+
+## Troubleshooting
+
+| Symptom | Cause and fix |
+|---|---|
+| No spans at all | The hook loaded after `openai`, or the app is an ES module. Load the hook with `--require` and keep the client in CommonJS; for ES modules see [Node.js instrumentation](/fusescope-docs/sending-data/instrumentation/nodejs/). Set `OTEL_TRACES_EXPORTER=console` to print spans locally. |
+| No spans for `openai` 7 or newer | `@opentelemetry/instrumentation-openai` and `@traceloop/instrumentation-openai` support versions below 7. Pin `openai@6` until they add support. |
+| Spans arrive, but not in AI Observability | They have no `gen_ai.request.model`. Check them in **Attribute Mapping › Test** and add a mapping for the names your library uses. |
+| Streaming calls have no tokens | OpenAI sends usage on a stream only when asked. Pass `stream_options: { include_usage: true }` with `stream: true`. |
+| Tokens but cost `0` | The model has no price. See **Model pricing › Unpriced models**. A new price applies to new spans only. |
+| **TTFT (p95)** stays empty | The panel reads `gen_ai.server.ttft`, in seconds. From the release after v0.153.0, the shipped `gen_ai.llm` mapping fills it from `gen_ai.server.time_to_first_token` (OpenLIT) and `gen_ai.response.time_to_first_chunk` (OpenTelemetry conventions), both in seconds, so check that your instrumentation records one of them. On v0.153.0 and older, add a mapping with target `gen_ai.server.ttft` from those keys in the `gen_ai.llm` group. |
+| Two spans per call | Two instrumentations patch the same client. Keep one, or disable the other with `OTEL_NODE_DISABLED_INSTRUMENTATIONS`. |
+
+## Related
+
+- [AI Observability](/fusescope-docs/analyze/ai-observability/): the Overview,
+  Explorer, Model pricing and Attribute Mapping tabs.
+- [AI Observability for Python](/fusescope-docs/analyze/ai-observability-python/):
+  the same for Python.
+- [Node.js instrumentation](/fusescope-docs/sending-data/instrumentation/nodejs/):
+  HTTP, database and framework spans for the rest of the service.
+- [OTLP](/fusescope-docs/sending-data/otlp/): endpoints and ports.

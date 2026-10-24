@@ -1,0 +1,192 @@
+---
+title: Java
+description: Send traces, metrics and logs from a JVM application to FuseScope with the OpenTelemetry Java agent.
+---
+
+import { Aside, Steps, Tabs, TabItem } from "@astrojs/starlight/components";
+
+The [OpenTelemetry Java agent](https://opentelemetry.io/docs/zero-code/java/agent/) is a
+jar you attach to the JVM. It instruments Spring, servlet containers, JDBC, HTTP clients,
+Kafka and [many more libraries](https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/docs/supported-libraries.md)
+without code changes.
+
+**Use this page when** you run a Java, Kotlin or Scala service on the JVM and want it in
+FuseScope.
+
+| Signal | Status | What the agent sends |
+|---|---|---|
+| Traces | Stable | Spans for incoming and outgoing requests, database calls, messaging. |
+| Metrics | Stable | JVM (memory, GC, threads) and HTTP server/client metrics. |
+| Logs | Stable | Logback, Log4j 2 and `java.util.logging` records, with trace IDs. |
+
+## Prerequisites
+
+- Java 8 or later.
+- A FuseScope collector you can reach on port 4317 or 4318. See [OTLP](/fusescope-docs/sending-data/otlp/).
+
+## Install and run
+
+<Steps>
+
+1. Download the agent:
+
+   ```bash
+   curl -L -o opentelemetry-javaagent.jar \
+     https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/latest/download/opentelemetry-javaagent.jar
+   ```
+
+   In production, pin a version from the
+   [releases page](https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases)
+   instead of `latest`.
+
+2. Configure it:
+
+   ```bash
+   export OTEL_SERVICE_NAME=checkout
+   export OTEL_RESOURCE_ATTRIBUTES=deployment.environment.name=production,service.version=1.4.2
+   export OTEL_EXPORTER_OTLP_ENDPOINT=http://fusescope-collector.example.com:4318
+   export OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+   ```
+
+3. Start the JVM with the agent:
+
+   ```bash
+   java -javaagent:./opentelemetry-javaagent.jar -jar app.jar
+   ```
+
+   If you can't change the command line, set
+   `JAVA_TOOL_OPTIONS=-javaagent:/path/to/opentelemetry-javaagent.jar` instead.
+
+</Steps>
+
+Traces, metrics and logs are all exported over OTLP by default.
+
+<Aside>
+  Since agent 2.0 the default protocol is `http/protobuf` on port 4318. Older 1.x agents
+  defaulted to `grpc` on 4317. Set `OTEL_EXPORTER_OTLP_PROTOCOL` explicitly so an upgrade
+  doesn't change the port.
+</Aside>
+
+Every variable also works as a system property: `OTEL_SERVICE_NAME` becomes
+`-Dotel.service.name=checkout`. See the
+[agent configuration](https://opentelemetry.io/docs/zero-code/java/agent/configuration/).
+
+## Send to FuseScope
+
+<Tabs>
+  <TabItem label="Direct (gRPC 4317)">
+
+```bash
+OTEL_EXPORTER_OTLP_ENDPOINT=http://fusescope-collector.example.com:4317
+OTEL_EXPORTER_OTLP_PROTOCOL=grpc
+```
+
+  </TabItem>
+  <TabItem label="Direct (HTTP 4318)">
+
+```bash
+OTEL_EXPORTER_OTLP_ENDPOINT=http://fusescope-collector.example.com:4318
+OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+```
+
+Behind the chart ingress, use `https://otlp.example.com`. See
+[from outside the cluster](/fusescope-docs/sending-data/otlp/#from-outside-the-cluster).
+
+  </TabItem>
+  <TabItem label="Through a local collector">
+
+```bash
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
+OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+```
+
+Run the collector with [Docker](/fusescope-docs/sending-data/collector-docker/), on a
+[VM](/fusescope-docs/sending-data/collector-vm/) or in
+[Kubernetes](/fusescope-docs/sending-data/kubernetes/).
+
+  </TabItem>
+</Tabs>
+
+## Docker
+
+Add the agent to the image and turn it on with `JAVA_TOOL_OPTIONS`:
+
+```dockerfile title="Dockerfile"
+FROM eclipse-temurin:21-jre
+WORKDIR /app
+COPY target/app.jar app.jar
+ADD https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/latest/download/opentelemetry-javaagent.jar /otel/opentelemetry-javaagent.jar
+ENV JAVA_TOOL_OPTIONS="-javaagent:/otel/opentelemetry-javaagent.jar"
+CMD ["java", "-jar", "app.jar"]
+```
+
+```bash
+docker run \
+  -e OTEL_SERVICE_NAME=checkout \
+  -e OTEL_RESOURCE_ATTRIBUTES=deployment.environment.name=production \
+  -e OTEL_EXPORTER_OTLP_ENDPOINT=http://fusescope-collector.example.com:4318 \
+  -e OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf \
+  checkout:latest
+```
+
+## Kubernetes
+
+Set the variables in the pod spec. The downward API adds the pod name and namespace:
+
+```yaml title="deployment.yaml"
+env:
+  - name: JAVA_TOOL_OPTIONS
+    value: -javaagent:/otel/opentelemetry-javaagent.jar
+  - name: OTEL_SERVICE_NAME
+    value: checkout
+  - name: OTEL_EXPORTER_OTLP_ENDPOINT
+    value: http://fusescope-otel-collector.fusescope.svc.cluster.local:4318
+  - name: OTEL_EXPORTER_OTLP_PROTOCOL
+    value: http/protobuf
+  - name: K8S_POD_NAME
+    valueFrom:
+      fieldRef:
+        fieldPath: metadata.name
+  - name: K8S_NAMESPACE_NAME
+    valueFrom:
+      fieldRef:
+        fieldPath: metadata.namespace
+  - name: OTEL_RESOURCE_ATTRIBUTES
+    value: deployment.environment.name=production,k8s.pod.name=$(K8S_POD_NAME),k8s.namespace.name=$(K8S_NAMESPACE_NAME)
+```
+
+`$(VAR)` only expands variables defined earlier in the list, so keep
+`OTEL_RESOURCE_ATTRIBUTES` last.
+
+## Logs
+
+The agent captures records from **Logback** (1.0+), **Log4j 2** (2.11+), Log4j 1 and
+`java.util.logging`, and exports them over OTLP with `trace_id` and `span_id` attached. You
+change nothing in your logging config.
+
+It also puts `trace_id` and `span_id` in the Logback MDC and Log4j context, so you can print
+them in your log pattern, for example `%X{trace_id}`.
+
+<Aside type="caution">
+  If a collector also reads the same logs from stdout or files (such as the k8s-infra agent),
+  each line is stored twice. Set `OTEL_LOGS_EXPORTER=none` to keep only the file copy, or
+  exclude the pod from file collection.
+</Aside>
+
+## Check that data arrives
+
+1. Send a few requests to the service.
+2. Open [Services](/fusescope-docs/apm/services/). The service appears under its
+   `OTEL_SERVICE_NAME` within a minute.
+3. Open the [Traces explorer](/fusescope-docs/explore/traces/) and filter by
+   `service.name`.
+
+Nothing arrives? Start the JVM with `OTEL_JAVAAGENT_DEBUG=true` to print what the agent does,
+and check the endpoint and protocol match (4318 with `http/protobuf`, 4317 with `grpc`).
+
+## Related
+
+- [Instrument applications](/fusescope-docs/sending-data/instrumentation/)
+- [OTLP](/fusescope-docs/sending-data/otlp/)
+- [Java agent configuration](https://opentelemetry.io/docs/zero-code/java/agent/configuration/)
+- [Logs explorer](/fusescope-docs/explore/logs/)

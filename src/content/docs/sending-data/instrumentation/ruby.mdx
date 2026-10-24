@@ -1,0 +1,204 @@
+---
+title: Ruby
+description: Send traces, metrics and logs from a Ruby or Rails application to FuseScope with the OpenTelemetry Ruby SDK.
+---
+
+import { Aside, Steps, Tabs, TabItem } from "@astrojs/starlight/components";
+
+Ruby uses the [OpenTelemetry Ruby SDK](https://opentelemetry.io/docs/languages/ruby/) plus
+`opentelemetry-instrumentation-all`, which instruments Rails, Rack, Sinatra, ActiveRecord,
+`Net::HTTP`, Faraday, Redis, Sidekiq and
+[more](https://github.com/open-telemetry/opentelemetry-ruby-contrib/tree/main/instrumentation).
+You add a few lines of setup; the rest needs no code changes.
+
+**Use this page when** you run a Ruby or Rails service and want it in FuseScope.
+
+| Signal | Status | What is sent |
+|---|---|---|
+| Traces | Stable | Spans for requests, HTTP calls, database and jobs. |
+| Metrics | Development | Your own metrics, through separate pre-1.0 gems. |
+| Logs | Development | Ruby `Logger` and Rails logger records with trace IDs, through separate pre-1.0 gems. |
+
+Metrics and logs work, but their gems are still `0.x` and can change between releases.
+Traces alone need only the first three gems below.
+
+## Prerequisites
+
+- CRuby 3.3 or later (current gems require it). JRuby and TruffleRuby are best effort.
+- Bundler.
+- A FuseScope collector you can reach on port 4318. See [OTLP](/fusescope-docs/sending-data/otlp/).
+
+<Aside type="caution" title="HTTP only">
+  The Ruby SDK exports OTLP over HTTP (`http/protobuf`) only. Use port 4318; gRPC on 4317 is
+  not supported, and spans are dropped with a warning if you set
+  `OTEL_EXPORTER_OTLP_PROTOCOL=grpc`.
+</Aside>
+
+## Install
+
+```bash
+bundle add opentelemetry-sdk opentelemetry-exporter-otlp opentelemetry-instrumentation-all
+# Optional: metrics and logs
+bundle add opentelemetry-metrics-sdk opentelemetry-exporter-otlp-metrics
+bundle add opentelemetry-logs-sdk opentelemetry-exporter-otlp-logs opentelemetry-instrumentation-logger
+```
+
+## Set up the SDK
+
+<Steps>
+
+1. Configure the SDK as early as possible. In Rails, use an initializer:
+
+   ```ruby title="config/initializers/opentelemetry.rb"
+   require "opentelemetry/sdk"
+   require "opentelemetry/exporter/otlp"
+   require "opentelemetry/instrumentation/all"
+
+   # Optional: metrics and logs. Load them before configure.
+   require "opentelemetry-metrics-sdk"
+   require "opentelemetry/exporter/otlp_metrics"
+   require "opentelemetry-logs-sdk"
+   require "opentelemetry/exporter/otlp_logs"
+   require "opentelemetry/instrumentation/logger"
+
+   OpenTelemetry::SDK.configure do |c|
+     c.use_all
+   end
+   ```
+
+   `use_all` turns on every instrumentation whose library is loaded. Outside Rails, put this
+   at the top of your entry point (for example `config.ru`), before the app is built.
+
+2. Configure the exporter:
+
+   ```bash
+   export OTEL_SERVICE_NAME=checkout
+   export OTEL_RESOURCE_ATTRIBUTES=deployment.environment.name=production,service.version=1.4.2
+   export OTEL_EXPORTER_OTLP_ENDPOINT=http://fusescope-collector.example.com:4318
+   export OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+   ```
+
+   Traces, metrics and logs default to `otlp` once their gems are loaded. Set
+   `OTEL_METRICS_EXPORTER=none` or `OTEL_LOGS_EXPORTER=none` to turn one off.
+
+3. Run the app as usual:
+
+   ```bash
+   bundle exec rails server
+   ```
+
+</Steps>
+
+## Send to FuseScope
+
+<Tabs>
+  <TabItem label="Direct (gRPC 4317)">
+
+Not supported by the Ruby SDK. Use **Direct (HTTP 4318)**, or send to a local collector
+over HTTP and let it forward over gRPC.
+
+  </TabItem>
+  <TabItem label="Direct (HTTP 4318)">
+
+```bash
+OTEL_EXPORTER_OTLP_ENDPOINT=http://fusescope-collector.example.com:4318
+OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+```
+
+Behind the chart ingress, use `https://otlp.example.com`. See
+[from outside the cluster](/fusescope-docs/sending-data/otlp/#from-outside-the-cluster).
+
+  </TabItem>
+  <TabItem label="Through a local collector">
+
+```bash
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
+OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+```
+
+Run the collector with [Docker](/fusescope-docs/sending-data/collector-docker/), on a
+[VM](/fusescope-docs/sending-data/collector-vm/) or in
+[Kubernetes](/fusescope-docs/sending-data/kubernetes/).
+
+  </TabItem>
+</Tabs>
+
+## Docker
+
+The gems are in the `Gemfile`, so `bundle install` adds them:
+
+```dockerfile title="Dockerfile"
+FROM ruby:3.3-slim
+RUN apt-get update && apt-get install -y --no-install-recommends build-essential \
+ && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+COPY Gemfile Gemfile.lock ./
+RUN bundle install
+COPY . .
+CMD ["bundle", "exec", "rails", "server", "-b", "0.0.0.0"]
+```
+
+```bash
+docker run \
+  -e OTEL_SERVICE_NAME=checkout \
+  -e OTEL_RESOURCE_ATTRIBUTES=deployment.environment.name=production \
+  -e OTEL_EXPORTER_OTLP_ENDPOINT=http://fusescope-collector.example.com:4318 \
+  -e OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf \
+  checkout:latest
+```
+
+## Kubernetes
+
+Set the variables in the pod spec. The downward API adds the pod name and namespace:
+
+```yaml title="deployment.yaml"
+env:
+  - name: OTEL_SERVICE_NAME
+    value: checkout
+  - name: OTEL_EXPORTER_OTLP_ENDPOINT
+    value: http://fusescope-otel-collector.fusescope.svc.cluster.local:4318
+  - name: OTEL_EXPORTER_OTLP_PROTOCOL
+    value: http/protobuf
+  - name: K8S_POD_NAME
+    valueFrom:
+      fieldRef:
+        fieldPath: metadata.name
+  - name: K8S_NAMESPACE_NAME
+    valueFrom:
+      fieldRef:
+        fieldPath: metadata.namespace
+  - name: OTEL_RESOURCE_ATTRIBUTES
+    value: deployment.environment.name=production,k8s.pod.name=$(K8S_POD_NAME),k8s.namespace.name=$(K8S_NAMESPACE_NAME)
+```
+
+`$(VAR)` only expands variables defined earlier in the list, so keep
+`OTEL_RESOURCE_ATTRIBUTES` last.
+
+## Logs
+
+With `opentelemetry-logs-sdk`, `opentelemetry-exporter-otlp-logs` and
+`opentelemetry-instrumentation-logger` installed, `use_all` patches Ruby's `Logger` and the
+Rails logger. Each record is still written where it was before, and is also exported over
+OTLP with the trace and span IDs of the active span.
+
+Logs support is in development: the gems are `0.x`. If a collector already reads your
+stdout, set `OTEL_LOGS_EXPORTER=none` so each line is stored once.
+
+## Check that data arrives
+
+1. Send a few requests to the service.
+2. Open [Services](/fusescope-docs/apm/services/). The service appears under its
+   `OTEL_SERVICE_NAME` within a minute.
+3. Open the [Traces explorer](/fusescope-docs/explore/traces/) and filter by
+   `service.name`.
+
+Nothing arrives? Run with `OTEL_TRACES_EXPORTER=console` to print spans to stdout, and look
+for warnings from OpenTelemetry at boot, such as a missing exporter gem or an unsupported
+protocol.
+
+## Related
+
+- [Instrument applications](/fusescope-docs/sending-data/instrumentation/)
+- [OTLP](/fusescope-docs/sending-data/otlp/)
+- [Ruby getting started](https://opentelemetry.io/docs/languages/ruby/getting-started/)
+- [Ruby exporters](https://opentelemetry.io/docs/languages/ruby/exporters/)

@@ -1,0 +1,254 @@
+---
+title: PostgreSQL
+description: Collect PostgreSQL metrics and server logs with an OpenTelemetry Collector and get the Postgres overview dashboard.
+---
+
+import { Aside, Steps, Tabs, TabItem } from "@astrojs/starlight/components";
+
+The PostgreSQL integration collects database statistics with the collector's
+`postgresql` receiver and parses the server log file. Connecting it adds the
+**Postgres overview** dashboard.
+
+**Use this page when** you run PostgreSQL yourself, on a VM, in a container or in
+Kubernetes. For Amazon RDS, see
+[AWS RDS for PostgreSQL](/fusescope-docs/sending-data/integrations/aws-rds-postgresql/).
+
+## Prerequisites
+
+- **PostgreSQL 9.6 or newer.** Check with `SELECT version();`.
+- **An `otelcol-contrib` collector**, v0.88.0 or newer, where you can add config files
+  and environment variables. See [Integrations](/fusescope-docs/sending-data/integrations/#how-it-works).
+- **For metrics:** a monitoring user, and network access from the collector to the
+  server port.
+- **For logs:** the collector can read the PostgreSQL log file. Find it with
+  `SELECT pg_current_logfile();`.
+
+Create the monitoring user:
+
+<Tabs>
+<TabItem label="PostgreSQL 10 and newer">
+
+```sql
+CREATE USER monitoring WITH PASSWORD '<password>';
+GRANT pg_monitor TO monitoring;
+GRANT SELECT ON pg_stat_database TO monitoring;
+```
+
+</TabItem>
+<TabItem label="PostgreSQL 9.6">
+
+```sql
+CREATE USER monitoring WITH PASSWORD '<password>';
+GRANT SELECT ON pg_stat_database TO monitoring;
+```
+
+</TabItem>
+</Tabs>
+
+## Collect metrics and logs
+
+<Tabs>
+<TabItem label="Metrics">
+
+```yaml title="postgres-metrics.yaml"
+receivers:
+  postgresql:
+    endpoint: ${env:POSTGRESQL_ENDPOINT}
+    username: ${env:POSTGRESQL_USERNAME}
+    password: ${env:POSTGRESQL_PASSWORD}
+    collection_interval: 60s
+    # Empty list: all non-template databases.
+    databases: []
+    tls:
+      # Set to false when the server requires SSL.
+      insecure: true
+    metrics:
+      postgresql.database.locks:
+        enabled: true
+      postgresql.deadlocks:
+        enabled: true
+      postgresql.sequential_scans:
+        enabled: true
+
+processors:
+  # Adds host.name. Remove when the collector runs on another host.
+  resourcedetection/system:
+    detectors: ["system"]
+    system:
+      hostname_sources: ["os"]
+
+exporters:
+  otlp/fusescope:
+    endpoint: ${env:OTLP_DESTINATION_ENDPOINT}
+    tls:
+      insecure: true
+
+service:
+  pipelines:
+    metrics/postgresql:
+      receivers: [postgresql]
+      processors: [resourcedetection/system]
+      exporters: [otlp/fusescope]
+```
+
+| Variable | Example | Description |
+|---|---|---|
+| `POSTGRESQL_ENDPOINT` | `localhost:5432` | Server `host:port`, reachable from the collector. |
+| `POSTGRESQL_USERNAME` | `monitoring` | Monitoring user. |
+| `POSTGRESQL_PASSWORD` | | Its password. |
+| `OTLP_DESTINATION_ENDPOINT` | `fusescope-collector.example.com:4317` | FuseScope collector, OTLP gRPC. |
+
+</TabItem>
+<TabItem label="Logs">
+
+The parser expects the default `log_line_prefix` of `'%m [%p] '` (timestamp and
+process ID). Adjust the regex if you changed it.
+
+```yaml title="postgres-logs.yaml"
+receivers:
+  filelog/postgresql:
+    include: ["${env:POSTGRESQL_LOG_FILE}"]
+    operators:
+      - type: regex_parser
+        if: body matches '^(?P<ts>\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}.?[0-9]*? [A-Z]*) \\[(?P<pid>[0-9]+)\\] (?P<log_level>[A-Z]*). (?P<message>.*)$'
+        parse_from: body
+        regex: '^(?P<ts>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.?[0-9]*? [A-Z]*) \[(?P<pid>[0-9]+)\] (?P<log_level>[A-Z]*). (?P<message>.*)$'
+        timestamp:
+          parse_from: attributes.ts
+          layout: '%Y-%m-%d %H:%M:%S %Z'
+        severity:
+          parse_from: attributes.log_level
+          mapping:
+            debug: [DEBUG1, DEBUG2, DEBUG3, DEBUG4, DEBUG5]
+            info: [INFO, LOG, NOTICE, DETAIL]
+            warn: WARNING
+            error: ERROR
+            fatal: [FATAL, PANIC]
+        on_error: send
+      - type: move
+        if: attributes.message != nil
+        from: attributes.message
+        to: body
+      - type: remove
+        if: attributes.log_level != nil
+        field: attributes.log_level
+      - type: remove
+        if: attributes.ts != nil
+        field: attributes.ts
+      - type: add
+        field: attributes.source
+        value: postgres
+
+processors:
+  batch:
+    send_batch_size: 10000
+    send_batch_max_size: 11000
+    timeout: 10s
+
+exporters:
+  otlp/fusescope:
+    endpoint: ${env:OTLP_DESTINATION_ENDPOINT}
+    tls:
+      insecure: true
+
+service:
+  pipelines:
+    logs/postgresql:
+      receivers: [filelog/postgresql]
+      processors: [batch]
+      exporters: [otlp/fusescope]
+```
+
+| Variable | Example | Description |
+|---|---|---|
+| `POSTGRESQL_LOG_FILE` | `/var/log/postgresql/postgresql.log` | Server log file. |
+| `OTLP_DESTINATION_ENDPOINT` | `fusescope-collector.example.com:4317` | FuseScope collector, OTLP gRPC. |
+
+</TabItem>
+</Tabs>
+
+Run the collector with `--config postgres-metrics.yaml --config postgres-logs.yaml`,
+as shown in [Run the collector](/fusescope-docs/sending-data/integrations/#run-the-collector).
+Set `insecure: false` in the exporter when the FuseScope endpoint uses TLS.
+
+<Aside type="note" title="Collector on another host">
+  The dashboard filters by `host.name`, which `resourcedetection/system` sets to the
+  collector's host. When the collector does not run on the database host, remove that
+  processor and set `host.name` yourself with a `resource` processor.
+</Aside>
+
+## Connect it in FuseScope
+
+<Steps>
+
+1. Open **Integrations** › **PostgreSQL**.
+2. Click **Connect PostgreSQL**, then **I have already configured**.
+3. Click **Test Connection**. The badge reads **This integration is working properly**
+   once logs with `source = postgres` or PostgreSQL metrics arrive. Until then it reads
+   **Listening for data...**.
+
+</Steps>
+
+## What's included
+
+**Postgres overview** dashboard, with variables `host.name`, `db.name` and `table.name`:
+
+- Connections per db, Operation by database, Table stats
+- Inserts, Updates, Deleted, Heap updates, Dead rows
+- Index scans by index
+- Locks by lock mode, Deadlocks count
+
+No log pipelines and no alert rules. Parsing happens in the collector config; see
+[Log pipelines](/fusescope-docs/sending-data/log-pipelines/) for more.
+
+## Data collected
+
+### Logs
+
+| Field | Path | Type |
+|---|---|---|
+| Timestamp | `timestamp` | timestamp |
+| Severity Text | `severity_text` | string |
+| Severity Number | `severity_number` | number |
+| Process ID | `attributes.pid` | string |
+| Source | `attributes.source` (`postgres`) | string |
+
+### Metrics
+
+| Metric | Type | Unit | Description |
+|---|---|---|---|
+| `postgresql_backends` | Sum | number | Number of backends. |
+| `postgresql_connection_max` | Gauge | number | Configured maximum client connections. |
+| `postgresql_commits` | Sum | number | Commits. |
+| `postgresql_rollbacks` | Sum | number | Rollbacks. |
+| `postgresql_operations` | Sum | number | Row operations. |
+| `postgresql_rows` | Sum | number | Rows in the database. |
+| `postgresql_blocks_read` | Sum | number | Blocks read. |
+| `postgresql_index_scans` | Sum | number | Index scans on a table. |
+| `postgresql_sequential_scans` | Sum | number | Sequential scans. |
+| `postgresql_database_locks` | Gauge | number | Database locks. |
+| `postgresql_deadlocks` | Sum | number | Deadlocks. |
+| `postgresql_db_size` | Sum | Bytes | Database disk usage. |
+| `postgresql_table_size` | Sum | Bytes | Disk space used by a table. |
+| `postgresql_index_size` | Gauge | Bytes | Index size on disk. |
+| `postgresql_database_count` | Sum | number | User databases. |
+| `postgresql_table_count` | Sum | number | User tables in a database. |
+| `postgresql_table_vacuum_count` | Sum | number | Manual vacuums of a table. |
+| `postgresql_temp_files` | Sum | number | Temp files. |
+| `postgresql_bgwriter_buffers_allocated` | Sum | number | Buffers allocated. |
+| `postgresql_bgwriter_buffers_writes` | Sum | number | Buffers written. |
+| `postgresql_bgwriter_checkpoint_count` | Sum | number | Checkpoints performed. |
+| `postgresql_bgwriter_duration` | Sum | ms | Time checkpoints spent writing and syncing files. |
+| `postgresql_bgwriter_maxwritten` | Sum | number | Cleaning scans stopped for writing too many buffers. |
+| `postgresql_replication_data_delay` | Gauge | Bytes | Data delayed in replication. |
+| `postgresql_wal_age` | Gauge | seconds | Age of the oldest WAL file. |
+| `postgresql_wal_delay` | Gauge | seconds | Delay before a standby reports completing work on flushed WAL. |
+| `postgresql_wal_lag` | Gauge | seconds | Lag between flushing WAL locally and a standby's notification. |
+
+## Related
+
+- [Integrations](/fusescope-docs/sending-data/integrations/)
+- [AWS RDS for PostgreSQL](/fusescope-docs/sending-data/integrations/aws-rds-postgresql/)
+- [Log pipelines](/fusescope-docs/sending-data/log-pipelines/)
+- [Dashboards](/fusescope-docs/dashboards/dashboards/)
+- [`postgresql` receiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/postgresqlreceiver)

@@ -1,0 +1,290 @@
+---
+title: AWS ElastiCache for Redis
+description: Collect CloudWatch metrics and logs for Amazon ElastiCache for Redis, plus Redis engine metrics, and get the AWS ElastiCache Redis dashboard.
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+
+The AWS ElastiCache for Redis integration combines three sources:
+
+| Source | Component | Data |
+|---|---|---|
+| CloudWatch metrics (`AWS/ElastiCache`) | Prometheus [CloudWatch exporter](https://github.com/prometheus/cloudwatch_exporter), scraped by the collector's `prometheus` receiver | Node CPU, memory, network, cache hits, evictions, replication lag |
+| Redis engine | Collector's `redis` receiver, connecting to the node | Commands, keyspace, memory, clients |
+| CloudWatch Logs | Collector's `awscloudwatch` receiver | Slow log and engine log |
+
+Connecting it adds the **AWS ElastiCache Redis** dashboard. In the app the integration
+is called **AWS ElastiCache (redis)**.
+
+**Use this page when** your Redis runs on Amazon ElastiCache. For Redis you run
+yourself, see [Redis](/fusescope-docs/sending-data/integrations/redis/).
+
+## Prerequisites
+
+- **An `otelcol-contrib` collector**, v0.88.0 or newer, where you can add config files
+  and environment variables. See [Integrations](/fusescope-docs/sending-data/integrations/#how-it-works).
+- **Java 11 or newer** for the CloudWatch exporter, or Docker to run its
+  [image](https://github.com/prometheus/cloudwatch_exporter#docker-images) instead.
+- **AWS credentials** for the exporter and the collector. Both use the standard AWS SDK
+  chain: `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`, a shared profile, an EC2
+  instance profile, or an EKS or ECS role.
+- **IAM permissions:**
+
+  ```json title="iam-policy.json"
+  {
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Action": [
+          "cloudwatch:ListMetrics",
+          "cloudwatch:GetMetricStatistics",
+          "cloudwatch:GetMetricData",
+          "tag:GetResources",
+          "logs:DescribeLogGroups",
+          "logs:FilterLogEvents"
+        ],
+        "Resource": "*"
+      }
+    ]
+  }
+  ```
+
+  `tag:GetResources` is only needed if you filter by tag with `aws_tag_select`.
+- **For engine metrics (optional):** the collector runs in the cache's VPC and can reach
+  the node endpoint, usually on port 6379. ElastiCache is not reachable from outside its
+  VPC.
+- **For logs:** the cluster delivers its logs to CloudWatch Logs. Set this up with
+  [log delivery](https://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/Log_Delivery.html);
+  you choose the log group names there.
+
+## Collect metrics
+
+<Steps>
+
+1. **Run the CloudWatch exporter.** Download the JAR:
+
+   ```bash
+   curl -sLSO https://github.com/prometheus/cloudwatch_exporter/releases/download/v0.15.5/cloudwatch_exporter-0.15.5-jar-with-dependencies.jar
+   ```
+
+   Save this config and set `region`:
+
+   ```yaml title="aws-elasticache-metrics.yaml"
+   region: us-east-1
+   metrics:
+     - {aws_namespace: AWS/ElastiCache, aws_metric_name: CPUUtilization, aws_dimensions: [CacheClusterId, CacheNodeId], aws_statistics: [Average, Maximum]}
+     - {aws_namespace: AWS/ElastiCache, aws_metric_name: FreeableMemory, aws_dimensions: [CacheClusterId, CacheNodeId], aws_statistics: [Average, Maximum]}
+     - {aws_namespace: AWS/ElastiCache, aws_metric_name: NetworkBytesIn, aws_dimensions: [CacheClusterId, CacheNodeId], aws_statistics: [Sum, Average]}
+     - {aws_namespace: AWS/ElastiCache, aws_metric_name: NetworkBytesOut, aws_dimensions: [CacheClusterId, CacheNodeId], aws_statistics: [Sum, Average]}
+     - {aws_namespace: AWS/ElastiCache, aws_metric_name: NetworkPacketsIn, aws_dimensions: [CacheClusterId, CacheNodeId], aws_statistics: [Sum, Average]}
+     - {aws_namespace: AWS/ElastiCache, aws_metric_name: NetworkPacketsOut, aws_dimensions: [CacheClusterId, CacheNodeId], aws_statistics: [Sum, Average]}
+     - {aws_namespace: AWS/ElastiCache, aws_metric_name: SwapUsage, aws_dimensions: [CacheClusterId, CacheNodeId], aws_statistics: [Average, Maximum]}
+     - {aws_namespace: AWS/ElastiCache, aws_metric_name: BytesUsedForCache, aws_dimensions: [CacheClusterId, CacheNodeId], aws_statistics: [Sum, Maximum]}
+     - {aws_namespace: AWS/ElastiCache, aws_metric_name: CacheHits, aws_dimensions: [CacheClusterId, CacheNodeId], aws_statistics: [Sum]}
+     - {aws_namespace: AWS/ElastiCache, aws_metric_name: CacheMisses, aws_dimensions: [CacheClusterId, CacheNodeId], aws_statistics: [Sum]}
+     - {aws_namespace: AWS/ElastiCache, aws_metric_name: CacheHitRate, aws_dimensions: [CacheClusterId, CacheNodeId], aws_statistics: [Average]}
+     - {aws_namespace: AWS/ElastiCache, aws_metric_name: CurrConnections, aws_dimensions: [CacheClusterId, CacheNodeId], aws_statistics: [Average, Maximum]}
+     - {aws_namespace: AWS/ElastiCache, aws_metric_name: CurrItems, aws_dimensions: [CacheClusterId, CacheNodeId], aws_statistics: [Average, Maximum]}
+     - {aws_namespace: AWS/ElastiCache, aws_metric_name: CurrVolatileItems, aws_dimensions: [CacheClusterId, CacheNodeId], aws_statistics: [Average, Maximum]}
+     - {aws_namespace: AWS/ElastiCache, aws_metric_name: ReplicationLag, aws_dimensions: [CacheClusterId, CacheNodeId], aws_statistics: [Maximum]}
+     - {aws_namespace: AWS/ElastiCache, aws_metric_name: SaveInProgress, aws_dimensions: [CacheClusterId, CacheNodeId]}
+     - {aws_namespace: AWS/ElastiCache, aws_metric_name: TrafficManagementActive, aws_dimensions: [CacheClusterId, CacheNodeId]}
+     - {aws_namespace: AWS/ElastiCache, aws_metric_name: DatabaseCapacityUsagePercentage, aws_dimensions: [CacheClusterId, CacheNodeId], aws_statistics: [Average, Maximum]}
+     - {aws_namespace: AWS/ElastiCache, aws_metric_name: DatabaseMemoryUsagePercentage, aws_dimensions: [CacheClusterId, CacheNodeId], aws_statistics: [Average, Maximum]}
+     - {aws_namespace: AWS/ElastiCache, aws_metric_name: EngineCPUUtilization, aws_dimensions: [CacheClusterId, CacheNodeId], aws_statistics: [Average, Maximum]}
+     - {aws_namespace: AWS/ElastiCache, aws_metric_name: Evictions, aws_dimensions: [CacheClusterId, CacheNodeId], aws_statistics: [Sum, Average]}
+     - {aws_namespace: AWS/ElastiCache, aws_metric_name: GlobalDatastoreReplicationLag, aws_dimensions: [CacheClusterId, CacheNodeId], aws_statistics: [Average, Maximum]}
+     - {aws_namespace: AWS/ElastiCache, aws_metric_name: MemoryFragmentationRatio, aws_dimensions: [CacheClusterId, CacheNodeId], aws_statistics: [Average, Maximum, Sum]}
+   ```
+
+   Start it on port 9106:
+
+   ```bash
+   java -jar cloudwatch_exporter-0.15.5-jar-with-dependencies.jar 9106 aws-elasticache-metrics.yaml
+   ```
+
+   Open `http://localhost:9106/metrics` and check that `aws_elasticache_*` metrics
+   appear.
+
+2. **Configure the collector.** It scrapes the exporter and, optionally, connects to a
+   Redis node. Drop the `redis` receiver if you only want CloudWatch metrics.
+
+   ```yaml title="elasticache-metrics.yaml"
+   receivers:
+     redis:
+       endpoint: ${env:REDIS_ENDPOINT}
+       password: ${env:REDIS_PASSWORD}
+       collection_interval: 60s
+       # With in-transit encryption on, enable TLS:
+       # tls:
+       #   insecure: false
+       metrics:
+         redis.maxmemory:
+           enabled: true
+         redis.cmd.latency:
+           enabled: true
+
+     prometheus/cloudwatch:
+       config:
+         scrape_configs:
+           - job_name: aws-cloudwatch-metrics
+             scrape_interval: 120s
+             scrape_timeout: 120s
+             static_configs:
+               - targets: ["${env:CLOUDWATCH_EXPORTER_ENDPOINT}"]
+
+   exporters:
+     otlp/fusescope:
+       endpoint: ${env:OTLP_DESTINATION_ENDPOINT}
+       tls:
+         insecure: true
+
+   service:
+     pipelines:
+       metrics/redis:
+         receivers: [redis, prometheus/cloudwatch]
+         exporters: [otlp/fusescope]
+   ```
+
+   | Variable | Example | Description |
+   |---|---|---|
+   | `REDIS_ENDPOINT` | `my-cache.abc123.0001.use1.cache.amazonaws.com:6379` | Node or primary endpoint. |
+   | `REDIS_PASSWORD` | | The AUTH token, if the cluster uses one. |
+   | `CLOUDWATCH_EXPORTER_ENDPOINT` | `localhost:9106` | Where the CloudWatch exporter listens. |
+   | `OTLP_DESTINATION_ENDPOINT` | `fusescope-collector.example.com:4317` | FuseScope collector, OTLP gRPC. |
+
+3. **Run the collector** with `--config elasticache-metrics.yaml`, as shown in
+   [Run the collector](/fusescope-docs/sending-data/integrations/#run-the-collector).
+
+</Steps>
+
+<Aside type="caution" title="CloudWatch API cost">
+  CloudWatch bills `GetMetricData` and `GetMetricStatistics` calls. The exporter queries
+  every metric in the config for every node in the region on each scrape. Raise the
+  scrape interval if cost matters, and limit clusters with `aws_dimension_select`, for
+  example `aws_dimension_select: {CacheClusterId: [my-cache-0001-001]}`.
+</Aside>
+
+## Collect logs
+
+The `awscloudwatch` receiver polls the log groups you name. It does not parse the
+entries: the body holds the raw log record.
+
+```yaml title="elasticache-logs.yaml"
+receivers:
+  awscloudwatch/elasticache_logs:
+    region: us-east-1
+    logs:
+      poll_interval: 1m
+      groups:
+        named:
+          /aws/elasticache/my-cache/slow-log:
+
+processors:
+  attributes/add_source:
+    actions:
+      - key: source
+        value: elasticache_redis
+        action: insert
+  batch:
+    send_batch_size: 10000
+    send_batch_max_size: 11000
+    timeout: 10s
+
+exporters:
+  otlp/fusescope:
+    endpoint: ${env:OTLP_DESTINATION_ENDPOINT}
+    tls:
+      insecure: true
+
+service:
+  pipelines:
+    logs/elasticache:
+      receivers: [awscloudwatch/elasticache_logs]
+      processors: [attributes/add_source, batch]
+      exporters: [otlp/fusescope]
+```
+
+Set `region`, replace the group name with the one you chose for log delivery, and set
+`OTLP_DESTINATION_ENDPOINT`. Run the collector with `--config elasticache-logs.yaml`.
+ElastiCache can deliver logs as JSON; to turn the fields into attributes, add a
+[log pipeline](/fusescope-docs/sending-data/log-pipelines/) that matches
+`source = elasticache_redis`.
+
+Set `insecure: false` in the exporter when the FuseScope endpoint uses TLS.
+
+## Connect it in FuseScope
+
+<Steps>
+
+1. Open **Integrations** › **AWS ElastiCache (redis)**.
+2. Click **Connect AWS ElastiCache (redis)**, then **I have already configured**.
+3. Click **Test Connection**. The badge reads **This integration is working properly**
+   once logs with `source = elasticache_redis`, or `aws_elasticache_*` or `redis_*`
+   metrics, arrive. Until then it reads **Listening for data...**. CloudWatch metrics can
+   take a few minutes to show.
+
+</Steps>
+
+## What's included
+
+**AWS ElastiCache Redis** dashboard, with a `cache_cluster_id` variable:
+
+- CPU Utilization, Engine CPU Utilization
+- Freeable Memory, Swap Usage, Memory Fragmentation Ratio
+- Database Memory Usage Percentage, Database Capacity Usage Percentage
+- Current Connections, Cache Hit Rate, Evictions
+- Replication Lag
+- Network Bytes In, Network Bytes Out
+
+No log pipelines and no alert rules.
+
+## Data collected
+
+### Logs
+
+| Field | Path | Type |
+|---|---|---|
+| Timestamp | `timestamp` | timestamp |
+| Body | `body` | string |
+| Source | `attributes.source` (`elasticache_redis`) | string |
+
+### Metrics
+
+CloudWatch metrics are named `aws_elasticache_<metric>_<statistic>` and carry the
+`cache_cluster_id` and `cache_node_id` labels. The most useful ones are below. The
+**Data Collected** tab lists all of them.
+
+| Metric | CloudWatch unit | Description |
+|---|---|---|
+| `aws_elasticache_cpuutilization_average` | Percent | Host CPU use. |
+| `aws_elasticache_engine_cpuutilization_average` | Percent | CPU use of the Redis engine thread. |
+| `aws_elasticache_freeable_memory_average` | Bytes | Free memory on the host. |
+| `aws_elasticache_bytes_used_for_cache_maximum` | Bytes | Memory used by Redis for data. |
+| `aws_elasticache_database_memory_usage_percentage_average` | Percent | Share of available memory in use. |
+| `aws_elasticache_database_capacity_usage_percentage_average` | Percent | Share of total capacity in use. |
+| `aws_elasticache_swap_usage_average` | Bytes | Swap in use. |
+| `aws_elasticache_memory_fragmentation_ratio_average` | None | Memory fragmentation ratio. |
+| `aws_elasticache_curr_connections_average` | Count | Client connections. |
+| `aws_elasticache_curr_items_average` | Count | Items in the cache. |
+| `aws_elasticache_cache_hits_sum` | Count | Successful key lookups. |
+| `aws_elasticache_cache_misses_sum` | Count | Failed key lookups. |
+| `aws_elasticache_evictions_sum` | Count | Keys evicted by the memory limit. |
+| `aws_elasticache_replication_lag_maximum` | Seconds | Replica lag behind the primary. |
+| `aws_elasticache_network_bytes_in_sum` | Bytes | Bytes read from the network. |
+| `aws_elasticache_network_bytes_out_sum` | Bytes | Bytes written to the network. |
+| `aws_elasticache_save_in_progress_maximum` | Count | 1 while a background save runs. |
+
+The `redis` receiver adds `redis_*` metrics, such as `redis_commands`,
+`redis_keyspace_hits` and `redis_memory_used`. The
+[Redis](/fusescope-docs/sending-data/integrations/redis/#metrics) page lists the main
+ones.
+
+## Related
+
+- [Integrations](/fusescope-docs/sending-data/integrations/)
+- [Redis](/fusescope-docs/sending-data/integrations/redis/)
+- [Log pipelines](/fusescope-docs/sending-data/log-pipelines/)
+- [CloudWatch exporter](https://github.com/prometheus/cloudwatch_exporter)
+- [`awscloudwatch` receiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/awscloudwatchreceiver)

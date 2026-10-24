@@ -1,0 +1,227 @@
+---
+title: Python
+description: Send traces, metrics and logs from a Python application to FuseScope with OpenTelemetry zero-code instrumentation.
+---
+
+import { Aside, Steps, Tabs, TabItem } from "@astrojs/starlight/components";
+
+The [`opentelemetry-instrument`](https://opentelemetry.io/docs/zero-code/python/) launcher
+starts the OpenTelemetry SDK and patches Django, Flask, FastAPI, `requests`, `httpx`,
+SQLAlchemy, psycopg, Redis, Celery and
+[other libraries](https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/instrumentation)
+before your code runs.
+
+**Use this page when** you run a Python service and want it in FuseScope.
+
+| Signal | Status | What is sent |
+|---|---|---|
+| Traces | Stable | Spans for requests, HTTP calls, database and messaging. |
+| Metrics | Stable | HTTP server/client metrics, plus what your code records. |
+| Logs | Development | Records from the standard `logging` module, with trace IDs. |
+
+## Prerequisites
+
+- Python 3.10 or later.
+- A virtual environment with your app's dependencies installed.
+- A FuseScope collector you can reach on port 4317 or 4318. See [OTLP](/fusescope-docs/sending-data/otlp/).
+
+## Install and run
+
+<Steps>
+
+1. Install the distro and the OTLP exporter, then let `opentelemetry-bootstrap` add the
+   instrumentation packages for the libraries it finds installed:
+
+   ```bash
+   pip install opentelemetry-distro opentelemetry-exporter-otlp
+   opentelemetry-bootstrap -a install
+   ```
+
+   Run `opentelemetry-bootstrap` with no arguments to only list what it would install, for
+   example to add them to `requirements.txt`.
+
+2. Configure the SDK:
+
+   ```bash
+   export OTEL_SERVICE_NAME=checkout
+   export OTEL_RESOURCE_ATTRIBUTES=deployment.environment.name=production,service.version=1.4.2
+   export OTEL_EXPORTER_OTLP_ENDPOINT=http://fusescope-collector.example.com:4318
+   export OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+   export OTEL_TRACES_EXPORTER=otlp
+   export OTEL_METRICS_EXPORTER=otlp
+   export OTEL_LOGS_EXPORTER=otlp
+   ```
+
+3. Prefix your usual command with `opentelemetry-instrument`:
+
+   ```bash
+   opentelemetry-instrument python app.py
+   ```
+
+</Steps>
+
+<Aside>
+  The Python SDK defaults to `grpc` on port 4317. If you point it at 4318, also set
+  `OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf`.
+</Aside>
+
+To skip some libraries, set `OTEL_PYTHON_DISABLED_INSTRUMENTATIONS`, for example
+`redis,kafka`. Every setting is in the
+[configuration reference](https://opentelemetry.io/docs/zero-code/python/configuration/).
+
+## Web servers and workers
+
+| Server | Command |
+|---|---|
+| Django dev server | `opentelemetry-instrument python manage.py runserver --noreload` |
+| Flask dev server | Run with `use_reloader=False`; the reloader breaks instrumentation. |
+| Uvicorn, one process | `opentelemetry-instrument uvicorn main:app` |
+| Gunicorn + Uvicorn workers | `opentelemetry-instrument gunicorn --workers 4 --worker-class uvicorn.workers.UvicornWorker main:app` |
+| Gunicorn, sync workers | Initialise in `post_fork`, below. |
+
+Pre-fork servers start the SDK in the parent and then fork, which can break metric export
+in the workers. With Gunicorn, initialise OpenTelemetry in each worker instead, and start
+Gunicorn **without** `opentelemetry-instrument`:
+
+```python title="gunicorn.conf.py"
+from opentelemetry.instrumentation.auto_instrumentation import initialize
+
+
+def post_fork(server, worker):
+    initialize()
+```
+
+```bash
+gunicorn --config gunicorn.conf.py --workers 4 app:app
+```
+
+Each worker gets its own `service.instance.id`, so don't set one in
+`OTEL_RESOURCE_ATTRIBUTES`. Details are in
+[troubleshooting](https://opentelemetry.io/docs/zero-code/python/troubleshooting/).
+
+## Send to FuseScope
+
+<Tabs>
+  <TabItem label="Direct (gRPC 4317)">
+
+```bash
+OTEL_EXPORTER_OTLP_ENDPOINT=http://fusescope-collector.example.com:4317
+OTEL_EXPORTER_OTLP_PROTOCOL=grpc
+```
+
+The `http://` scheme tells the gRPC exporter to use plain text.
+
+  </TabItem>
+  <TabItem label="Direct (HTTP 4318)">
+
+```bash
+OTEL_EXPORTER_OTLP_ENDPOINT=http://fusescope-collector.example.com:4318
+OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+```
+
+Behind the chart ingress, use `https://otlp.example.com`. See
+[from outside the cluster](/fusescope-docs/sending-data/otlp/#from-outside-the-cluster).
+
+  </TabItem>
+  <TabItem label="Through a local collector">
+
+```bash
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
+OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+```
+
+Run the collector with [Docker](/fusescope-docs/sending-data/collector-docker/), on a
+[VM](/fusescope-docs/sending-data/collector-vm/) or in
+[Kubernetes](/fusescope-docs/sending-data/kubernetes/).
+
+  </TabItem>
+</Tabs>
+
+## Docker
+
+Run `opentelemetry-bootstrap` after your dependencies are installed, so it sees them:
+
+```dockerfile title="Dockerfile"
+FROM python:3.12-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt \
+    opentelemetry-distro opentelemetry-exporter-otlp \
+ && opentelemetry-bootstrap -a install
+COPY . .
+CMD ["opentelemetry-instrument", "gunicorn", "--workers", "4", "--worker-class", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8000", "main:app"]
+```
+
+```bash
+docker run \
+  -e OTEL_SERVICE_NAME=checkout \
+  -e OTEL_RESOURCE_ATTRIBUTES=deployment.environment.name=production \
+  -e OTEL_EXPORTER_OTLP_ENDPOINT=http://fusescope-collector.example.com:4318 \
+  -e OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf \
+  -e OTEL_LOGS_EXPORTER=otlp \
+  checkout:latest
+```
+
+## Kubernetes
+
+Set the variables in the pod spec. The downward API adds the pod name and namespace:
+
+```yaml title="deployment.yaml"
+env:
+  - name: OTEL_SERVICE_NAME
+    value: checkout
+  - name: OTEL_EXPORTER_OTLP_ENDPOINT
+    value: http://fusescope-otel-collector.fusescope.svc.cluster.local:4318
+  - name: OTEL_EXPORTER_OTLP_PROTOCOL
+    value: http/protobuf
+  - name: OTEL_LOGS_EXPORTER
+    value: otlp
+  - name: K8S_POD_NAME
+    valueFrom:
+      fieldRef:
+        fieldPath: metadata.name
+  - name: K8S_NAMESPACE_NAME
+    valueFrom:
+      fieldRef:
+        fieldPath: metadata.namespace
+  - name: OTEL_RESOURCE_ATTRIBUTES
+    value: deployment.environment.name=production,k8s.pod.name=$(K8S_POD_NAME),k8s.namespace.name=$(K8S_NAMESPACE_NAME)
+```
+
+`$(VAR)` only expands variables defined earlier in the list, so keep
+`OTEL_RESOURCE_ATTRIBUTES` last.
+
+## Logs
+
+Records from the standard `logging` module (and libraries built on it, such as
+`structlog` with the stdlib backend) are exported over OTLP with the trace and span IDs of
+the active span.
+
+| Setting | Effect |
+|---|---|
+| `OTEL_LOGS_EXPORTER=otlp` | Export logs over OTLP. |
+| `OTEL_PYTHON_LOG_AUTO_INSTRUMENTATION` | Attach the OpenTelemetry handler to `logging`. On by default since OpenTelemetry Python 1.40.0; set `false` to turn off. |
+| `OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED=true` | Same, for releases before 1.40.0, where it is off by default. |
+| `OTEL_PYTHON_LOG_CORRELATION=true` | Also add `otelTraceID` and `otelSpanID` to each record, for your own log format. |
+
+The handler comes from `opentelemetry-instrumentation-logging`. If logs don't arrive, check
+that it is installed (`pip show opentelemetry-instrumentation-logging`). If a collector
+already reads your stdout, set `OTEL_LOGS_EXPORTER=none` so each line is stored once.
+
+## Check that data arrives
+
+1. Send a few requests to the service.
+2. Open [Services](/fusescope-docs/apm/services/). The service appears under its
+   `OTEL_SERVICE_NAME` within a minute.
+3. Open the [Traces explorer](/fusescope-docs/explore/traces/) and filter by
+   `service.name`.
+
+Nothing arrives? Add `console` to an exporter (`OTEL_TRACES_EXPORTER=otlp,console`) to see
+spans in the terminal, and check the endpoint and protocol match.
+
+## Related
+
+- [Instrument applications](/fusescope-docs/sending-data/instrumentation/)
+- [AI observability for Python](/fusescope-docs/analyze/ai-observability-python/)
+- [OTLP](/fusescope-docs/sending-data/otlp/)
+- [Python zero-code instrumentation](https://opentelemetry.io/docs/zero-code/python/)

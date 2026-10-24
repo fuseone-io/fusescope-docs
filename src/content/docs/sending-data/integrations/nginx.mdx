@@ -1,0 +1,178 @@
+---
+title: Nginx
+description: Collect and parse Nginx access and error logs with an OpenTelemetry Collector.
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+
+The Nginx integration reads the access and error log files and parses them into
+timestamp, severity, request and client attributes. It collects logs only and ships no
+dashboard.
+
+**Use this page when** you want Nginx request and error logs in FuseScope, searchable by
+status, path, method or client.
+
+## Prerequisites
+
+- **Nginx newer than 1.0.0.**
+- **An `otelcol-contrib` collector**, v0.88.0 or newer, where you can add config files
+  and environment variables. See [Integrations](/fusescope-docs/sending-data/integrations/#how-it-works).
+- **The collector can read the Nginx log files**, usually `/var/log/nginx/access.log`
+  and `/var/log/nginx/error.log`.
+
+## Collect logs
+
+The access log parser expects Nginx's default `combined` format:
+
+```text
+$remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent"
+```
+
+The status code sets the severity: 1xx debug, 2xx and 3xx info, 4xx warn, 5xx error.
+
+```yaml title="nginx-logs.yaml"
+receivers:
+  filelog/nginx-access-logs:
+    include: ["${env:NGINX_ACCESS_LOG_FILE}"]
+    operators:
+      - type: regex_parser
+        if: body matches '^(?P<remote_addr>[0-9\\.]+) - (?P<remote_user>[^\\s]+) \\[(?P<ts>.+)\\] "(?P<request_method>\\w+?) (?P<request_path>.+?)" (?P<status>[0-9]+) (?P<body_bytes_sent>[0-9]+) "(?P<http_referrer>.+?)" "(?P<http_user_agent>.+?)"$'
+        parse_from: body
+        parse_to: attributes
+        regex: '^(?P<remote_addr>[0-9\.]+) - (?P<remote_user>[^\s]+) \[(?P<ts>.+)\] "(?P<request_method>\w+?) (?P<request_path>.+?)" (?P<status>[0-9]+) (?P<body_bytes_sent>[0-9]+) "(?P<http_referrer>.+?)" "(?P<http_user_agent>.+?)"$'
+        timestamp:
+          parse_from: attributes.ts
+          layout: "02/Jan/2006:15:04:05 -0700"
+          layout_type: gotime
+        severity:
+          parse_from: attributes.status
+          overwrite_text: true
+          mapping:
+            debug: "1xx"
+            info: ["2xx", "3xx"]
+            warn: "4xx"
+            error: "5xx"
+      - type: remove
+        if: attributes.ts != nil
+        field: attributes.ts
+      - type: add
+        field: attributes.source
+        value: nginx
+
+  filelog/nginx-error-logs:
+    include: ["${env:NGINX_ERROR_LOG_FILE}"]
+    operators:
+      # YYYY/MM/DD HH:MM:SS [LEVEL] PID#TID: *CID MESSAGE
+      - type: regex_parser
+        if: body matches '^(?P<ts>.+?) \\[(?P<log_level>\\w+)\\] (?P<pid>\\d+)#(?P<tid>\\d+). \\*(?P<cid>\\d+) (?P<message>.+)$'
+        parse_from: body
+        parse_to: attributes
+        regex: '^(?P<ts>.+?) \[(?P<log_level>\w+)\] (?P<pid>\d+)#(?P<tid>\d+). \*(?P<cid>\d+) (?P<message>.+)$'
+        timestamp:
+          parse_from: attributes.ts
+          layout: "2006/01/02 15:04:05"
+          layout_type: gotime
+        severity:
+          parse_from: attributes.log_level
+          overwrite_text: true
+          mapping:
+            debug: "debug"
+            info: ["info", "notice"]
+            warn: "warn"
+            error: ["error", "crit", "alert"]
+            fatal: "emerg"
+      - type: remove
+        if: attributes.ts != nil
+        field: attributes.ts
+      - type: move
+        if: attributes.message != nil
+        from: attributes.message
+        to: body
+      - type: add
+        field: attributes.source
+        value: nginx
+
+processors:
+  batch:
+    send_batch_size: 10000
+    send_batch_max_size: 11000
+    timeout: 10s
+
+exporters:
+  otlp/fusescope:
+    endpoint: ${env:OTLP_DESTINATION_ENDPOINT}
+    tls:
+      insecure: true
+
+service:
+  pipelines:
+    logs/nginx:
+      receivers: [filelog/nginx-access-logs, filelog/nginx-error-logs]
+      processors: [batch]
+      exporters: [otlp/fusescope]
+```
+
+| Variable | Example | Description |
+|---|---|---|
+| `NGINX_ACCESS_LOG_FILE` | `/var/log/nginx/access.log` | Access log file. |
+| `NGINX_ERROR_LOG_FILE` | `/var/log/nginx/error.log` | Error log file. |
+| `OTLP_DESTINATION_ENDPOINT` | `fusescope-collector.example.com:4317` | FuseScope collector, OTLP gRPC. |
+
+Run the collector with `--config nginx-logs.yaml`, as shown in
+[Run the collector](/fusescope-docs/sending-data/integrations/#run-the-collector). Set
+`insecure: false` in the exporter when the FuseScope endpoint uses TLS.
+
+<Aside type="caution" title="Custom log format">
+  With a custom
+  [`log_format`](https://nginx.org/en/docs/http/ngx_http_log_module.html#log_format),
+  lines that don't match the regex are still sent, unparsed. Adjust the regex in
+  `filelog/nginx-access-logs`, or switch Nginx to a JSON `log_format` and use a
+  `json_parser` operator instead.
+</Aside>
+
+## Connect it in FuseScope
+
+<Steps>
+
+1. Open **Integrations** › **Nginx**.
+2. Click **Connect Nginx**, then **I have already configured**.
+3. Click **Test Connection**. The badge reads **This integration is working properly**
+   once logs with `source = nginx` arrive. Until then it reads **Listening for data...**.
+
+</Steps>
+
+## What's included
+
+No dashboard, no log pipelines and no alert rules. Query the logs in the
+[Logs explorer](/fusescope-docs/explore/logs/), for example `source = 'nginx' AND status = '500'`, and
+build your own [dashboard](/fusescope-docs/dashboards/dashboards/) from them. For more
+parsing, see [Log pipelines](/fusescope-docs/sending-data/log-pipelines/).
+
+For Nginx metrics such as active connections, enable `stub_status` and add the
+collector's [`nginx` receiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/nginxreceiver).
+The integration does not configure it.
+
+## Data collected
+
+| Field | Path | Type |
+|---|---|---|
+| Timestamp | `timestamp` | timestamp |
+| Severity Text | `severity_text` | string |
+| Severity Number | `severity_number` | number |
+| Remote Address | `attributes.remote_addr` | string |
+| Request Method | `attributes.request_method` | string |
+| Request Path | `attributes.request_path` | string |
+| Response Status Code | `attributes.status` | string |
+| Body Bytes Sent | `attributes.body_bytes_sent` | string |
+| Referrer | `attributes.http_referrer` | string |
+| User Agent | `attributes.http_user_agent` | string |
+| Source | `attributes.source` (`nginx`) | string |
+
+Error log entries also carry `log_level`, `pid`, `tid` and `cid`.
+
+## Related
+
+- [Integrations](/fusescope-docs/sending-data/integrations/)
+- [Logs explorer](/fusescope-docs/explore/logs/)
+- [Log pipelines](/fusescope-docs/sending-data/log-pipelines/)
+- [Log files](/fusescope-docs/sending-data/logs-files/)

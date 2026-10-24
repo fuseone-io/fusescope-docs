@@ -1,0 +1,253 @@
+---
+title: Fluent Bit and Fluentd
+description: Send logs you already collect with Fluent Bit or Fluentd to FuseScope, through the collector's fluentforward receiver or Fluent Bit's OpenTelemetry output.
+---
+
+import { Aside, Steps, Tabs, TabItem } from "@astrojs/starlight/components";
+
+If Fluent Bit or Fluentd already collects your logs, keep it and point its output at
+FuseScope. There are two ways:
+
+| Way | How | Use it when |
+|---|---|---|
+| **Forward protocol** | Fluent Bit or Fluentd sends with its `forward` output to an OpenTelemetry Collector running the `fluentforward` receiver. | You use Fluentd, or you want a collector in between to parse, filter or set `service.name`. |
+| **OTLP** | Fluent Bit's `opentelemetry` output sends OTLP/HTTP straight to the FuseScope collector on port 4318. | You use Fluent Bit and don't want another component. |
+
+**Use this page when** you run Fluent Bit or Fluentd and want their logs in FuseScope
+without replacing them.
+
+## Forward protocol
+
+### Configure the collector
+
+Run an OpenTelemetry Collector (the `otelcol-contrib` distribution) with the
+`fluentforward` receiver. See [Collector in Docker](/fusescope-docs/sending-data/collector-docker/)
+or [Collector on a VM](/fusescope-docs/sending-data/collector-vm/) to install it.
+
+```yaml title="config.yaml"
+receivers:
+  fluentforward:
+    endpoint: 0.0.0.0:8006
+
+processors:
+  batch: {}
+
+exporters:
+  otlphttp:
+    endpoint: http://fusescope-collector.example.com:4318
+
+service:
+  pipelines:
+    logs:
+      receivers: [fluentforward]
+      processors: [batch]
+      exporters: [otlphttp]
+```
+
+Replace `fusescope-collector.example.com` with your FuseScope collector address. See
+[OTLP endpoints](/fusescope-docs/sending-data/otlp/#from-outside-the-cluster).
+
+The receiver turns each Fluent record into a log:
+
+- The `log` field (Fluent Bit) or `message` field (Fluentd) becomes the body.
+- Every other field becomes a log attribute.
+- The Fluent tag becomes the attribute `fluent.tag`.
+
+It listens on TCP and answers heartbeats on UDP on the same port. It doesn't support
+TLS or the shared-key handshake of secure forward, so keep it on a private network.
+
+In Docker, publish both:
+
+```bash
+docker run -d --name otelcol \
+  -v "$PWD/config.yaml:/etc/otelcol-contrib/config.yaml:ro" \
+  -p 8006:8006 -p 8006:8006/udp \
+  otel/opentelemetry-collector-contrib:0.139.0
+```
+
+### Send from Fluent Bit or Fluentd
+
+<Tabs>
+<TabItem label="Fluent Bit">
+
+```ini title="fluent-bit.conf"
+[OUTPUT]
+    Name                            forward
+    Match                           *
+    Host                            otelcol.example.com
+    Port                            8006
+    Retain_metadata_in_forward_mode false
+```
+
+`Retain_metadata_in_forward_mode false` sends records in the plain Fluentd format,
+which the receiver reads.
+
+</TabItem>
+<TabItem label="Fluent Bit (YAML)">
+
+```yaml title="fluent-bit.yaml"
+pipeline:
+  outputs:
+    - name: forward
+      match: "*"
+      host: otelcol.example.com
+      port: 8006
+      retain_metadata_in_forward_mode: false
+```
+
+</TabItem>
+<TabItem label="Fluentd">
+
+```xml title="fluent.conf"
+<match **>
+  @type forward
+  <server>
+    host otelcol.example.com
+    port 8006
+  </server>
+</match>
+```
+
+</TabItem>
+</Tabs>
+
+Replace `otelcol.example.com` with the host running the collector.
+
+### Set service.name
+
+FuseScope groups logs by the `service.name` **resource** attribute, but the receiver
+puts every field on the log itself. Set the field, then move it to the resource with
+the `groupbyattrs` processor.
+
+Add the field in Fluent Bit, per input:
+
+```ini title="fluent-bit.conf"
+[FILTER]
+    Name   modify
+    Match  checkout.*
+    Add    service.name checkout
+```
+
+Or, in the collector, use the Fluent tag when the record has no `service.name`:
+
+```yaml title="config.yaml"
+processors:
+  transform/service-name:
+    log_statements:
+      - set(log.attributes["service.name"], log.attributes["fluent.tag"]) where log.attributes["service.name"] == nil
+  groupbyattrs:
+    keys:
+      - service.name
+  batch: {}
+
+service:
+  pipelines:
+    logs:
+      receivers: [fluentforward]
+      processors: [transform/service-name, groupbyattrs, batch]
+      exporters: [otlphttp]
+```
+
+`groupbyattrs` moves `service.name` from each log to its resource and groups logs with
+the same value together.
+
+## OTLP from Fluent Bit
+
+Fluent Bit's `opentelemetry` output sends OTLP/HTTP straight to the FuseScope
+collector, with no collector in between.
+
+<Tabs>
+<TabItem label="Classic">
+
+```ini title="fluent-bit.conf"
+[OUTPUT]
+    Name                     opentelemetry
+    Match                    *
+    Host                     fusescope-collector.example.com
+    Port                     4318
+    Logs_uri                 /v1/logs
+    Logs_body_key            $log
+    Logs_body_key_attributes true
+    Tls                      off
+```
+
+</TabItem>
+<TabItem label="YAML, with service.name">
+
+```yaml title="fluent-bit.yaml"
+pipeline:
+  inputs:
+    - name: tail
+      path: /var/log/checkout/*.log
+      tag: checkout
+      processors:
+        logs:
+          - name: opentelemetry_envelope
+          - name: content_modifier
+            context: otel_resource_attributes
+            action: upsert
+            key: service.name
+            value: checkout
+
+  outputs:
+    - name: opentelemetry
+      match: "*"
+      host: fusescope-collector.example.com
+      port: 4318
+      logs_uri: /v1/logs
+      logs_body_key: $log
+      logs_body_key_attributes: true
+      tls: off
+```
+
+</TabItem>
+</Tabs>
+
+| Parameter | Default | Set it to |
+|---|---|---|
+| `Host` | `127.0.0.1` | The FuseScope collector, such as `fusescope-otel-collector.fusescope.svc.cluster.local` inside the cluster. |
+| `Port` | `80` | `4318`, or `443` behind the chart ingress. |
+| `Logs_uri` | `/v1/logs` | Keep the default. |
+| `Tls` | `off` | `on` for an `https://` endpoint such as `otlp.example.com` on port 443. |
+| `Logs_body_key` | none | The record field to use as the body: `$log` for the `tail` input, `$message` for many others. |
+| `Logs_body_key_attributes` | `false` | `true` to send the other record fields as attributes. |
+
+The `opentelemetry_envelope` and `content_modifier` processors set `service.name` as a
+resource attribute. Processors need the YAML configuration format. All parameters are
+in the [Fluent Bit OpenTelemetry output docs](https://docs.fluentbit.io/manual/pipeline/outputs/opentelemetry).
+
+<Aside type="caution" title="No authentication">
+  Self-hosted FuseScope needs no key or token, and the chart configures no
+  authentication on its OTLP receivers. Don't expose port 4318 to the internet without
+  a gateway in front of it.
+</Aside>
+
+## Parse the logs
+
+Fluent records often carry the app's own line as one text field. Parse it in Fluent Bit
+with a parser filter, in the collector with operators, or in FuseScope with a
+[log pipeline](/fusescope-docs/sending-data/log-pipelines/), which you build and
+preview in the UI. A pipeline is the simplest place for JSON, regex or severity
+parsing, since it doesn't need a redeploy.
+
+## Check that data arrives
+
+<Steps>
+
+1. Write a log Fluent Bit or Fluentd picks up, such as a line in a tailed file.
+2. Open the [Logs explorer](/fusescope-docs/explore/logs/) and filter by
+   `service.name`, or by `fluent.tag` if you didn't set a service name.
+3. If nothing arrives, check Fluent Bit's or Fluentd's own output for connection
+   errors, then the collector's logs for decode errors.
+
+</Steps>
+
+## Related
+
+- [Logs from files](/fusescope-docs/sending-data/logs-files/): read log files with the
+  collector instead.
+- [Kubernetes logs](/fusescope-docs/sending-data/logs-kubernetes/): pod logs with the
+  `k8s-infra` chart.
+- [OTLP endpoints](/fusescope-docs/sending-data/otlp/): addresses and ports.
+- [Log pipelines](/fusescope-docs/sending-data/log-pipelines/): parse logs in FuseScope.
+- [Logs explorer](/fusescope-docs/explore/logs/): search the logs.

@@ -1,0 +1,314 @@
+---
+title: AI Observability for Python
+description: Trace the LLM calls of a Python application with OpenTelemetry GenAI instrumentations, OpenLLMetry or OpenLIT, send them to FuseScope, and see cost, tokens and latency per model.
+---
+
+import { Aside, Steps, Tabs, TabItem } from "@astrojs/starlight/components";
+
+This page adds tracing for language model calls to a Python application, such as one
+that uses the OpenAI, Anthropic or Bedrock clients, or LangChain. The spans go to
+FuseScope over OTLP like any other trace and fill
+[AI Observability](/fusescope-docs/analyze/ai-observability/).
+
+**Use this page when** your Python service calls an LLM and you want to see each call,
+its tokens and its cost in FuseScope.
+
+## What you get
+
+- **One span per LLM call**, named after the operation and model, such as
+  `chat gpt-4o-mini`. It carries the model, the provider, the input and output token
+  counts, the finish reason, the duration and any error.
+- **Cost** per call, once the model has a price under
+  [Model pricing](/fusescope-docs/analyze/ai-observability/#model-pricing).
+- **Agent and tool spans** when you use a framework that has them, such as LangChain
+  or the OpenAI Agents SDK: one agent run becomes one trace with every model and tool
+  call in it.
+- **Prompts and responses**, only if you turn them on.
+
+## Choose an instrumentation
+
+All three options below are Apache-2.0 and export plain OpenTelemetry spans. Pick
+**one** per library: the OpenTelemetry and OpenLLMetry OpenAI packages register under
+the same name, so installing both makes the result unpredictable.
+
+| Option | Packages | Content captured by default | Best for |
+|---|---|---|---|
+| [A. OpenTelemetry GenAI](#option-a-opentelemetry-genai-instrumentations) | `opentelemetry-instrumentation-genai-*` | No | The current GenAI conventions, maintained by the OpenTelemetry project |
+| [B. OpenLLMetry](#option-b-openllmetry) | `opentelemetry-instrumentation-openai`, `-anthropic`, `-langchain`, `-bedrock`, … | Yes | Many providers, vector databases and frameworks |
+| [C. OpenLIT](#option-c-openlit) | `openlit` | Yes | One package for many libraries, with time to first token |
+
+## Option A: OpenTelemetry GenAI instrumentations
+
+The OpenTelemetry project publishes GenAI instrumentations from
+[opentelemetry-python-genai](https://github.com/open-telemetry/opentelemetry-python-genai)
+(Apache-2.0, beta, Python 3.10 or newer):
+
+| Library | Package |
+|---|---|
+| OpenAI (chat completions, Responses API, embeddings) | `opentelemetry-instrumentation-genai-openai` |
+| Anthropic | `opentelemetry-instrumentation-genai-anthropic` |
+| AWS Bedrock | `opentelemetry-instrumentation-genai-bedrock` |
+| Google Gen AI | `opentelemetry-instrumentation-google-genai` |
+| LangChain | `opentelemetry-instrumentation-genai-langchain` |
+| LlamaIndex | `opentelemetry-instrumentation-genai-llama-index` |
+| OpenAI Agents SDK | `opentelemetry-instrumentation-genai-openai-agents` |
+
+<Aside>
+  `opentelemetry-instrumentation-genai-openai` replaces
+  `opentelemetry-instrumentation-openai-v2`, which now gets security fixes only. If you
+  use the old package, uninstall it and install the new one; the
+  [changelog](https://github.com/open-telemetry/opentelemetry-python-genai/blob/main/instrumentation/opentelemetry-instrumentation-genai-openai/CHANGELOG.md)
+  lists the breaking changes.
+</Aside>
+
+They work with zero-code instrumentation: install them next to `opentelemetry-distro`
+and start your app with `opentelemetry-instrument`, which loads every installed
+instrumentation. The OpenAI one also works with OpenAI-compatible APIs reached through
+the OpenAI client, such as Azure OpenAI, Gemini, Groq, DeepSeek, Mistral or a local
+Ollama.
+
+```bash
+pip install opentelemetry-distro opentelemetry-exporter-otlp \
+  opentelemetry-instrumentation-genai-openai
+```
+
+### Prompts and responses
+
+Message content is **not** recorded by default. To record it, set
+`OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT`:
+
+| Value | Where the content goes |
+|---|---|
+| `no_content` (default) | Nowhere |
+| `span_only` | Span attributes `gen_ai.input.messages` and `gen_ai.output.messages`, shown in the Explorer's **Input** and **Output** |
+| `event_only` | Log events |
+| `span_and_event` | Both |
+
+<Aside type="caution" title="Privacy">
+  Prompts and responses often hold personal data, customer documents or secrets
+  pasted by users. Everyone who can read traces in FuseScope can read them. Leave
+  content off in production unless you need it, and scrub it in a collector if you
+  turn it on.
+</Aside>
+
+## Option B: OpenLLMetry
+
+[OpenLLMetry](https://github.com/traceloop/openllmetry) (Apache-2.0, by Traceloop)
+has instrumentations for many providers and frameworks, published on PyPI as plain
+OpenTelemetry instrumentations:
+
+| Library | Package |
+|---|---|
+| OpenAI | `opentelemetry-instrumentation-openai` |
+| Anthropic | `opentelemetry-instrumentation-anthropic` |
+| AWS Bedrock | `opentelemetry-instrumentation-bedrock` |
+| LangChain | `opentelemetry-instrumentation-langchain` |
+
+Use them with the plain OpenTelemetry SDK and `opentelemetry-instrument`, as in
+Option A. You don't need the Traceloop SDK or a Traceloop account.
+
+```bash
+pip install opentelemetry-distro opentelemetry-exporter-otlp \
+  opentelemetry-instrumentation-openai
+```
+
+OpenLLMetry **records prompts and completions by default**. Set
+`TRACELOOP_TRACE_CONTENT=false` to turn that off.
+
+## Option C: OpenLIT
+
+[OpenLIT](https://github.com/openlit/openlit) (Apache-2.0) is one package that
+instruments many LLM clients, frameworks and vector databases, and records the time
+to first token of streamed responses. It sets up its own OpenTelemetry exporter, so
+call it once at startup and run your app with plain `python`:
+
+```bash
+pip install openlit
+```
+
+```python title="app.py"
+import openlit
+
+openlit.init(
+    service_name="chat-api",
+    environment="production",
+    capture_message_content=False,
+)
+```
+
+OpenLIT sends over OTLP/HTTP and reads `OTEL_EXPORTER_OTLP_ENDPOINT`, so point it at
+port 4318. It records message content unless you pass
+`capture_message_content=False`.
+
+## Send to FuseScope
+
+The instrumentations use the standard OpenTelemetry exporter variables:
+
+```bash
+OTEL_SERVICE_NAME=chat-api
+OTEL_RESOURCE_ATTRIBUTES=deployment.environment.name=production,service.version=1.4.2
+OTEL_TRACES_EXPORTER=otlp
+OTEL_EXPORTER_OTLP_ENDPOINT=http://fusescope-collector.example.com:4318
+OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+```
+
+<Tabs>
+  <TabItem label="Direct to FuseScope">
+    From inside the Kubernetes cluster that runs FuseScope, use
+    `http://fusescope-otel-collector.fusescope.svc.cluster.local:4318`. From outside,
+    use the address you exposed, such as `https://otlp.example.com`; see
+    [From outside the cluster](/fusescope-docs/sending-data/otlp/#from-outside-the-cluster).
+    For gRPC, use port 4317 and `OTEL_EXPORTER_OTLP_PROTOCOL=grpc`.
+  </TabItem>
+  <TabItem label="Through a local collector">
+    Point the app at a collector on the same host or node, such as
+    `http://localhost:4318`, and let the collector forward to FuseScope. That is also
+    the place to drop or redact prompt content. See
+    [From another collector](/fusescope-docs/sending-data/otlp/#from-another-collector).
+  </TabItem>
+</Tabs>
+
+Self-hosted FuseScope needs no ingestion key or token header.
+
+<Aside>
+  From the release after v0.153.0, the **Environment** variable of the AI Observability
+  Overview and its quick filters read `deployment.environment.name`, and fall back to
+  `deployment.environment` on spans without it. On v0.153.0 and older they read only
+  `deployment.environment`: to filter by environment there, also add
+  `deployment.environment=production` to `OTEL_RESOURCE_ATTRIBUTES`.
+</Aside>
+
+## Example: an OpenAI chat app
+
+A complete app with Option A. You need Python 3.10 or newer and an OpenAI API key.
+
+<Steps>
+
+1. Create the app:
+
+   ```python title="main.py"
+   import os
+
+   from openai import OpenAI
+
+
+   def main():
+       client = OpenAI()
+       completion = client.chat.completions.create(
+           model=os.getenv("CHAT_MODEL", "gpt-4o-mini"),
+           messages=[
+               {"role": "user", "content": "Explain OpenTelemetry in one sentence."},
+           ],
+       )
+       print(completion.choices[0].message.content)
+
+
+   if __name__ == "__main__":
+       main()
+   ```
+
+2. Install the dependencies in a virtual environment:
+
+   ```bash
+   python3 -m venv .venv
+   source .venv/bin/activate
+   pip install openai opentelemetry-distro opentelemetry-exporter-otlp \
+     opentelemetry-instrumentation-genai-openai
+   ```
+
+3. Set the configuration:
+
+   ```bash
+   export OPENAI_API_KEY=sk-...
+   export OTEL_SERVICE_NAME=chat-demo
+   export OTEL_RESOURCE_ATTRIBUTES=deployment.environment.name=development
+   export OTEL_EXPORTER_OTLP_ENDPOINT=http://fusescope-collector.example.com:4318
+   export OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+   export OTEL_METRICS_EXPORTER=none
+   export OTEL_LOGS_EXPORTER=none
+   ```
+
+   `OTEL_METRICS_EXPORTER` and `OTEL_LOGS_EXPORTER` are `none` to keep the example to
+   traces; set them to `otlp` to also send the GenAI metrics and logs.
+
+4. Run it through the OpenTelemetry agent:
+
+   ```bash
+   opentelemetry-instrument python main.py
+   ```
+
+5. Open **Analyze › AI Observability › Explorer**. A `chat gpt-4o-mini` span from
+   `chat-demo` appears within a few seconds.
+
+</Steps>
+
+To try Option B instead, replace `opentelemetry-instrumentation-genai-openai` with
+`opentelemetry-instrumentation-openai` in step 2; the rest is the same.
+
+## Docker and Kubernetes
+
+Install the packages in your image and make `opentelemetry-instrument` the entry
+point, for example `CMD ["opentelemetry-instrument", "python", "main.py"]`, and pass
+the `OTEL_*` variables as container environment. On Kubernetes, set the same variables in the
+Deployment, pointing at the in-cluster address. See
+[Python instrumentation](/fusescope-docs/sending-data/instrumentation/python/).
+
+## Semantic conventions
+
+The OpenTelemetry
+[GenAI semantic conventions](https://github.com/open-telemetry/semantic-conventions-genai)
+are in **Development** status, so attribute names still change between versions:
+
+| What | Current name | Older names you may see |
+|---|---|---|
+| Provider | `gen_ai.provider.name` | `gen_ai.system` |
+| Input tokens | `gen_ai.usage.input_tokens` | `gen_ai.usage.prompt_tokens`, `llm.usage.prompt_tokens` |
+| Output tokens | `gen_ai.usage.output_tokens` | `gen_ai.usage.completion_tokens`, `llm.usage.completion_tokens` |
+| Model | `gen_ai.request.model` | `llm.request.model`, `llm.model_name` |
+
+The `opentelemetry-instrumentation-genai-*` packages always write the latest names.
+The older `opentelemetry-instrumentation-openai-v2` follows semantic conventions
+v1.30.0 unless you set `OTEL_SEMCONV_STABILITY_OPT_IN=gen_ai_latest_experimental`.
+OpenLLMetry still writes `gen_ai.system`.
+
+You don't need to rename anything yourself: FuseScope's
+[attribute mappings](/fusescope-docs/analyze/ai-observability/#attribute-mapping)
+copy the older names, OpenLLMetry's and OpenInference's among them, onto the current
+ones before the spans are stored.
+
+## See it in FuseScope
+
+<Steps>
+
+1. **Explorer**: open **Analyze › AI Observability › Explorer**. **Trace View** lists
+   each trace with LLM, tool or agent spans; **List View** lists the spans. Filter by
+   **Service**, **Model** or **Provider**.
+2. **Model pricing**: the cost stays `0` until the model has a price. Check
+   **Unpriced models** and add or map a price. See
+   [Model pricing](/fusescope-docs/analyze/ai-observability/#model-pricing).
+3. **Attribute Mapping**: if spans arrive but show no model or tokens, paste one in
+   **Attribute Mapping › Test** to see what FuseScope picks up.
+4. **Overview**: cost, tokens, latency and errors per model, over time.
+
+</Steps>
+
+## Troubleshooting
+
+| Symptom | Cause and fix |
+|---|---|
+| No spans at all | `opentelemetry-instrument` was not used, or the instrumentation is not installed in the same environment. Check with `pip show opentelemetry-instrumentation-genai-openai`. Set `OTEL_TRACES_EXPORTER=console` to print spans locally. |
+| Spans arrive, but not in AI Observability | They have no `gen_ai.request.model`. Check them in **Attribute Mapping › Test** and add a mapping for the names your library uses. |
+| Streaming calls have no tokens | OpenAI sends usage on a stream only when asked. Pass `stream_options={"include_usage": True}` to `chat.completions.create(..., stream=True)`. |
+| Tokens but cost `0` | The model has no price. See **Model pricing › Unpriced models**. A new price applies to new spans only. |
+| **TTFT (p95)** stays empty | The panel reads `gen_ai.server.ttft`, in seconds. From the release after v0.153.0, the shipped `gen_ai.llm` mapping fills it from `gen_ai.server.time_to_first_token` (OpenLIT) and `gen_ai.response.time_to_first_chunk` (OpenTelemetry conventions), both in seconds, so check that your instrumentation records one of them. On v0.153.0 and older, add a mapping with target `gen_ai.server.ttft` from those keys in the `gen_ai.llm` group. |
+| Two spans per call, or odd attributes | Two instrumentations for the same library are installed. Keep one. |
+
+## Related
+
+- [AI Observability](/fusescope-docs/analyze/ai-observability/): the Overview,
+  Explorer, Model pricing and Attribute Mapping tabs.
+- [AI Observability for Node.js](/fusescope-docs/analyze/ai-observability-nodejs/):
+  the same for Node.js.
+- [Python instrumentation](/fusescope-docs/sending-data/instrumentation/python/):
+  HTTP, database and framework spans for the rest of the service.
+- [OTLP](/fusescope-docs/sending-data/otlp/): endpoints and ports.

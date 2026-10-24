@@ -1,0 +1,241 @@
+---
+title: Syslog
+description: Receive syslog messages from rsyslog, syslog-ng and network devices with the OpenTelemetry Collector syslog receiver and send them to FuseScope.
+---
+
+import { Aside, Steps, Tabs, TabItem } from "@astrojs/starlight/components";
+
+Linux hosts, routers, firewalls and many appliances log over syslog. The OpenTelemetry
+Collector's `syslog` receiver listens on a TCP or UDP port, parses each message and
+sends it to FuseScope as a log. It ships in the `otelcol-contrib` distribution.
+
+**Use this page when** you want the system logs of a host, or the logs of a device that
+can only forward syslog, in FuseScope.
+
+## How it works
+
+<Steps>
+
+1. Run a collector with the `syslog` receiver, on each host or on one host that
+   receives from many. See [Collector in Docker](/fusescope-docs/sending-data/collector-docker/)
+   or [Collector on a VM](/fusescope-docs/sending-data/collector-vm/).
+2. Point rsyslog, syslog-ng or the device at the collector's port.
+3. The collector exports the logs to FuseScope over OTLP.
+
+</Steps>
+
+## Configure the collector
+
+Syslog has two formats. Use RFC 5424 when the sender supports it: it carries the year,
+the time zone and structured data. Older senders and most devices send RFC 3164.
+
+<Tabs>
+<TabItem label="RFC 5424 over TCP">
+
+```yaml title="config.yaml"
+receivers:
+  syslog:
+    tcp:
+      listen_address: 0.0.0.0:54527
+    protocol: rfc5424
+    operators:
+      - type: move
+        from: attributes.appname
+        to: resource["service.name"]
+
+processors:
+  batch: {}
+
+exporters:
+  otlphttp:
+    endpoint: http://fusescope-collector.example.com:4318
+
+service:
+  pipelines:
+    logs:
+      receivers: [syslog]
+      processors: [batch]
+      exporters: [otlphttp]
+```
+
+</TabItem>
+<TabItem label="RFC 3164 over UDP">
+
+```yaml title="config.yaml"
+receivers:
+  syslog:
+    udp:
+      listen_address: 0.0.0.0:54526
+    protocol: rfc3164
+    location: America/Sao_Paulo
+    operators:
+      - type: move
+        from: attributes.appname
+        to: resource["service.name"]
+
+processors:
+  batch: {}
+
+exporters:
+  otlphttp:
+    endpoint: http://fusescope-collector.example.com:4318
+
+service:
+  pipelines:
+    logs:
+      receivers: [syslog]
+      processors: [batch]
+      exporters: [otlphttp]
+```
+
+RFC 3164 timestamps have no time zone; `location` says which one the senders use.
+
+</TabItem>
+</Tabs>
+
+Replace `fusescope-collector.example.com` with your FuseScope collector address. See
+[OTLP endpoints](/fusescope-docs/sending-data/otlp/#from-outside-the-cluster).
+
+To receive both formats, add two receivers, such as `syslog/tcp` and `syslog/udp`, and
+list both in the pipeline.
+
+### Receiver options
+
+| Option | Default | What it does |
+|---|---|---|
+| `protocol` | required | `rfc5424` or `rfc3164`. |
+| `tcp.listen_address` | | Listen for TCP on `<ip>:<port>`, such as `0.0.0.0:54527`. |
+| `udp.listen_address` | | Listen for UDP on `<ip>:<port>`. Set one of `tcp` and `udp`; with both, only `tcp` is used. |
+| `location` | `UTC` | Time zone for RFC 3164 timestamps, such as `Europe/Berlin`. |
+| `enable_octet_counting` | `false` | Messages are framed with a length prefix (RFC 6587). RFC 5424 over TCP only. |
+| `tcp.tls` | none | `cert_file` and `key_file` to accept TLS. |
+| `resource` | `{}` | Resource attributes added to every log. |
+| `operators` | `[]` | Steps run on each log after the syslog parser. |
+
+The full list is in the
+[syslog receiver README](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/receiver/syslogreceiver/README.md).
+
+### What a log looks like
+
+The receiver keeps the raw message as the body and sets the severity from the
+message's priority. It adds the parsed parts as attributes: `appname`, `hostname`,
+`facility`, `priority`, `proc_id`, `msg_id`, `message`, and for RFC 5424 `version` and
+`structured_data`.
+
+The `move` operator in the examples makes the sending program's name, such as `sshd`
+or `nginx`, the log's `service.name`, so logs group by program in FuseScope. To put
+everything under one name instead, drop the operator and set
+`resource: {service.name: syslog}` on the receiver.
+
+## Forward from rsyslog
+
+Add a file to `/etc/rsyslog.d/` on each host that sends, then restart rsyslog with
+`sudo systemctl restart rsyslog`.
+
+<Tabs>
+<TabItem label="RFC 5424 over TCP">
+
+```text title="/etc/rsyslog.d/60-fusescope.conf"
+*.* @@otelcol.example.com:54527;RSYSLOG_SyslogProtocol23Format
+```
+
+`@@` sends over TCP; `RSYSLOG_SyslogProtocol23Format` is rsyslog's built-in RFC 5424
+template. Messages are separated by newlines, so leave `enable_octet_counting` off.
+
+</TabItem>
+<TabItem label="RFC 5424, octet counted">
+
+```text title="/etc/rsyslog.d/60-fusescope.conf"
+action(type="omfwd" target="otelcol.example.com" port="54527" protocol="tcp"
+       template="RSYSLOG_SyslogProtocol23Format" TCP_Framing="octet-counted")
+```
+
+Length-prefixed framing keeps multiline messages whole. Set
+`enable_octet_counting: true` on the receiver.
+
+</TabItem>
+<TabItem label="RFC 3164 over UDP">
+
+```text title="/etc/rsyslog.d/60-fusescope.conf"
+*.* @otelcol.example.com:54526
+```
+
+A single `@` sends over UDP in rsyslog's default RFC 3164 format. UDP can lose
+messages under load; prefer TCP when the sender supports it.
+
+</TabItem>
+</Tabs>
+
+Replace `otelcol.example.com` with the host running the collector, or `127.0.0.1` when
+it runs on the same host. Use a selector such as `auth,authpriv.*` instead of `*.*` to
+send only some facilities.
+
+## Forward from syslog-ng
+
+The `syslog()` driver sends RFC 5424 with octet counting:
+
+```text title="/etc/syslog-ng/conf.d/fusescope.conf"
+destination d_fusescope {
+  syslog("otelcol.example.com" transport("tcp") port(54527));
+};
+
+log {
+  source(s_src);
+  destination(d_fusescope);
+};
+```
+
+Set `enable_octet_counting: true` on the receiver. `s_src` is the default local source
+on Debian and Ubuntu; use the source name from your `syslog-ng.conf`.
+
+## Network devices
+
+Most routers, switches and firewalls send RFC 3164 over UDP port 514. Use the UDP
+receiver, and point the device at the collector's address and port in its syslog or
+remote-logging settings. If the device can't change the port, forward 514 to the
+collector's port, or run the collector with permission to bind ports below 1024.
+
+## Run it in Docker
+
+Publish the receiver's port. UDP ports need `/udp`, or Docker publishes TCP only:
+
+```bash
+docker run -d --name otelcol \
+  -v "$PWD/config.yaml:/etc/otelcol-contrib/config.yaml:ro" \
+  -p 54527:54527 \
+  -p 54526:54526/udp \
+  otel/opentelemetry-collector-contrib:0.139.0
+```
+
+<Aside type="caution" title="Ports below 1024">
+  The image runs as a non-root user, which can't listen on port 514. Keep the
+  receiver on a high port and publish it as 514 if needed:
+  `-p 514:54526/udp`.
+</Aside>
+
+<Aside type="caution" title="The port has no authentication">
+  Anyone who can reach the port can send logs. Bind it to a private interface, or
+  restrict it with a firewall, and use `tcp.tls` when messages cross untrusted networks.
+</Aside>
+
+## Check that data arrives
+
+<Steps>
+
+1. Send a test message from a host that forwards: `logger -t fusescope-test "hello FuseScope"`.
+2. Open the [Logs explorer](/fusescope-docs/explore/logs/) and filter by
+   `service.name = fusescope-test`.
+3. If nothing arrives, check that the port is open between the sender and the
+   collector, and look in the collector's logs for parse errors: a `protocol` or
+   `enable_octet_counting` that doesn't match the sender shows up there.
+
+</Steps>
+
+## Related
+
+- [Collector in Docker](/fusescope-docs/sending-data/collector-docker/) and
+  [Collector on a VM](/fusescope-docs/sending-data/collector-vm/): install the agent.
+- [Log pipelines](/fusescope-docs/sending-data/log-pipelines/): parse the syslog
+  `message` into fields in FuseScope.
+- [Logs from files](/fusescope-docs/sending-data/logs-files/): read log files instead.
+- [Logs explorer](/fusescope-docs/explore/logs/): search the logs.

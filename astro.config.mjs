@@ -53,11 +53,66 @@ export default defineConfig({
         {
           label: "Send data",
           items: [
-            { label: "Instrument applications", slug: "sending-data/instrumentation" },
-            { label: "OTLP endpoints", slug: "sending-data/otlp" },
-            { label: "Kubernetes", slug: "sending-data/kubernetes" },
-            { label: "Log pipelines", slug: "sending-data/log-pipelines" },
             { label: "Data source catalog", slug: "sending-data/data-source-catalog" },
+            { label: "OTLP endpoints", slug: "sending-data/otlp" },
+            {
+              label: "Instrument applications",
+              items: [
+                { label: "Overview", slug: "sending-data/instrumentation" },
+                { label: "Java", slug: "sending-data/instrumentation/java" },
+                { label: ".NET", slug: "sending-data/instrumentation/dotnet" },
+                { label: "Node.js", slug: "sending-data/instrumentation/nodejs" },
+                { label: "Python", slug: "sending-data/instrumentation/python" },
+                { label: "Go", slug: "sending-data/instrumentation/go" },
+                { label: "Ruby", slug: "sending-data/instrumentation/ruby" },
+                { label: "PHP", slug: "sending-data/instrumentation/php" },
+              ],
+            },
+            {
+              label: "Collector",
+              items: [
+                { label: "Collector on Docker", slug: "sending-data/collector-docker" },
+                { label: "Collector on a VM", slug: "sending-data/collector-vm" },
+              ],
+            },
+            {
+              label: "Infrastructure",
+              items: [
+                { label: "Kubernetes", slug: "sending-data/kubernetes" },
+                { label: "Hosts", slug: "sending-data/hosts" },
+                { label: "Prometheus metrics", slug: "sending-data/prometheus" },
+              ],
+            },
+            {
+              label: "Logs",
+              items: [
+                { label: "Logs from files", slug: "sending-data/logs-files" },
+                { label: "Kubernetes logs", slug: "sending-data/logs-kubernetes" },
+                { label: "Syslog", slug: "sending-data/logs-syslog" },
+                { label: "Fluent Bit and Fluentd", slug: "sending-data/logs-fluent" },
+                { label: "Log pipelines", slug: "sending-data/log-pipelines" },
+              ],
+            },
+            {
+              label: "Integrations",
+              items: [
+                { label: "Overview", slug: "sending-data/integrations" },
+                { label: "ClickHouse", slug: "sending-data/integrations/clickhouse" },
+                { label: "MongoDB", slug: "sending-data/integrations/mongodb" },
+                { label: "Nginx", slug: "sending-data/integrations/nginx" },
+                { label: "PostgreSQL", slug: "sending-data/integrations/postgresql" },
+                { label: "Redis", slug: "sending-data/integrations/redis" },
+                { label: "AWS RDS MySQL", slug: "sending-data/integrations/aws-rds-mysql" },
+                {
+                  label: "AWS RDS PostgreSQL",
+                  slug: "sending-data/integrations/aws-rds-postgresql",
+                },
+                {
+                  label: "AWS ElastiCache Redis",
+                  slug: "sending-data/integrations/aws-elasticache-redis",
+                },
+              ],
+            },
           ],
         },
         {
@@ -119,7 +174,14 @@ export default defineConfig({
           items: [
             { label: "External APIs", slug: "analyze/external-apis" },
             { label: "Messaging Queues", slug: "analyze/messaging-queues" },
-            { label: "AI Observability", slug: "analyze/ai-observability" },
+            {
+              label: "AI Observability",
+              items: [
+                { label: "Overview", slug: "analyze/ai-observability" },
+                { label: "Set up Python", slug: "analyze/ai-observability-python" },
+                { label: "Set up Node.js", slug: "analyze/ai-observability-nodejs" },
+              ],
+            },
             { label: "Cost Meter", slug: "analyze/cost-meter" },
           ],
         },

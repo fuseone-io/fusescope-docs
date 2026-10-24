@@ -1,0 +1,248 @@
+---
+title: .NET
+description: Send traces, metrics and logs from a .NET or .NET Framework application to FuseScope with OpenTelemetry automatic instrumentation.
+---
+
+import { Aside, Steps, Tabs, TabItem } from "@astrojs/starlight/components";
+
+[OpenTelemetry .NET automatic instrumentation](https://opentelemetry.io/docs/zero-code/dotnet/)
+loads into the runtime through a profiler and instruments ASP.NET Core, `HttpClient`,
+SQL clients, gRPC and
+[other libraries](https://opentelemetry.io/docs/zero-code/dotnet/instrumentations/)
+without code changes.
+
+**Use this page when** you run a .NET or .NET Framework service and want it in FuseScope.
+
+| Signal | Status | What is sent |
+|---|---|---|
+| Traces | Stable | Spans for requests, HTTP calls, database and messaging. |
+| Metrics | Stable | Runtime, ASP.NET Core and `HttpClient` metrics. |
+| Logs | Stable (SDK) | `ILogger`, log4net and NLog records with trace IDs. The log instrumentations in the agent are marked experimental. |
+
+## Prerequisites
+
+- Any .NET version Microsoft still supports, or .NET Framework 4.6.2 or later.
+- x64 or ARM64 (ARM64 is experimental). Linux (glibc and Alpine/musl), macOS or Windows.
+- Linux and macOS: `curl`; the default installer also uses the GitHub CLI (`gh`) to verify the
+  download. macOS needs `coreutils`.
+
+## Install and run
+
+<Tabs>
+  <TabItem label="Linux and macOS">
+
+<Steps>
+
+1. Download and run the installer. It puts the files in `$HOME/.otel-dotnet-auto`:
+
+   ```bash
+   version="v1.17.0"
+   curl -sSfL -o otel-dotnet-auto-install.sh \
+     "https://github.com/open-telemetry/opentelemetry-dotnet-instrumentation/releases/download/$version/otel-dotnet-auto-install.sh"
+   VERSION="$version" sh ./otel-dotnet-auto-install.sh
+   ```
+
+   The script verifies the release with `gh`. The
+   [upstream guide](https://opentelemetry.io/docs/zero-code/dotnet/#setup) shows the full
+   verification steps.
+
+2. Load the instrumentation into the current shell:
+
+   ```bash
+   chmod +x $HOME/.otel-dotnet-auto/instrument.sh
+   . $HOME/.otel-dotnet-auto/instrument.sh
+   ```
+
+3. Configure and run your app from the same shell:
+
+   ```bash
+   export OTEL_SERVICE_NAME=checkout
+   export OTEL_RESOURCE_ATTRIBUTES=deployment.environment.name=production,service.version=1.4.2
+   export OTEL_EXPORTER_OTLP_ENDPOINT=http://fusescope-collector.example.com:4318
+   export OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+   ./Checkout
+   ```
+
+</Steps>
+
+  </TabItem>
+  <TabItem label="Windows">
+
+Run **Windows PowerShell 5.1 as Administrator** (PowerShell 7 is not supported by the
+module).
+
+<Steps>
+
+1. Download and import the module, then install the core files:
+
+   ```powershell
+   $version = "v1.17.0"
+   $module = Join-Path $env:TEMP "OpenTelemetry.DotNet.Auto.psm1"
+   Invoke-WebRequest -Uri "https://github.com/open-telemetry/opentelemetry-dotnet-instrumentation/releases/download/$version/OpenTelemetry.DotNet.Auto.psm1" -OutFile $module -UseBasicParsing
+   Import-Module $module
+   Install-OpenTelemetryCore
+   ```
+
+2. Configure, then register the instrumentation for the target:
+
+   ```powershell
+   $env:OTEL_RESOURCE_ATTRIBUTES = "deployment.environment.name=production"
+   $env:OTEL_EXPORTER_OTLP_ENDPOINT = "http://fusescope-collector.example.com:4318"
+   $env:OTEL_EXPORTER_OTLP_PROTOCOL = "http/protobuf"
+
+   # A console app or Kestrel started from this session
+   Register-OpenTelemetryForCurrentSession -OTelServiceName "checkout"
+   .\Checkout.exe
+   ```
+
+   For a Windows service, use
+   `Register-OpenTelemetryForWindowsService -WindowsServiceName "Checkout" -OTelServiceName "checkout"`.
+   For ASP.NET on IIS (.NET Framework), use `Register-OpenTelemetryForIIS`. Both restart
+   the service or IIS.
+
+</Steps>
+
+  </TabItem>
+</Tabs>
+
+Traces, metrics and logs are all exported over OTLP by default.
+
+<Aside>
+  Automatic instrumentation defaults to `http/protobuf` on port 4318, while the plain .NET
+  SDK defaults to `grpc`. To use `grpc`, a .NET 8+ app must reference `Grpc.Net.Client`;
+  .NET Framework does not support `grpc` at all.
+</Aside>
+
+See the [configuration reference](https://opentelemetry.io/docs/zero-code/dotnet/configuration/)
+for every setting.
+
+## Send to FuseScope
+
+<Tabs>
+  <TabItem label="Direct (gRPC 4317)">
+
+```bash
+OTEL_EXPORTER_OTLP_ENDPOINT=http://fusescope-collector.example.com:4317
+OTEL_EXPORTER_OTLP_PROTOCOL=grpc
+```
+
+Needs .NET 8+ and a reference to `Grpc.Net.Client`.
+
+  </TabItem>
+  <TabItem label="Direct (HTTP 4318)">
+
+```bash
+OTEL_EXPORTER_OTLP_ENDPOINT=http://fusescope-collector.example.com:4318
+OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+```
+
+Behind the chart ingress, use `https://otlp.example.com`. See
+[from outside the cluster](/fusescope-docs/sending-data/otlp/#from-outside-the-cluster).
+
+  </TabItem>
+  <TabItem label="Through a local collector">
+
+```bash
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
+OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+```
+
+Run the collector with [Docker](/fusescope-docs/sending-data/collector-docker/), on a
+[VM](/fusescope-docs/sending-data/collector-vm/) or in
+[Kubernetes](/fusescope-docs/sending-data/kubernetes/).
+
+  </TabItem>
+</Tabs>
+
+## Docker
+
+Install the instrumentation in the image and start the app through `instrument.sh`:
+
+```dockerfile title="Dockerfile"
+FROM mcr.microsoft.com/dotnet/aspnet:8.0
+ARG OTEL_VERSION=v1.17.0
+RUN apt-get update && apt-get install -y --no-install-recommends curl unzip ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
+ENV OTEL_DOTNET_AUTO_HOME=/otel-dotnet-auto
+RUN curl -sSfL -o /tmp/install.sh \
+      "https://github.com/open-telemetry/opentelemetry-dotnet-instrumentation/releases/download/${OTEL_VERSION}/otel-dotnet-auto-install.sh" \
+ && SKIP_RELEASE_VERIFICATION=true VERSION="${OTEL_VERSION}" sh /tmp/install.sh \
+ && rm /tmp/install.sh
+WORKDIR /app
+COPY publish/ .
+ENTRYPOINT ["/bin/sh", "-c", ". $OTEL_DOTNET_AUTO_HOME/instrument.sh && exec dotnet Checkout.dll"]
+```
+
+`SKIP_RELEASE_VERIFICATION=true` skips the `gh` check, since the image has no GitHub CLI.
+Verify the script yourself, or download it in a separate build stage that has `gh`.
+
+```bash
+docker run \
+  -e OTEL_SERVICE_NAME=checkout \
+  -e OTEL_RESOURCE_ATTRIBUTES=deployment.environment.name=production \
+  -e OTEL_EXPORTER_OTLP_ENDPOINT=http://fusescope-collector.example.com:4318 \
+  -e OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf \
+  checkout:latest
+```
+
+## Kubernetes
+
+Set the variables in the pod spec. The downward API adds the pod name and namespace:
+
+```yaml title="deployment.yaml"
+env:
+  - name: OTEL_SERVICE_NAME
+    value: checkout
+  - name: OTEL_EXPORTER_OTLP_ENDPOINT
+    value: http://fusescope-otel-collector.fusescope.svc.cluster.local:4318
+  - name: OTEL_EXPORTER_OTLP_PROTOCOL
+    value: http/protobuf
+  - name: K8S_POD_NAME
+    valueFrom:
+      fieldRef:
+        fieldPath: metadata.name
+  - name: K8S_NAMESPACE_NAME
+    valueFrom:
+      fieldRef:
+        fieldPath: metadata.namespace
+  - name: OTEL_RESOURCE_ATTRIBUTES
+    value: deployment.environment.name=production,k8s.pod.name=$(K8S_POD_NAME),k8s.namespace.name=$(K8S_NAMESPACE_NAME)
+```
+
+`$(VAR)` only expands variables defined earlier in the list, so keep
+`OTEL_RESOURCE_ATTRIBUTES` last.
+
+## Logs
+
+Logs written through `ILogger` (`Microsoft.Extensions.Logging`) are exported over OTLP with
+`TraceId` and `SpanId` attached. log4net and NLog are bridged the same way.
+
+| Library | Versions | Notes |
+|---|---|---|
+| `Microsoft.Extensions.Logging` | 8.0 up to 12.0 | Not on .NET Framework. |
+| log4net | 2.0.13 up to 4.0 | Exports and injects trace context. |
+| NLog | 5.0 up to 7.0 | Exports and injects trace context. |
+
+To include the formatted message rather than only the template, set
+`OTEL_DOTNET_AUTO_LOGS_INCLUDE_FORMATTED_MESSAGE=true`. To stop exporting logs, set
+`OTEL_LOGS_EXPORTER=none`, for example when a collector already reads them from stdout.
+
+## Check that data arrives
+
+1. Send a few requests to the service.
+2. Open [Services](/fusescope-docs/apm/services/). The service appears under its
+   `OTEL_SERVICE_NAME` within a minute.
+3. Open the [Traces explorer](/fusescope-docs/explore/traces/) and filter by
+   `service.name`.
+
+Nothing arrives? Check that `instrument.sh` was sourced in the same shell (or
+`Register-OpenTelemetry…` ran), and that the endpoint and protocol match. The agent writes
+its own logs to `/var/log/opentelemetry/dotnet` on Linux and
+`%ProgramData%\OpenTelemetry .NET AutoInstrumentation\logs` on Windows.
+
+## Related
+
+- [Instrument applications](/fusescope-docs/sending-data/instrumentation/)
+- [OTLP](/fusescope-docs/sending-data/otlp/)
+- [.NET automatic instrumentation](https://opentelemetry.io/docs/zero-code/dotnet/)
+- [Logs explorer](/fusescope-docs/explore/logs/)

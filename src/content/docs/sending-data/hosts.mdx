@@ -1,0 +1,229 @@
+---
+title: Hosts
+description: Send CPU, memory, disk, file system and network metrics from Linux servers and VMs to fill the Hosts tab of the Infrastructure page.
+---
+
+import { Aside, Tabs, TabItem } from "@astrojs/starlight/components";
+
+The **Hosts** tab of [Infrastructure](/fusescope-docs/observe/infrastructure/#hosts)
+lists your machines with their CPU, memory, disk and load. That data comes from the
+OpenTelemetry Collector's `hostmetrics` receiver, running on each machine, plus the
+`resourcedetection` processor, which names the machine.
+
+**Use this page when** the Hosts tab says **No host metrics yet**, an
+[instrumentation check](/fusescope-docs/observe/infrastructure/#instrumentation-checks)
+reports missing host metrics or `host.name`, or you add a new server or VM.
+
+On Kubernetes you don't need this page: the `k8s-infra` chart already runs the
+receiver on every node. See
+[hostmetrics receiver](/fusescope-docs/sending-data/kubernetes/#hostmetrics-receiver).
+
+## What the Hosts tab needs
+
+| Data | Produced by | Used for |
+|---|---|---|
+| `system.cpu.time` | `hostmetrics` `cpu` scraper | **CPU usage** and **Iowait** columns |
+| `system.memory.usage` | `memory` scraper | **Memory usage** column |
+| `system.cpu.load_average.15m` | `load` scraper | **Load avg (15min)** column |
+| `system.filesystem.usage` | `filesystem` scraper | **Disk usage** column |
+| `host.name` resource attribute | `resourcedetection` processor | One row per host; without it the list is empty |
+| `os.type` resource attribute | `resourcedetection` (`system` detector) | **OS Type** filter |
+
+These four metrics and `host.name` are what the instrumentation checks on the Hosts
+tab look for.
+
+The host's details panel draws more charts from the same receiver:
+
+| Charts | Metrics | Scraper |
+|---|---|---|
+| System load average | `system.cpu.load_average.1m`, `.5m`, `.15m` | `load` |
+| Disk IO, operations, operation time, queue size | `system.disk.io`, `system.disk.operations`, `system.disk.operation_time`, `system.disk.pending_operations` | `disk` |
+| Network usage, packets, errors, drops, connections | `system.network.io`, `system.network.packets`, `system.network.errors`, `system.network.dropped`, `system.network.connections` | `network` |
+
+Process metrics are optional. FuseScope's processes check looks for
+`process.cpu.time` and `process.memory.usage` with the `process.pid` resource
+attribute, from the `process` scraper. The host panel has no processes view yet;
+chart them in [Metrics](/fusescope-docs/explore/metrics/).
+
+## The config
+
+Add this to the collector on the machine. It extends the base config from
+[Collector on a VM](/fusescope-docs/sending-data/collector-vm/) or
+[Collector on Docker](/fusescope-docs/sending-data/collector-docker/): keep your
+`otlp` receiver, exporter and other pipelines.
+
+```yaml title="config.yaml"
+receivers:
+  hostmetrics:
+    collection_interval: 30s
+    scrapers:
+      cpu: {}
+      memory: {}
+      load: {}
+      filesystem: {}
+      disk: {}
+      network: {}
+
+processors:
+  resourcedetection:
+    detectors: [env, system]
+    system:
+      hostname_sources: [os]
+  memory_limiter:
+    check_interval: 1s
+    limit_percentage: 80
+    spike_limit_percentage: 25
+  batch: {}
+
+exporters:
+  otlphttp:
+    endpoint: http://fusescope-collector.example.com:4318
+
+service:
+  pipelines:
+    metrics/host:
+      receivers: [hostmetrics]
+      processors: [memory_limiter, resourcedetection, batch]
+      exporters: [otlphttp]
+```
+
+- `hostname_sources: [os]` sets `host.name` to the machine's hostname. The default,
+  `[dns, os]`, may use a fully qualified DNS name instead.
+- `env` reads `OTEL_RESOURCE_ATTRIBUTES` from the collector's environment and runs
+  first, so a value there wins, for example
+  `OTEL_RESOURCE_ATTRIBUTES=host.name=web-1,deployment.environment.name=production`.
+- To also tag app traces and logs with `host.name`, add `resourcedetection` to those
+  pipelines too. Traces in the host panel are matched by `host.name`.
+
+### On a cloud VM
+
+Cloud detectors add the instance's region, zone and ID, and on most clouds a
+`host.name` of their own. Add the one for your cloud:
+
+```yaml
+processors:
+  resourcedetection:
+    detectors: [env, ec2, system]   # or gcp, azure
+    system:
+      hostname_sources: [os]
+```
+
+When several detectors set the same attribute, the first one in the list wins. Put
+`system` before the cloud detector if you want the OS hostname as `host.name`.
+
+### Optional metrics
+
+`system.cpu.utilization` and `system.memory.utilization` (0 to 1) are off by default.
+The Hosts tab doesn't need them; turn them on if your own dashboards or alerts use
+them:
+
+```yaml
+receivers:
+  hostmetrics:
+    scrapers:
+      cpu:
+        metrics:
+          system.cpu.utilization:
+            enabled: true
+      memory:
+        metrics:
+          system.memory.utilization:
+            enabled: true
+```
+
+### Process metrics
+
+The `process` scraper sends one series per process, which adds many series on a busy
+machine. Without root it can't read other users' processes, and logs an error for each
+one. Mute those errors:
+
+```yaml
+receivers:
+  hostmetrics:
+    scrapers:
+      process:
+        mute_process_name_error: true
+        mute_process_exe_error: true
+        mute_process_io_error: true
+        mute_process_user_error: true
+        mute_process_cgroup_error: true
+```
+
+`mute_process_all_errors: true` mutes them all at once. Use `include` or `exclude`
+with `names` to limit which processes are scraped.
+
+## Run it
+
+<Tabs syncKey="host-runtime">
+<TabItem label="VM / bare metal">
+
+Install `otelcol-contrib` as in [Collector on a VM](/fusescope-docs/sending-data/collector-vm/),
+add the config above to `/etc/otelcol-contrib/config.yaml`, then:
+
+```bash
+sudo systemctl restart otelcol-contrib
+sudo journalctl -u otelcol-contrib -f
+```
+
+The receiver reads `/proc` and `/sys` directly; no `root_path` is needed.
+
+</TabItem>
+<TabItem label="Docker">
+
+A container sees its own file systems and network, not the host's. Mount the host's
+root file system read-only, tell the receiver where it is, and share the host network:
+
+```yaml title="config.yaml"
+receivers:
+  hostmetrics:
+    root_path: /hostfs
+    collection_interval: 30s
+    scrapers:
+      cpu: {}
+      memory: {}
+      load: {}
+      filesystem: {}
+      disk: {}
+      network: {}
+```
+
+```bash
+docker run -d --name otel-collector \
+  --net host \
+  -v /:/hostfs:ro \
+  -v "$(pwd)/config.yaml:/etc/otelcol-contrib/config.yaml:ro" \
+  otel/opentelemetry-collector-contrib:0.139.0
+```
+
+| Flag | Why |
+|---|---|
+| `-v /:/hostfs:ro` + `root_path: /hostfs` | The receiver reads the host's `/proc`, `/sys` and mounts. |
+| `--net host` | Without it, the `network` scraper reports the container's interfaces. It also makes the container's hostname the host's, so `host.name` is right. Ports are then the host's own: no `-p` flags. |
+| `--pid host --user 0:0` | Only for the `process` scraper: shows the host's processes and lets the collector read them. |
+
+Without `--net host`, set `host.name` yourself:
+`-e OTEL_RESOURCE_ATTRIBUTES=host.name=$(hostname)`.
+
+</TabItem>
+</Tabs>
+
+<Aside title="Linux only">
+  `root_path` and these Docker flags are for Linux hosts. Docker Desktop on macOS or
+  Windows runs containers in a VM, so a container there reports the VM, not your
+  computer.
+</Aside>
+
+## Check that it works
+
+1. Look for errors in the collector logs, such as `failed to read` from a scraper.
+2. Open **Infrastructure › Hosts**. The host appears with **Active** status within a
+   few collection intervals. Click **Recheck** on the instrumentation checks.
+3. If the host is missing but metrics arrive, search for `system.cpu.time` in
+   [Metrics](/fusescope-docs/explore/metrics/) and check that it has `host.name`.
+
+## Related
+
+- [Infrastructure](/fusescope-docs/observe/infrastructure/)
+- [Collector on a VM](/fusescope-docs/sending-data/collector-vm/)
+- [Collector on Docker](/fusescope-docs/sending-data/collector-docker/)
+- [Kubernetes](/fusescope-docs/sending-data/kubernetes/)
