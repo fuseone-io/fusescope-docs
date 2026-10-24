@@ -84,8 +84,10 @@ The Overview shows `0` and **No data in this time range** in the meantime.
    every panel, like [dashboard variables](/fusescope-docs/dashboards/variables/).
 2. to 7. **KPIs**: **Total cost**, **Total tokens** (input plus output), **LLM calls**
    (spans with `gen_ai.request.model`), **LLM latency (p95)**, **LLM error rate** and
-   **TTFT (p95)**. TTFT needs the `gen_ai.server.ttft` attribute, which streaming
-   instrumentations such as OpenLIT record.
+   **TTFT (p95)**. TTFT reads `gen_ai.server.ttft`, in seconds. From the release after
+   v0.153.0, attribute mapping fills it from `gen_ai.server.time_to_first_token`
+   (OpenLIT) and `gen_ai.response.time_to_first_chunk` (OpenTelemetry conventions); on
+   older versions, map those keys onto it yourself.
 8. Sections you can fold:
 
 | Section | Panels |
@@ -117,7 +119,9 @@ The Overview shows `0` and **No data in this time range** in the meantime.
 4. **Table**: aggregated numbers grouped by attributes.
 
 The quick filters above the list (**Environment**, **Operation**, **Provider**,
-**Model**, **Service**, **Tool**, **Agent**) narrow it with one click.
+**Model**, **Service**, **Tool**, **Agent**) narrow it with one click. From the release
+after v0.153.0, **Environment** reads `deployment.environment.name`, and
+**Environment (legacy)** reads `deployment.environment` for older SDKs.
 
 ## Model pricing
 
