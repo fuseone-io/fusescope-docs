@@ -65,23 +65,108 @@ changes its default, and the table TTL deletes each row after that many days.
 
 ## Cold storage
 
-ClickHouse can move older data to S3 or GCS before deleting it. Enable it in the Helm
-chart, which adds an object storage disk and a `tiered` storage policy:
+ClickHouse can keep data older than a few days in an object storage bucket instead of on its
+local disk. That data stays queryable and is deleted at the end of the total retention period,
+like local data. Bucket storage costs a fraction of a block volume: with 30 to 90 days of
+retention, storage spend drops by about 40 to 65 %.
+
+### Recommended layout
+
+For any install that keeps more than 7 days, keep **7 days on the local disk and the rest of
+retention on object storage**. Metrics are small and read over long ranges by dashboards, so
+leave their whole retention local unless you have a reason to move them.
+
+| Signal | Total retention | Move to object storage |
+|---|---|---|
+| Logs | e.g. 30 days | 7 days |
+| Traces | e.g. 30 days | 7 days |
+| Metrics | e.g. 90 days | not set |
+
+### Supported object stores
+
+| Store | Chart values | Authentication |
+|---|---|---|
+| AWS S3 | `type: s3` | Keys from a Kubernetes Secret, or an IAM role (IRSA) with `role.enabled` |
+| Google Cloud Storage | `type: gcs` (S3-compatible XML API) | HMAC keys of a service account (*Cloud Storage → Settings → Interoperability*). Workload identity is not supported |
+| MinIO, Cloudflare R2, Backblaze B2, Wasabi, Ceph RGW | `type: s3` with the provider endpoint | Keys from a Kubernetes Secret |
+| Azure Blob Storage | Not supported yet | |
+
+### Enable it in the Helm chart
+
+Turn on `clickhouse.coldStorage` (chart 0.154.1 or later). The chart adds a disk for the
+bucket, a filesystem cache in front of it on the ClickHouse data volume, and a storage policy
+`tiered` with the volumes `default` (local) and `s3` (the bucket). Rendering fails if
+`endpoint` or credentials are missing.
+
+With keys in an existing Secret:
 
 ```yaml
 clickhouse:
   coldStorage:
     enabled: true
     type: s3
-    endpoint: https://<bucket-name>.s3-<region>.amazonaws.com/data/
-    accessKey: <access-key-id>
-    secretAccess: <secret-access-key>
+    endpoint: https://<bucket>.s3.<region>.amazonaws.com/data/
+    region: <region>
+    existingSecret: fusescope-cold-storage # keys accessKey and secretAccess
+    cache:
+      maxSize: 50Gi
 ```
 
-On AWS, set `clickhouse.coldStorage.role.enabled: true` and the role annotation instead of
-keys to use an IAM role. For GCS, set `type: gcs` and
-`endpoint: https://storage.googleapis.com/<bucket-name>/data/`.
+```sh
+kubectl -n platform create secret generic fusescope-cold-storage \
+  --from-literal=accessKey=<access-key-id> \
+  --from-literal=secretAccess=<secret-access-key>
+```
 
-When ClickHouse has such a disk, each signal gets a **Move to S3** field: data older than
-that period moves to object storage, and is deleted at the end of the total retention
-period. It must be shorter than the total retention period.
+The keys reach ClickHouse as environment variables, never in its configuration files.
+Instead of `existingSecret`, you can set `accessKey` and `secretAccess` and let the chart
+create the Secret; `secretKeys` renames the keys it reads.
+
+- **IAM role (EKS).** Set `role.enabled: true` and
+  `role.annotations: { eks.amazonaws.com/role-arn: arn:aws:iam::<account>:role/<role> }`
+  instead of keys. The role needs read, write, list and delete on the bucket prefix.
+- **GCS.** Set `type: gcs`, `endpoint: https://storage.googleapis.com/<bucket>/data/` and
+  HMAC keys.
+- **S3-compatible stores.** Keep `type: s3` and set the provider endpoint, e.g.
+  `https://minio.example.com/<bucket>/data/`.
+- **External ClickHouse.** With `externalClickhouse`, define the storage policy yourself with
+  the same names, policy `tiered` and volume `s3`: FuseScope depends on them.
+
+### Set the move period
+
+When ClickHouse has an object storage disk, each signal's **Move to object storage** field is
+enabled: data older than that period moves to the bucket. It must be shorter than the total
+retention period. Without such a disk the field is disabled. Logs accept days; metrics and
+traces accept hours, days or months.
+
+Setting a move period does not move parts already on disk right away; they move as ClickHouse
+merges them. Logs written before a move period was first set are an exception for now: they
+have no move period recorded and go to the bucket at their next merge, whatever their age. A
+backend fix is in progress.
+
+### Sizing
+
+- **Cache.** Set `clickhouse.coldStorage.cache.maxSize` to the larger of 10 % of the cold data
+  and 2 days of compressed ingest. The default is `50Gi`.
+- **Local volume.** Size `clickhouse.persistence.size` for hot data + cache + about 1 % of
+  the cold data, which ClickHouse keeps locally as metadata.
+- **Replicas.** Each replica uploads and stores its own copy; zero-copy replication stays off.
+  Two replicas mean twice the bucket storage.
+
+### What to expect
+
+- **Latency.** The first query on cold data takes up to about a second, mostly per-request
+  latency to the bucket. Repeats are served from the cache and are close to local. After a
+  restart or a cache eviction the first queries are slow again.
+- **Late data.** The collector accepts rows up to 15 days old. Rows older than the move period
+  land as small parts that are moved to the bucket and never merged there, so watch the
+  number of cold parts if senders deliver late.
+
+<Aside type="caution">
+  - Use a **dedicated bucket or prefix with no lifecycle rules** and no other writers.
+    Deleting objects behind ClickHouse corrupts its parts; ClickHouse deletes cold data itself
+    when retention ends.
+  - **Backups and snapshots of the local volume don't contain cold data.** Back up the bucket
+    separately if you need it.
+  - On AWS, reach S3 through a **gateway VPC endpoint** to avoid NAT gateway data charges.
+</Aside>

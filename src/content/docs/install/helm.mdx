@@ -96,7 +96,7 @@ With the release named `fusescope`, the chart creates these services:
 | `global.storageClass` | `null` | Storage class for every PVC. `null` uses the cluster default. |
 | `clickhouse.persistence.size` | `20Gi` | ClickHouse data volume. |
 | `clickhouse.layout.shardsCount` / `replicasCount` | `1` / `1` | ClickHouse cluster layout. |
-| `clickhouse.coldStorage.enabled` | `false` | Move older data to S3 or GCS (`type`, `endpoint`, `accessKey`, `secretAccess`). |
+| `clickhouse.coldStorage.enabled` | `false` | Keep data older than each signal's move period in S3, GCS or an S3-compatible bucket. Recommended for production installs that keep more than 7 days; see [cold storage](/fusescope-docs/administration/retention/#cold-storage). |
 | `clickhouse.enabled` | `true` | Set to `false` and fill `externalClickhouse.*` to use an existing ClickHouse. |
 | `postgresql.enabled` | `false` | Deploy PostgreSQL and use it as the [metadata store](/fusescope-docs/configuration/metadata-store/). |
 | `signoz.replicaCount` | `1` | Backend replicas. Use more than one only with PostgreSQL. |
