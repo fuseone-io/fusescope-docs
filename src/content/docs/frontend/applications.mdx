@@ -1,6 +1,6 @@
 ---
 title: Applications and Overview
-description: A tour of the Frontend screens. The applications list with sessions, error rate, Web Vitals and SDK, and an application's overview with vitals, top routes by LCP, recent errors and recent sessions linked to their backend traces, and the Views, Errors and Sessions tabs.
+description: A tour of the Frontend screens. The applications list with sessions, error rate, Web Vitals and SDK, the platform with its allowed origins or package names, and an application's overview with vitals, top routes by LCP, recent errors and recent sessions linked to their backend traces, and the Views, Errors and Sessions tabs.
 ---
 
 import { Aside, Steps } from "@astrojs/starlight/components";
@@ -28,31 +28,58 @@ All numbers follow the time range at the top right, **Last 30 minutes** by defau
 1. **Count line**: how many applications there are and how many sessions they had in
    the range.
 2. **New application**: create one; see
-   [Set up a web application](/fusescope-docs/frontend/set-up-web/). **SDK docs** opens
-   the SDK's README.
+   [Set up a web application](/fusescope-docs/frontend/set-up-web/) or
+   [Set up an Android application](/fusescope-docs/frontend/set-up-android/). **SDK docs**
+   opens the SDK's README.
 3. **KPI strip**, over every application:
    - **Applications**, with how many are web and mobile;
    - **Sessions**;
-   - **Session error rate**: the share of sessions with at least one JavaScript error;
+   - **Session error rate**: the share of sessions with at least one error;
    - **Good LCP**: the share of page loads with an LCP of 2.5 s or less;
    - **Outdated SDKs**: applications whose latest data came from an SDK version this
      server no longer supports, or **All supported**.
-4. **Search applications** by name, and filter by **platform** (Android and iOS are
-   coming soon) and **Environment**.
+4. **Search applications** by name, and filter by **platform** and **Environment**. In
+   this release the platform filter still marks Android as coming soon, so it can't
+   select Android applications; search by name instead.
 5. **Application**: its name, platform and environment. Click the row to open its
    [overview](#the-overview).
 6. **Sessions** and **Error rate**, with the change from the previous period of the
    same length.
 7. **LCP p75**, **INP p75** and **CLS p75**, each rated **Good**, **Needs work** or
    **Poor**. See [Web Vitals in plain words](/fusescope-docs/frontend/real-user-monitoring/#web-vitals-in-plain-words).
-8. **SDK**: the version of `@fusescope/browser` the application last reported, and its
-   support badge: **Supported**, **Outdated** (data is still accepted) or
+8. **SDK**: the SDK and version the application last reported, such as
+   `@fusescope/browser` or `io.fuseone.fusescope:android`, and its support badge: **Supported**, **Outdated** (data is still accepted) or
    **Other client** for another OpenTelemetry SDK. **Last seen** shows recent activity
    and when the last data arrived, or **No data yet**.
 9. **Settings** opens the application's sheet: **Settings**, **Public key**,
-   **Install** and [Source maps](/fusescope-docs/frontend/source-maps/#the-source-maps-tab).
+   **Install** and [Source maps](/fusescope-docs/frontend/source-maps/#the-source-maps-tab),
+   or [R8 mappings](/fusescope-docs/frontend/r8-mappings/#the-r8-mappings-tab) for an
+   Android application.
 10. **Supported SDK**: the SDK this server is tested with. Any OTLP client is
     accepted.
+
+## Platform and allowed sources
+
+Each application has a **platform**, **Web** or **Android**, chosen when you create it
+and fixed afterwards. iOS is shown as coming soon. The platform decides who may send data
+with the application's key, which the gateway checks on every request:
+
+| Platform | Allowed | Matched against | Examples |
+|---|---|---|---|
+| **Web** | **Allowed origins** | the browser's `Origin` header | `https://shop.example.com`, `https://*.example.com`, `*` |
+| **Android** | **Allowed package names** | the `app.package.name` resource attribute, the app's `applicationId` | `com.example.shop`, `com.example.shop.*`, `*` |
+
+- A wildcard entry such as `com.example.shop.*` matches sub-packages, such as
+  `com.example.shop.debug`, never `com.example.shop` itself.
+- An Android application refuses requests that carry an `Origin` header, or whose
+  package is missing or not allowed. A web application can't have package names, nor an
+  Android one origins.
+- Both lists are **server** settings: a change applies when you save, without a new app
+  build.
+
+The other settings, sampling, consent and privacy, are the same for both platforms; see
+[Set up a web application](/fusescope-docs/frontend/set-up-web/#create-the-application)
+and [Set up an Android application](/fusescope-docs/frontend/set-up-android/#create-the-application).
 
 ## The overview
 
@@ -63,9 +90,9 @@ narrowed to release `1.0.0`:
 
 ### Header
 
-1. **Badges**: the platform (**Web**), the environment and the release, which is the
-   `version` your app passes to `init()`: the latest one, or the one selected in
-   **Release**.
+1. **Badges**: the platform (**Web** or **Android**), the environment and the release,
+   which is the `version` your app passes to `init()` (on Android, the `release`, by
+   default the `versionName`): the latest one, or the one selected in **Release**.
 2. **SDK badge**: the SDK and version last seen, such as
    `@fusescope/browser 0.2.0-beta.0 · Supported`.
 3. **Create alert** starts an alert rule from a frontend template: LCP p75, session error
@@ -93,6 +120,14 @@ narrowed to release `1.0.0`:
    under the strip says how many page loads the vitals come from, and the thresholds for
    good.
 
+<Aside>
+  For an Android application, the LCP, INP and CLS tiles and **Top routes by LCP** stay
+  empty: those are browser measures. Android's `app_start` vital is not charted on the
+  Frontend screens yet; find it in the [Logs explorer](/fusescope-docs/explore/logs/)
+  with `event.name = rum.vital`, its value in `fusescope.rum.vital.value` (ms) and its
+  kind in `start.type` (`cold`, `warm` or `hot`).
+</Aside>
+
 ### Panels
 
 10. **Top routes by LCP**: one row per route template where pages were loaded, slowest
@@ -101,7 +136,7 @@ narrowed to release `1.0.0`:
     single-page app that is always entered through `/` shows mostly `/` here. **All
     views** opens the [Views](/fusescope-docs/frontend/views/) tab, which has every
     route.
-11. **Recent errors**: JavaScript errors and unhandled rejections grouped by
+11. **Recent errors**: errors (on Android, crashes and ANRs too) grouped by
     [fingerprint](/fusescope-docs/frontend/errors/#how-errors-are-grouped), with the
     **Route**, the number of **Events** and of **Sessions** affected, and **Last seen**.
     **Open in Logs** shows all of them in the Logs explorer; **All errors** opens the
@@ -157,6 +192,7 @@ span by span.
 
 - [Views](/fusescope-docs/frontend/views/), [Errors](/fusescope-docs/frontend/errors/)
   and [Sessions](/fusescope-docs/frontend/sessions/)
-- [Set up a web application](/fusescope-docs/frontend/set-up-web/)
+- [Set up a web application](/fusescope-docs/frontend/set-up-web/) and
+  [Set up an Android application](/fusescope-docs/frontend/set-up-android/)
 - [Keys](/fusescope-docs/frontend/keys/)
 - [Trace details](/fusescope-docs/explore/trace-details/)

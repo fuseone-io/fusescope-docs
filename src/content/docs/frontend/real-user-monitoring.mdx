@@ -1,22 +1,37 @@
 ---
 title: Real User Monitoring
-description: What Real User Monitoring (RUM) records in your users' browsers, what Web Vitals mean, how a page load links to its backend trace, the screens that show it, and what FuseScope collects about users by default.
+description: What Real User Monitoring (RUM) records in your users' browsers and Android apps, what Web Vitals mean, how a page load or an app request links to its backend trace, the screens that show it, and what FuseScope collects about users by default.
 ---
 
 import { Aside, CardGrid, LinkCard } from "@astrojs/starlight/components";
 
 <Aside type="caution" title="Beta">
-  Real User Monitoring is in beta, for web applications only. The screens, the SDK and
-  its options may still change. Android and iOS come later.
+  Real User Monitoring is in beta, for web and Android applications. The screens, the
+  SDKs and their options may still change. iOS is planned.
 </Aside>
 
-**Real User Monitoring** (RUM) records what real users experience in their browser:
-how fast your pages load, how quickly they react to a click, which JavaScript errors
-they hit, and which backend request each page made. It lives under **Frontend** in the
-sidebar (`/frontend/applications`).
+**Real User Monitoring** (RUM) records what real users experience in their browser or
+on their phone: how fast your pages load, how quickly they react to a click, which
+errors and crashes they hit, and which backend request each page or screen made. It
+lives under **Frontend** in the sidebar (`/frontend/applications`).
 
 The rest of FuseScope sees requests from the server inward. RUM adds the other end:
-the time spent in the browser, and the errors your servers never see.
+the time spent in the browser or the app, and the errors your servers never see.
+
+## Platforms
+
+| Platform | SDK | Status | Set up |
+|---|---|---|---|
+| **Web** | `@fusescope/browser` (npm) | Beta | [Set up a web application](/fusescope-docs/frontend/set-up-web/) |
+| **Android** | `io.fuseone.fusescope:android` (Maven Central), Java and Kotlin | Beta | [Set up an Android application](/fusescope-docs/frontend/set-up-android/) |
+| **iOS** | | Planned | |
+
+An application has one platform, chosen when you create it. The screens are the same
+for both; the differences are noted where they matter. On Android, a view is a screen
+(an Activity, a Fragment or a Compose destination), errors include **crashes** and
+**ANRs** (the app not responding), and stack traces are retraced with
+[R8 mappings](/fusescope-docs/frontend/r8-mappings/) instead of source maps. Native (NDK)
+crashes are not captured yet.
 
 **Use RUM when** users say "the site is slow" and the backend looks healthy, when you
 want to know whether a release made pages slower, or when you need the backend trace
@@ -26,7 +41,8 @@ behind one user's failing click.
 
 - **Sessions.** A session is one user's visit, from the first page until 15 minutes
   without a click, key press, scroll or touch, or 4 hours at most. All tabs of one
-  browser share it. Every span and event carries its `session.id`, and a session that
+  browser share it. On Android, a session ends after 15 minutes in the background, or at
+  4 hours. Every span and event carries its `session.id`, and a session that
   follows an expired one carries its id as `session.previous_id`. See
   [Sessions](/fusescope-docs/frontend/sessions/).
 - **Views.** A view is one page or screen the user saw, named by its **route
@@ -36,14 +52,18 @@ behind one user's failing click.
   it, the **time on view**. See [Views](/fusescope-docs/frontend/views/).
 - **Web Vitals.** Google's standard measures of page experience, explained
   [below](#web-vitals-in-plain-words).
-- **JavaScript errors.** Uncaught errors and unhandled promise rejections, with their
-  type, message, stack trace and the route they happened on, grouped so one bug is one
-  row. With your [source maps](/fusescope-docs/frontend/source-maps/) uploaded, stack
-  traces show your original code. See [Errors](/fusescope-docs/frontend/errors/).
+- **Errors.** Uncaught JavaScript errors and unhandled promise rejections on the web;
+  crashes and ANRs on Android; and errors you report yourself. Each has its type,
+  message, stack trace and the route it happened on, grouped so one bug is one row. With
+  your [source maps](/fusescope-docs/frontend/source-maps/) or
+  [R8 mappings](/fusescope-docs/frontend/r8-mappings/) uploaded, stack traces show your
+  original code. See [Errors](/fusescope-docs/frontend/errors/).
+- **App start** (Android). Cold, warm and hot start times, rated with Android vitals'
+  thresholds.
 - **Clicks.** Each click records which element was clicked, as a short selector such as
   `button#checkout`, never its text.
-- **Browser requests linked to backend traces.** Each `fetch` or `XMLHttpRequest`
-  call is a span. The SDK adds the W3C `traceparent` header to it, so the backend's
+- **Requests linked to backend traces.** Each `fetch` or `XMLHttpRequest` call in the
+  browser, and each OkHttp request on Android, is a span. The SDK adds the W3C `traceparent` header to it, so the backend's
   trace becomes a child of the browser's request. From a session, a route or an error,
   one click opens the backend trace in
   [Trace details](/fusescope-docs/explore/trace-details/).
@@ -97,18 +117,23 @@ RUM is designed so that no personal data is collected unless you decide otherwis
 
 The application's settings say which of these the server enforces and which the SDK
 applies; see [Set up a web application](/fusescope-docs/frontend/set-up-web/#3-privacy).
+The Android SDK applies the same defaults and sends no persistent device identifier; see
+[Privacy defaults](/fusescope-docs/frontend/set-up-android/#privacy-defaults).
 
 ## Homologated, not mandatory
 
-FuseScope publishes a browser SDK, [`@fusescope/browser`](/fusescope-docs/frontend/sdk-reference/):
-a thin distribution of OpenTelemetry JS that adds sessions, views, privacy scrubbing and
+FuseScope publishes a browser SDK, [`@fusescope/browser`](/fusescope-docs/frontend/sdk-reference/),
+a thin distribution of OpenTelemetry JS, and an Android SDK,
+[`io.fuseone.fusescope:android`](/fusescope-docs/frontend/set-up-android/), a thin
+distribution of OpenTelemetry Android. Both add sessions, views, privacy scrubbing and
 the attributes the RUM screens read. It is the tested and recommended path, but it is
 not required. FuseScope accepts **any OpenTelemetry client** that sends OTLP to the RUM
 endpoints with an application key, and never checks which SDK sent the data.
 
 A client configured by hand only needs a few attributes for the screens to fill:
 `session.id`, `fusescope.rum.view.route`, spans named `view`, and `exception` and
-`browser.web_vital` events with an `event.name` attribute. See
+`browser.web_vital` events with an `event.name` attribute; an Android client also needs
+`app.package.name`. See
 [Use another OpenTelemetry client](/fusescope-docs/frontend/opentelemetry-clients/).
 
 ## Next steps
@@ -118,6 +143,11 @@ A client configured by hand only needs a few attributes for the screens to fill:
     title="Set up a web application"
     href="/fusescope-docs/frontend/set-up-web/"
     description="Create the application, install the SDK and see the first session."
+  />
+  <LinkCard
+    title="Set up an Android application"
+    href="/fusescope-docs/frontend/set-up-android/"
+    description="Add the SDK with Gradle, start it, and upload R8 mappings."
   />
   <LinkCard
     title="Applications and Overview"

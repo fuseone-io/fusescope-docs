@@ -148,11 +148,13 @@ export default defineConfig({
           items: [
             { label: "Real User Monitoring", slug: "frontend/real-user-monitoring" },
             { label: "Set up a web application", slug: "frontend/set-up-web" },
+            { label: "Set up an Android application", slug: "frontend/set-up-android" },
             { label: "Applications and Overview", slug: "frontend/applications" },
             { label: "Views", slug: "frontend/views" },
             { label: "Sessions", slug: "frontend/sessions" },
             { label: "Errors", slug: "frontend/errors" },
             { label: "Source maps", slug: "frontend/source-maps" },
+            { label: "R8 mappings", slug: "frontend/r8-mappings" },
             { label: "Frontend alerts", slug: "frontend/alerts" },
             { label: "Keys", slug: "frontend/keys" },
             { label: "Browser SDK reference", slug: "frontend/sdk-reference" },

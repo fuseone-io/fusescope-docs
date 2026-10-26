@@ -1,12 +1,13 @@
 ---
 title: Use another OpenTelemetry client
-description: Send RUM data to FuseScope from the OpenTelemetry web SDK or any OTLP client. The /rum/v1 endpoints, the FuseScope-RUM-Key header, CORS, and the attributes the Frontend screens need.
+description: Send RUM data to FuseScope from the OpenTelemetry web SDK, opentelemetry-android or any OTLP client. The /rum/v1 endpoints, the FuseScope-RUM-Key header, CORS, app.package.name, the crash and ANR normalization, and the attributes the Frontend screens need.
 ---
 
 import { Aside } from "@astrojs/starlight/components";
 
-FuseScope's [browser SDK](/fusescope-docs/frontend/sdk-reference/) is recommended, but
-not required. The RUM gateway accepts OTLP from **any** client and never checks which
+FuseScope's [browser SDK](/fusescope-docs/frontend/sdk-reference/) and
+[Android SDK](/fusescope-docs/frontend/set-up-android/) are recommended, but not
+required. The RUM gateway accepts OTLP from **any** client and never checks which
 SDK sent it. If your app already uses the OpenTelemetry web SDK, point its exporters at
 FuseScope and add the attributes below; the Frontend screens then work as with
 `@fusescope/browser`.
@@ -67,8 +68,8 @@ The gateway answers CORS itself, from the application's **Allowed origins**:
 
 The gateway sets these on every resource, so you don't need to:
 
-- `fusescope.rum.application.id` and `fusescope.rum.platform` (`web`), always,
-  overwriting any value the client sent;
+- `fusescope.rum.application.id` and `fusescope.rum.platform` (`web` or `android`, from
+  the application), always, overwriting any value the client sent;
 - `service.name` and `deployment.environment.name`, from the application's name and
   environment, when the client didn't set them;
 - `event.name` on log records, copied from the record's event name when the attribute
@@ -82,7 +83,7 @@ Your client must send the rest:
 | Every span and log record | `fusescope.rum.view.route` | Routes: the route template, such as `/product/:id`. |
 | Resource | `service.version` | The **Release** filter and column. |
 | Resource | `user_agent.original` | **Browser · OS** in recent sessions. |
-| Resource | `telemetry.distro.name` and `.version`, or `telemetry.sdk.name` and `.version` | The SDK badge. Any name other than `@fusescope/browser` shows as **Other client**. |
+| Resource | `telemetry.distro.name` and `.version`, or `telemetry.sdk.name` and `.version` | The SDK badge. Any name other than `@fusescope/browser` or `io.fuseone.fusescope:android` shows as **Other client**. |
 | Span named `view` | `url.path`, `fusescope.rum.view.route` | **Views**: one span per page or route the user saw. End it when the user leaves the view or hides the page: its duration is the **time on view**. |
 | Span named `view` | `fusescope.rum.view.loading_type` (`initial_load` or `route_change`) | Page loads and route changes in the Views tab. Without it, views are counted apart, marked `*`. |
 | Every span and log record, optional | `session.previous_id`, `user.id` | The **after** link between sessions, and the user column and search. Hash `user.id` yourself if it identifies a person. |
@@ -103,6 +104,62 @@ lists every attribute `@fusescope/browser` sends.
   sent as your client wrote them, so scrub them in the client, and don't record input
   values or element text.
 </Aside>
+
+## Android
+
+A plain [OpenTelemetry Android](https://github.com/open-telemetry/opentelemetry-android)
+client, or any OTLP client in an Android app, sends to the same endpoints with the same
+`FuseScope-RUM-Key` header. Create an **Android** application first, as in
+[Set up an Android application](/fusescope-docs/frontend/set-up-android/#create-the-application),
+to get its key and allowed package names. Then:
+
+- **Set `app.package.name`** on the resource, to the app's `applicationId`. The gateway
+  refuses a request when any resource in it has no `app.package.name`, or one that is not
+  in **Allowed package names**. No semantic convention names the package, so
+  OpenTelemetry Android doesn't send it on its own.
+- **Send no `Origin` header.** An Android application never serves a browser, so the
+  gateway refuses requests that carry one. OkHttp and the OpenTelemetry Java exporters
+  send none.
+- **Set `service.version`** to the app's `versionName`, the release you upload
+  [R8 mappings](/fusescope-docs/frontend/r8-mappings/) for.
+
+```kotlin title="OpenTelemetry Java exporters"
+val resource = Resource.getDefault().toBuilder()
+    .put("service.name", "shop-android")
+    .put("service.version", BuildConfig.VERSION_NAME)
+    .put("app.package.name", BuildConfig.APPLICATION_ID)
+    .build()
+
+val spanExporter = OtlpHttpSpanExporter.builder()
+    .setEndpoint("https://fusescope.example.com/rum/v1/traces")
+    .addHeader("FuseScope-RUM-Key", "rum_pub_…")
+    .build()
+val logExporter = OtlpHttpLogRecordExporter.builder()
+    .setEndpoint("https://fusescope.example.com/rum/v1/logs")
+    .addHeader("FuseScope-RUM-Key", "rum_pub_…")
+    .build()
+```
+
+The gateway maps what OpenTelemetry Android sends onto the RUM model, filling only what
+the client left unset:
+
+| OpenTelemetry Android sends | The gateway stores |
+|---|---|
+| Log event `app.crash` | An `exception` event with `fusescope.rum.error.source` = `crash`. |
+| Log event `device.anr` | An `exception` event with `fusescope.rum.error.source` = `anr`, `exception.type` = `ANR` and `exception.message` = `Application Not Responding`. |
+| `app.screen.name` on a span or log record | The same value as `fusescope.rum.view.route`. |
+| The record's event name | The `event.name` attribute, as for every client. |
+
+Crashes, ANRs and screens therefore show up without extra code. For the rest of the
+screens, add what the table in [Attributes the screens need](#attributes-the-screens-need)
+lists: `session.id` (OpenTelemetry Android sets it), spans named `view` with
+`fusescope.rum.view.loading_type`, and HTTP client spans with `traceparent` sent to your
+backend. Send `exception.stacktrace` as Java prints it (`Throwable.printStackTrace()`
+output): FuseScope parses it, retraces it with the R8 mapping of `service.version`, and
+groups it as described in
+[Grouping Android errors](/fusescope-docs/frontend/errors/#grouping-android-errors). The
+[Android SDK's README](https://github.com/fuseone-io/fusescope-sdk-android#data) lists
+every attribute `io.fuseone.fusescope:android` sends.
 
 ## Related
 

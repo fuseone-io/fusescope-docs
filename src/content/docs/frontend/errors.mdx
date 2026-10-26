@@ -1,22 +1,23 @@
 ---
 title: Errors
-description: The Errors tab of a RUM application. JavaScript errors grouped by fingerprint, with New in release and Source map missing badges, and an error's detail with its symbolicated stack trace, breadcrumbs, the failed request and backend trace before it, affected sessions and an alert.
+description: The Errors tab of a RUM application. JavaScript errors, Android crashes and ANRs grouped by fingerprint, with New in release and Source map or R8 mapping missing badges, and an error's detail with its symbolicated or retraced stack trace, breadcrumbs, the failed request and backend trace before it, affected sessions and an alert.
 ---
 
 import { Aside, Steps } from "@astrojs/starlight/components";
 
 The **Errors** tab of an application (`/frontend/applications/<id>/errors`) groups the
-JavaScript errors your users hit, so that one bug is one row however many times it
+errors your users hit, so that one bug is one row however many times it
 happened. Click a group to see its stack trace, what the user did before it, and the
 backend request that may have caused it.
 
 **Use it when** you want to know which errors affect the most users, whether a release
 brought a new one, or why a particular error happens.
 
-The SDK reports uncaught errors (`onerror`), unhandled promise rejections
+The browser SDK reports uncaught errors (`onerror`), unhandled promise rejections
 (`unhandledrejection`), and errors you report yourself with
-[`addError()`](/fusescope-docs/frontend/sdk-reference/#functions) (`manual`). All numbers
-follow the time range and the **Release** filter.
+[`addError()`](/fusescope-docs/frontend/sdk-reference/#functions) (`manual`). For Android,
+see [Crashes and ANRs](#crashes-and-anrs). All numbers follow the time range and the
+**Release** filter.
 
 ## Error groups
 
@@ -59,6 +60,9 @@ computed from:
 
 The same bug in Chrome, Safari and Firefox therefore lands in one group, and stays in
 that group from one deploy to the next.
+
+Android errors are Java stack traces and group differently; see
+[Grouping Android errors](#grouping-android-errors).
 
 ## Error detail
 
@@ -137,6 +141,54 @@ you read them, so past events are fixed too.
   bundle and so no source map. Move the code into your bundle to get original frames.
 </Aside>
 
+## Crashes and ANRs
+
+An Android application has three kinds of error, each in its own groups, since the same
+exception crashing the app and caught by your code are different problems:
+
+| Kind | Source | What it is | Badge |
+|---|---|---|---|
+| **Crash** | `crash` | An uncaught Java or Kotlin exception that killed the app. The SDK writes it out before the process dies. | **Crash**, red |
+| **ANR** | `anr` | *Application Not Responding*: the main thread was blocked for about 10 seconds. The stack trace is the main thread's at that moment: what it was stuck on. | **ANR**, amber |
+| **Handled** | `manual` | An exception your code passed to `FuseScope.addError()`. | none |
+
+The source shows next to the type, as `fusescope.rum.error.source`. The **Source**
+filter offers the browser sources only in this release, so use the badges, or search by
+type: an ANR's type is `ApplicationNotResponding` from the FuseScope SDK and `ANR` from
+a plain OpenTelemetry Android client. Native (NDK) crashes are not captured yet.
+
+### Retraced stack traces
+
+Release builds minified with R8 report obfuscated frames, such as
+`at a.b.c(SourceFile:12)`. With the release's
+[R8 mapping](/fusescope-docs/frontend/r8-mappings/) uploaded, the stack trace shows
+**Retraced** and **Original** gives your classes, methods, files and lines, including
+inlined methods; **Obfuscated** shows it as the app sent it. Like source maps, retracing
+runs when you read the error, so uploading a mapping later fixes past events.
+
+- The **causes** of the exception (`Caused by:`, `Suppressed:`) are retraced and shown
+  under it.
+- **in app** marks your frames. Frames from the platform and common libraries, such as
+  `java.`, `android.`, `androidx.`, `kotlin.`, `okhttp3.` and the SDK itself, are folded.
+- Without a mapping, the group shows **R8 mapping missing** and the detail reads
+  **Obfuscated · no R8 mapping for 1.8.0**, with the `curl` command to upload it. See
+  [When a stack stays obfuscated](/fusescope-docs/frontend/r8-mappings/#when-a-stack-stays-obfuscated).
+
+### Grouping Android errors
+
+A Java stack trace keeps the same frames from one build to the next, so Android errors
+group by **source**, not message. The fingerprint is computed from:
+
+- the **source**: `crash`, `anr` or `manual`;
+- the **exception type**, retraced, such as `java.lang.IllegalStateException`;
+- the **class and method of the top three in-app frames**, retraced, looking at the
+  thrown exception first, then its causes. Line numbers are left out, so a bug stays in
+  one group when code around it moves.
+
+With no in-app frame at all, the normalized message is used instead. A release without
+its mapping groups on obfuscated names, so its errors may land in other groups until the
+mapping is uploaded.
+
 ## Example: did the last release break something?
 
 <Steps>
@@ -158,6 +210,7 @@ you read them, so past events are fixed too.
 
 ## Related
 
-- [Source maps](/fusescope-docs/frontend/source-maps/)
+- [Source maps](/fusescope-docs/frontend/source-maps/) and
+  [R8 mappings](/fusescope-docs/frontend/r8-mappings/)
 - [Sessions](/fusescope-docs/frontend/sessions/)
 - [Exceptions](/fusescope-docs/apm/exceptions/): errors raised by your backend services.

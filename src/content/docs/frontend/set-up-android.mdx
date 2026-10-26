@@ -1,0 +1,427 @@
+---
+title: Set up an Android application
+description: Create an Android RUM application with its allowed package names, add io.fuseone.fusescope:android with Gradle, call FuseScope.init in Application.onCreate, trace OkHttp requests to the backend, track Compose screens, upload R8 mappings, and check that data arrives.
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+
+This page takes an Android app from nothing to its first session in FuseScope. You need
+the **Admin** or **Editor** role, and an Android app written in Kotlin or Java that you
+can build and run.
+
+The SDK, `io.fuseone.fusescope:android`, is a thin distribution of
+[OpenTelemetry Android](https://github.com/open-telemetry/opentelemetry-android). It
+records sessions, screens, crashes, ANRs (Application Not Responding), app start and
+OkHttp requests linked to backend traces. It is in beta, `0.1.0-beta.1`, and its options
+may change before 1.0. Native (NDK) crashes are not captured yet.
+
+If you don't know what RUM records yet, start with
+[Real User Monitoring](/fusescope-docs/frontend/real-user-monitoring/).
+
+## The steps at a glance
+
+<Steps>
+
+1. [Check the requirements](#requirements): `minSdk` 23, `compileSdk` 37 and one
+   Gradle property.
+2. [Create the application](#create-the-application) in FuseScope, with the package
+   names allowed to send data, and copy its public key.
+3. [Add the SDK](#add-the-sdk) with Gradle.
+4. [Start it](#start-the-sdk) in `Application.onCreate`.
+5. [Trace OkHttp requests](#link-requests-to-backend-traces) to link them to backend
+   traces.
+6. [Run the app and watch the data arrive](#check-that-data-arrives).
+7. [Upload your R8 mappings](#upload-r8-mappings) with each release, so stack traces
+   show your original code.
+
+</Steps>
+
+## Requirements
+
+| | Requirement |
+|---|---|
+| `minSdk` | 23 (Android 6.0) or higher. Below 26, turn on [core library desugaring](https://developer.android.com/studio/write/java8-support#library-desugaring). |
+| `compileSdk` | 37 |
+| Build tools | The SDK is built and tested with Android Gradle Plugin 9.4.0 and Kotlin 2.4.10. The mapping plugin needs Gradle running on JDK 17 or later. |
+| Gradle property | `android.useFullClasspathForDexingTransform=true`, see below. |
+
+Add the property to the project's `gradle.properties`:
+
+```properties title="gradle.properties"
+android.useFullClasspathForDexingTransform=true
+```
+
+<Aside type="caution" title="Debug builds crash without it">
+  OpenTelemetry Android needs D8 to desugar across all dependencies. Without the
+  property, **debug** builds compile but crash at start with `NoSuchMethodError` on
+  `DeclarativeConfigProperties.empty()`. Release builds are not affected, so the problem
+  often shows up only on a developer's device.
+</Aside>
+
+## Create the application
+
+A RUM **application** is one app in one environment, such as `shop-android` in
+`production`. Open **Frontend** in the sidebar, then **New application**, and pick the
+platform **Android** (*Android SDK · Java and Kotlin*). The platform is chosen once, at
+creation.
+
+The **New application** sheet is the same as for the web, with **Package names and
+tracing** instead of origins:
+
+- **Name**: sent as `service.name`; it is how the app appears in
+  [Services](/fusescope-docs/apm/services/) and the explorers. Use lowercase letters,
+  digits and dashes, such as `shop-android`.
+- **Environment**: sent as `deployment.environment.name`. Create one application per
+  environment, so each has its own key and numbers.
+- **Allowed package names**: the Android `applicationId` values allowed to send data
+  with this application's key. The SDK sends the app's `applicationId` as the
+  `app.package.name` resource attribute, and the gateway refuses any request whose
+  package is missing or not in the list.
+  - `com.example.shop` allows exactly that package.
+  - `com.example.shop.*` allows its sub-packages, such as `com.example.shop.debug`, but
+    not `com.example.shop` itself; add both if a build type uses an
+    `applicationIdSuffix`.
+  - `*` allows any package. Avoid it in production: anyone who extracts your key from
+    the APK could send data from their own app.
+- **Link requests to backend traces**: see
+  [Link requests to backend traces](#link-requests-to-backend-traces).
+- **Session sample rate**, **Drop query strings and fragments**, **Keep these query
+  parameters**, **Wait for consent** and **Hash user IDs**: the same settings as for the
+  web; see [Set up a web application](/fusescope-docs/frontend/set-up-web/#3-privacy). The
+  **SDK** ones are written into the generated snippet.
+
+**Create application** saves it and opens the **Install** step with the application's
+**public key** (`rum_pub_…`). **Copy it now: it is shown once.** FuseScope stores only a
+hash of it. The key is public and write-only: it is safe to ship in an APK or app
+bundle, where anyone can read it, since it can only send data for this application, from
+its allowed packages, within its rate limit. To replace a lost or leaked key, see
+[Keys](/fusescope-docs/frontend/keys/).
+
+## Add the SDK
+
+The SDK, its Compose add-on and the mapping plugin are on Maven Central. Resolve
+plugins and dependencies from it:
+
+```kotlin title="settings.gradle.kts"
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+dependencyResolutionManagement {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+```
+
+Then, in the app module:
+
+```kotlin title="app/build.gradle.kts"
+plugins {
+    id("com.android.application")
+    id("io.fuseone.fusescope.android.mappings") version "0.1.0-beta.1" // optional, uploads R8 mappings
+}
+
+dependencies {
+    implementation("io.fuseone.fusescope:android:0.1.0-beta.1")
+    implementation("io.fuseone.fusescope:android-compose:0.1.0-beta.1") // optional, Compose and Navigation screens
+}
+```
+
+| Artifact | What it is |
+|---|---|
+| `io.fuseone.fusescope:android` | The SDK. Kotlin package `io.fuseone.fusescope.android`. |
+| `io.fuseone.fusescope:android-compose` | Optional. Views for Jetpack Compose and Navigation screens; see [Compose screens](#compose-screens). |
+| `io.fuseone.fusescope.android.mappings` | Optional Gradle plugin. Uploads `mapping.txt` after each minified build; see [R8 mappings](/fusescope-docs/frontend/r8-mappings/). |
+
+The SDK is Apache-2.0 licensed, like OpenTelemetry.
+
+## Start the SDK
+
+Call `FuseScope.init` in your `Application.onCreate`, before anything else. The
+**Install** step generates the call from the application's settings; for the example
+above it reads:
+
+```kotlin title="app/src/main/java/com/example/shop/ShopApplication.kt"
+import android.app.Application
+import io.fuseone.fusescope.android.FuseScope
+import io.fuseone.fusescope.android.FuseScopeConfig
+
+class ShopApplication : Application() {
+    override fun onCreate() {
+        super.onCreate()
+        FuseScope.init(
+            this,
+            FuseScopeConfig(
+                applicationId = "01a16431-12ca-7064-bae9-6ac64cf20a29",
+                key = "rum_pub_…",
+                endpoint = "https://fusescope.example.com",
+                service = "shop-android",
+                release = BuildConfig.VERSION_NAME,
+                environment = "production",
+            ),
+        )
+    }
+}
+```
+
+Register the class in the manifest, if it isn't already:
+
+```xml title="app/src/main/AndroidManifest.xml"
+<application android:name=".ShopApplication" … >
+```
+
+- `applicationId` is the RUM application's id (a UUID), not your Android
+  `applicationId`.
+- `endpoint` is the FuseScope URL your users' devices reach. If you opened FuseScope
+  through `localhost` or an internal host name, use its public URL. The SDK sends to
+  `<endpoint>/rum/v1/traces` and `<endpoint>/rum/v1/logs`. On the emulator, the host
+  machine is `http://10.0.2.2`.
+- `release = BuildConfig.VERSION_NAME` needs `buildFeatures { buildConfig = true }` in
+  the app module. You can also leave `release` out: it defaults to the app's
+  `versionName` anyway.
+- A second `init` call, or an invalid configuration, is logged under the `FuseScope`
+  tag and ignored; the app keeps running.
+
+### Configuration
+
+| `FuseScopeConfig` | Default | |
+|---|---|---|
+| `applicationId` | required | The RUM application id from the **Install** step. |
+| `key` | required | The public key, `rum_pub_…`. |
+| `endpoint` | required | The FuseScope base URL. |
+| `service` | `applicationId` | `service.name`. Set it to the application's name, as the generated snippet does, or the app shows under its id in Services. |
+| `environment` | none | `deployment.environment.name`. When unset, the gateway uses the application's environment. |
+| `release` | `versionName` | `service.version`: the **Release** filter, and the release [R8 mappings](/fusescope-docs/frontend/r8-mappings/) are looked up by. |
+| `sessionSampleRate` | `1.0` | Share of sessions recorded, 0 to 1. Decided once per session. |
+| `requireConsent` | `false` | Collect nothing until `FuseScope.setConsent(true)`. |
+| `diskBuffering` | `false` | Keep data on disk while the device is offline. Data is then exported 30 s or more after it is recorded. |
+| `privacy` | `PrivacyConfig()` | See [Privacy defaults](#privacy-defaults). |
+| `session` | `SessionConfig()` | `inactivityTimeoutMillis` (15 min) and `maxDurationMillis` (4 h). |
+| `instrumentations` | `InstrumentationsConfig()` | `crashes`, `anrs`, `views` and `appStart` on; `lifecycleSpans` (upstream `Created`, `Resumed`, `Paused` spans) and `slowRendering` off. |
+
+```kotlin
+FuseScopeConfig(
+    // …
+    sessionSampleRate = 0.5,
+    privacy = PrivacyConfig(queryAllowlist = listOf("page")),
+    instrumentations = InstrumentationsConfig(slowRendering = true),
+)
+```
+
+`PrivacyConfig`, `SessionConfig` and `InstrumentationsConfig` are in
+`io.fuseone.fusescope.android`. All three are Java-friendly (`@JvmOverloads`), and so are
+the `FuseScope` functions (`@JvmStatic`).
+
+### Consent
+
+With **Wait for consent** on, the snippet sets `requireConsent = true`: the SDK records
+nothing until the user agrees. Call `setConsent` from your consent screen:
+
+```kotlin
+FuseScope.setConsent(true)  // starts collection
+FuseScope.setConsent(false) // flushes what was recorded and stops
+```
+
+Your app stores the user's choice and calls `setConsent(true)` again on the next launch;
+the SDK doesn't remember it.
+
+### Identify the user
+
+Users are anonymous unless you call `setUser`, for example after sign-in:
+
+```kotlin
+FuseScope.setUser(account.id)   // user.id = SHA-256 of account.id
+FuseScope.setUser(null)         // on sign-out
+```
+
+With **Hash user IDs** on (the default), `user.id` is the hex SHA-256 of the id, the same
+value `@fusescope/browser` sends for the same id, so web and Android sessions of one user
+match. To find a user's sessions, hash their id the same way and search for the hash in
+[Sessions](/fusescope-docs/frontend/sessions/). The user applies to spans started after
+the call; the current view keeps its previous value. `setUser` may be called before
+collection starts, such as before consent: it is applied when it starts.
+
+### Views, errors and actions
+
+The SDK records the following on its own:
+
+- **Views**: one `view` span per Activity or Fragment, ending when the next one starts
+  or the app goes to the background. See [Views](/fusescope-docs/frontend/views/).
+- **Crashes**: uncaught Java and Kotlin exceptions, flushed before the process dies.
+- **ANRs**: the main thread blocked for about 10 seconds, with the main thread's stack.
+- **App start**: cold, warm and hot starts, as the `app_start` vital.
+
+Name a screen yourself, report a handled error or a custom action with:
+
+```kotlin
+FuseScope.startView("orders/{id}")   // a route template, not the filled-in path
+
+try {
+    checkout()
+} catch (e: IOException) {
+    FuseScope.addError(e)            // fusescope.rum.error.source = manual
+}
+
+FuseScope.addAction(
+    "checkout",
+    Attributes.of(AttributeKey.stringKey("cart.size"), "3"),
+)
+```
+
+`startView` replaces the automatic view of the current Activity, which comes back when
+that Activity resumes. `Attributes` and `AttributeKey` are from
+`io.opentelemetry.api.common`. For your own spans and logs, `FuseScope.openTelemetry` is
+the SDK's OpenTelemetry instance, a no-op while collection is off.
+
+Calls made before collection starts are dropped, except `setUser`. `FuseScope.flush()`
+exports pending data now; it blocks, so call it off the main thread. `FuseScope.shutdown()`
+flushes and stops; `init` can then be called again.
+
+### Compose screens
+
+A Compose app often has a single Activity, so the automatic views see one screen. With
+`io.fuseone.fusescope:android-compose`, start a view per Navigation destination, named by
+its route template:
+
+```kotlin
+import io.fuseone.fusescope.android.compose.FuseScopeNavigationViews
+
+@Composable
+fun ShopNavHost() {
+    val navController = rememberNavController()
+    FuseScopeNavigationViews(navController)
+    NavHost(navController, startDestination = "home") {
+        composable("home") { HomeScreen() }
+        composable("orders/{id}") { OrderScreen() }
+    }
+}
+```
+
+The view is named `orders/{id}`, never `orders/1234`. Outside Compose, such as with a
+Fragment-based `NavController`, call `navController.trackFuseScopeViews()`; it returns
+the listener, to remove when you no longer need it. For a screen without Navigation,
+call `FuseScopeView("settings")` in the composable.
+
+## Link requests to backend traces
+
+Make your HTTP calls through `FuseScope.callFactory`, an OkHttp `Call.Factory` that
+records each request as a span and adds the W3C `traceparent` header:
+
+```kotlin
+val client = OkHttpClient()
+val http = FuseScope.callFactory(client)
+
+http.newCall(Request.Builder().url("https://api.example.com/cart").build()).execute()
+
+// With Retrofit
+val retrofit = Retrofit.Builder()
+    .baseUrl("https://api.example.com/")
+    .callFactory(FuseScope.callFactory(client))
+    .build()
+```
+
+The backend's trace then becomes a child of the app's request, and **View backend
+trace** works from sessions, views and errors. The backend must be instrumented with
+OpenTelemetry and send its traces to FuseScope; see
+[Instrument applications](/fusescope-docs/sending-data/instrumentation/). There is no CORS
+on Android, so the API needs no change.
+
+- The factory can be created before `init`. While collection is off, requests go through
+  your client unchanged.
+- Requests of an unsampled session carry **no** `traceparent`, so they don't change how
+  your backend samples its traces.
+- Requests made with a plain `OkHttpClient`, or another HTTP library, are not traced.
+
+<Aside type="caution">
+  In `0.1.0-beta.1` the SDK adds `traceparent` to requests to **every** host, whatever
+  the application's **Link requests to backend traces** list says. If you call
+  third-party APIs that reject unknown headers, make those calls with your plain client,
+  not through `callFactory`.
+</Aside>
+
+## Privacy defaults
+
+- **Query strings and fragments are dropped** from URL attributes, span names, error
+  messages and stack traces: `https://api.example.com/search?q=boots` becomes
+  `https://api.example.com/search`. `privacy.queryAllowlist` keeps named parameters;
+  `privacy.dropQuery = false` keeps them all. The gateway drops them again on the server,
+  following the application's policy.
+- **No user identity** unless you call `setUser`, and then hashed (`privacy.hashUserId`).
+- **No persistent device identifier.** OpenTelemetry Android's `app.installation.id` is
+  removed unless you set `privacy.installationId = true`.
+- **Consent hook**: `requireConsent` and `setConsent`.
+- No screen content, text or input is recorded.
+
+## Check that data arrives
+
+Run the app, on a device or the emulator, and move through a few screens. The
+application's **Install** step updates by itself: it reads **Waiting for first data…**
+until the gateway accepts the first request, then **Receiving data**, with what arrived
+in the last 5 minutes (**Sessions**, **Views**, **Errors** and the vitals, counted under
+**Web Vitals**) and the SDK seen, such as `io.fuseone.fusescope:android 0.1.0-beta.1`
+**Supported**. **Open shop-android** opens the application's
+[overview](/fusescope-docs/frontend/applications/#the-overview).
+
+The SDK exports in batches, every few seconds. Putting the app in the background ends
+the current view.
+
+### Troubleshoot rejected requests
+
+Requests the gateway refuses are listed under the status, with how many were rejected in
+the last 5 minutes:
+
+| Message | Cause | Fix |
+|---|---|---|
+| **package com.example.shop.debug is not allowed** | The app's `applicationId` is not in **Allowed package names**, often a debug build with an `applicationIdSuffix`. The gateway answers `403`. | Add the package, or `com.example.shop.*`, in the application's **Settings**. |
+| **no `app.package.name` in the resource** | The client sent no package name: a hand-configured OpenTelemetry client. | Add the attribute; see [Use another OpenTelemetry client](/fusescope-docs/frontend/opentelemetry-clients/#android). |
+| **the key is not valid for this application** | The key was revoked, or its rotation overlap ended. The gateway answers `401`. | Ship the current key; see [Keys](/fusescope-docs/frontend/keys/). |
+| **rate limited** | Too many requests from one client or for the whole key. The gateway answers `429`. | Usually a loop. Behind a proxy, check the [client IP setting](/fusescope-docs/frontend/set-up-web/#self-hosted-fusescope). |
+
+If nothing arrives and nothing is rejected, filter Logcat by the `FuseScope` tag, then
+check:
+
+- **The app crashes at start in debug**: add
+  [`android.useFullClasspathForDexingTransform=true`](#requirements).
+- **No request to `/rum/v1/`**: `init` is not called (is the `Application` class in the
+  manifest?), the session was not sampled, or `requireConsent` is on and
+  `setConsent(true)` hasn't been called.
+- **Requests fail without reaching FuseScope**: `endpoint` is wrong or unreachable from
+  the device, or the `/rum/` path is not exposed; see
+  [Self-hosted FuseScope](/fusescope-docs/frontend/set-up-web/#self-hosted-fusescope).
+  The Android app sends no `Origin` header, so the gateway's CORS settings don't apply.
+- **Cleartext HTTP**: Android blocks `http://` URLs by default. Use HTTPS, or a
+  [network security config](https://developer.android.com/privacy-and-security/security-config)
+  for a local test server.
+
+## Upload R8 mappings
+
+Release builds minified with R8 have obfuscated stack traces, such as
+`a.b.c(SourceFile:12)`. With the `io.fuseone.fusescope.android.mappings` plugin applied,
+configure where to upload:
+
+```kotlin title="app/build.gradle.kts"
+fusescope {
+    endpoint.set("https://fusescope.example.com")
+    applicationId.set("01a16431-12ca-7064-bae9-6ac64cf20a29")
+    // the API key comes from FUSESCOPE_API_KEY
+}
+```
+
+Export an Editor service account key as `FUSESCOPE_API_KEY` in your CI, then build:
+`./gradlew :app:bundleRelease` uploads `mapping.txt` for the release the SDK reports. See
+[R8 mappings](/fusescope-docs/frontend/r8-mappings/) for the details.
+
+## Related
+
+- [R8 mappings](/fusescope-docs/frontend/r8-mappings/): original stack traces.
+- [Applications and Overview](/fusescope-docs/frontend/applications/): read what arrives.
+- [Errors](/fusescope-docs/frontend/errors/): crashes, ANRs and handled errors.
+- [Keys](/fusescope-docs/frontend/keys/): rotate or revoke the public key.
+- [SDK README](https://github.com/fuseone-io/fusescope-sdk-android#readme): every
+  attribute the SDK sends.

@@ -100,6 +100,28 @@ the link.
 10. **All sessions on** the route opens the
     [Sessions](/fusescope-docs/frontend/sessions/) tab filtered to it.
 
+## Android screens
+
+On an Android application, a view is a **screen**, and the same tab lists them:
+
+- **Route** is the screen's name. For Activities and Fragments it is the class name, or
+  the name given with OpenTelemetry Android's `@RumScreenName` annotation. For Compose
+  and Navigation screens it is the destination's route template, such as `orders/{id}`;
+  see [Compose screens](/fusescope-docs/frontend/set-up-android/#compose-screens). A
+  screen named with `FuseScope.startView()` uses that name.
+- The screen is the last Activity or Fragment resumed, so a host Activity or a
+  `NavHostFragment` gets no row of its own.
+- **Page loads** are the first screen after the app process starts; **Route changes**
+  are every later screen. A screen shown again, such as on returning from another app,
+  counts as a route change.
+- **Time on view** ends when the next screen starts or the app goes to the background.
+- **Slowest request** covers OkHttp requests made through
+  [`FuseScope.callFactory`](/fusescope-docs/frontend/set-up-android/#link-requests-to-backend-traces).
+- **LCP**, **INP** and **CLS** stay empty: they are browser measures. Android's app start
+  time is sent as the `app_start` vital, which these screens don't chart yet; see the
+  note in [the overview](/fusescope-docs/frontend/applications/#key-numbers).
+- **Browsers and OS** stays empty, since an app sends no user agent.
+
 ## Example: is a page slow, and why?
 
 <Steps>

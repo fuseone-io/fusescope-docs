@@ -1,0 +1,197 @@
+---
+title: R8 mappings
+description: Upload the R8 mapping.txt of each Android release so crashes, ANRs and handled errors show your original classes, methods and lines. The Gradle plugin, its fusescope block and API key, manual upload with curl, one mapping per release, limits, retention, and the R8 mapping missing notice.
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+
+A release build minified with R8 renames your classes and methods and drops source file
+names. A crash from a user's device then reads `at a.b.c(SourceFile:12)`, which says
+nothing. R8 writes `mapping.txt` next to the build, under
+`app/build/outputs/mapping/<variant>/`; it maps every obfuscated frame back to your code:
+`at com.example.shop.cart.Pricing.applyCoupon(Pricing.kt:42)`.
+
+Upload the mapping of each release to FuseScope and the
+[Errors](/fusescope-docs/frontend/errors/) tab shows **Retraced** stack traces. It is the
+Android counterpart of [source maps](/fusescope-docs/frontend/source-maps/).
+
+- **Mappings stay private.** They are stored on the FuseScope server; never ship them in
+  the app.
+- **Retracing happens when you read an error.** The stored events keep their raw stack,
+  so uploading a mapping later also fixes errors you already received.
+- **Grouping uses the retraced frames.** Until a release's mapping is uploaded, its errors
+  group on obfuscated names; see
+  [How errors are grouped](/fusescope-docs/frontend/errors/#how-errors-are-grouped).
+- **You need a service account key with the Editor role**, not the application's public
+  key: the public key can only send data.
+
+## The release rule
+
+**The upload's release must equal the SDK's `release`.** The SDK sends `release` as
+`service.version` on every event, and FuseScope looks up the mapping by that value. Both
+default to the variant's `versionName`, so leaving both unset is the simplest way to get
+it right. With any other value the stack stays obfuscated.
+
+FuseScope keeps **one mapping per release**. Uploading a release again replaces its
+mapping. If two minified builds share a `versionName`, such as `release` and `staging`
+variants with different code, the last upload wins and the other build's stacks are
+retraced with the wrong mapping. Give such variants their own `versionNameSuffix`, or
+their own application.
+
+## Upload with the Gradle plugin
+
+<Steps>
+
+1. **Create a key.** In *Settings → Service accounts*, create a service account with the
+   **Editor** role, such as `ci-android`, and add a key to it. See
+   [Service accounts](/fusescope-docs/administration/service-accounts/). Keep the key in
+   your CI's secrets.
+
+2. **Apply the plugin** in the app module, from Maven Central (add `mavenCentral()` to
+   `pluginManagement.repositories` in `settings.gradle.kts`):
+
+   ```kotlin title="app/build.gradle.kts"
+   plugins {
+       id("com.android.application")
+       id("io.fuseone.fusescope.android.mappings") version "0.1.0-beta.1"
+   }
+
+   fusescope {
+       endpoint.set("https://fusescope.example.com")
+       applicationId.set("01a16431-12ca-7064-bae9-6ac64cf20a29")
+       // the API key comes from FUSESCOPE_API_KEY
+   }
+   ```
+
+   The application's **R8 mappings** tab has this block filled in.
+
+3. **Build with the key in the environment:**
+
+   ```bash
+   export FUSESCOPE_API_KEY=…   # Editor service account key
+   ./gradlew :app:bundleRelease
+   ```
+
+   ```text
+   > Task :app:uploadFuseScopeMappingRelease
+   FuseScope: uploaded the R8 mapping of release for release 1.8.0
+   ```
+
+4. **Ship the build**, then open an error of that release: its stack shows **Retraced**.
+
+</Steps>
+
+The plugin adds an `uploadFuseScopeMapping<Variant>` task for every variant with
+`isMinifyEnabled = true`, and runs it after `assemble<Variant>` and `bundle<Variant>`.
+`./gradlew :app:uploadFuseScopeMappingRelease` uploads on its own, from the last build.
+
+### The `fusescope {}` block
+
+| Setting | Default | |
+|---|---|---|
+| `endpoint` | Gradle property `fusescope.endpoint`, else `FUSESCOPE_ENDPOINT` | The FuseScope base URL. |
+| `applicationId` | `fusescope.applicationId`, else `FUSESCOPE_APPLICATION_ID` | The RUM application id. |
+| `apiKey` | `fusescope.apiKey`, else `FUSESCOPE_API_KEY` | An Editor service account key, sent as `SigNoz-Api-Key`. Never the public `rum_pub_…` key. |
+| `release` | the variant's `versionName` | The release the mapping belongs to. Set it only if you also set the SDK's `release`. |
+| `enabled` | `true` | `false` skips every upload. |
+| `failOnError` | `true` | Fail the build when the upload fails; `false` logs a warning instead. |
+| `uploadPath` | `/api/v1/rum/applications/{applicationId}/mappings` | The upload path under `endpoint`. |
+
+<Aside type="caution" title="Never commit the API key">
+  The key can upload and delete mappings and source maps. Keep it out of
+  `build.gradle.kts` and out of a committed `gradle.properties`. Pass it as the
+  `FUSESCOPE_API_KEY` environment variable from your CI's secrets, or as
+  `-Pfusescope.apiKey=…`, or in `~/.gradle/gradle.properties` on a developer machine.
+</Aside>
+
+When the endpoint, the application id or the key is missing, the upload is **skipped**
+with a warning, and the build succeeds:
+
+```text
+FuseScope: mapping upload for release skipped, set apiKey in fusescope { }
+```
+
+So local release builds work without a key, and only CI, which has it, uploads.
+
+## Upload with curl
+
+Without the plugin, such as from a CI step after the build, `POST` the mapping to the
+application:
+
+```bash
+export FUSESCOPE_URL=https://fusescope.example.com
+export FUSESCOPE_API_KEY=…   # Editor service account key
+
+curl -X POST "$FUSESCOPE_URL/api/v1/rum/applications/01a16431-12ca-7064-bae9-6ac64cf20a29/mappings?release=1.8.0" \
+  -H "SigNoz-Api-Key: $FUSESCOPE_API_KEY" \
+  -H "Content-Type: text/plain" \
+  --data-binary @app/build/outputs/mapping/release/mapping.txt
+```
+
+- The body is the raw `mapping.txt`, with any content type except multipart. Add
+  `Content-Encoding: gzip` to send it compressed.
+- Or send `multipart/form-data`, with the mapping in a part named `file` and the release
+  in a `release` field or the query:
+
+  ```bash
+  curl -X POST "$FUSESCOPE_URL/api/v1/rum/applications/01a16431-12ca-7064-bae9-6ac64cf20a29/mappings?release=1.8.0" \
+    -H "SigNoz-Api-Key: $FUSESCOPE_API_KEY" \
+    -F "file=@app/build/outputs/mapping/release/mapping.txt"
+  ```
+
+- A `2xx` answer means the mapping is stored. `400` means the body is empty, not a
+  mapping or over the size limit; `413` that the application's quota is full.
+
+## The R8 mappings tab
+
+Open an Android application's **Settings**, then **R8 mappings**. It is the
+[Source maps tab](/fusescope-docs/frontend/source-maps/#the-source-maps-tab) of a web
+application, adapted to Android. Any role can see it; **Admin** and **Editor** can
+upload, delete and change retention.
+
+- **Uploaded releases**: one row per release with a mapping, newest first, with its
+  size, who uploaded it and when, and when it was **last used** to retrace an error.
+  **Delete** removes it; the events are kept and their stacks become obfuscated again.
+- **Upload**: the **Gradle plugin** settings or the **API** `curl` call, with this
+  FuseScope's URL and the application id filled in. There is no drag-and-drop upload for
+  mappings.
+- **Retention**: the same settings as for source maps: delete mappings not used for
+  30 days, 90 days (the default), 1 year or never, and always keep the 3 newest
+  releases. See [Retention](/fusescope-docs/frontend/source-maps/#retention).
+
+Mappings and source maps share one store, so the same API lists and deletes them:
+`GET` and `DELETE` on `/api/v1/rum/applications/{id}/sourcemaps`.
+
+## Limits
+
+| Limit | Default |
+|---|---|
+| Size of one mapping, after decompression | 50 MB |
+| Mappings per release | 1 (a new upload replaces it) |
+| Mappings and source maps stored per application | 2 GB |
+
+Self-hosted, these are the `rum.sourcemaps` settings of the
+[configuration file](/fusescope-docs/configuration/config-file/); see
+[Source maps](/fusescope-docs/frontend/source-maps/#self-hosted-fusescope).
+
+## When a stack stays obfuscated
+
+An Android error group whose release has no mapping shows **R8 mapping missing** in the
+Errors tab. Its detail reads **Obfuscated · no R8 mapping for 1.8.0** and, under **R8
+mapping missing for release 1.8.0**, the `curl` command to upload that release's
+`mapping.txt`, with this FuseScope's URL, the application id and the release filled in,
+and a link to the **R8 mappings** settings.
+
+| What you see | Check |
+|---|---|
+| **no R8 mapping for 1.8.0** | No mapping is uploaded for release `1.8.0`. Compare the release in the error header with the upload's: `1.8.0` and `1.8.0-debug` are different. |
+| **the mapping resolves none of these frames** | A mapping is stored for the release, but from another build: two variants share the `versionName`, or the app was rebuilt after the upload. Upload the mapping of the build you shipped. |
+| Some frames retraced, others not | Frames of libraries not minified with your app, or classes kept by `-keep` rules, keep their names. Normal. |
+| The upload task is skipped | The variant isn't minified (`isMinifyEnabled = false`), or the endpoint, application id or key is missing; read the Gradle warning. |
+| The upload fails with `401` or `403` | The key is wrong, or its service account is not **Editor**. |
+
+## Related
+
+- [Set up an Android application](/fusescope-docs/frontend/set-up-android/)
+- [Errors](/fusescope-docs/frontend/errors/)
+- [Service accounts](/fusescope-docs/administration/service-accounts/)

@@ -107,6 +107,27 @@ To get readable names, add `data-fusescope-action` to the elements that matter:
 <button data-fusescope-action="checkout">Pay now</button>
 ```
 
+## Android sessions
+
+Sessions of an Android application differ in a few ways:
+
+- **When a session ends.** After 15 minutes with the app in the background, or after
+  4 hours. A relaunch within those 15 minutes, such as after a crash or after the system
+  killed the app, continues the same session. Both limits are SDK options
+  (`session.inactivityTimeoutMillis` and `session.maxDurationMillis`).
+- **Browser** and **Browser · OS** don't apply: an app sends no user agent. The device
+  and OS are on every span's resource, as `device.*`, `os.*` and
+  `android.os.api_level`; open **Traces of this session** to read them.
+- **Views** are screens, named as in [Android screens](/fusescope-docs/frontend/views/#android-screens).
+- **Actions** are the custom actions sent with `FuseScope.addAction()`; taps are not
+  recorded.
+- **Requests** are OkHttp calls made through `FuseScope.callFactory`.
+- **Errors** are crashes, ANRs and handled errors, shown with their source (`crash`,
+  `anr` or `manual`). A crash is usually the session's last event.
+- **User** works the same: [`FuseScope.setUser()`](/fusescope-docs/frontend/set-up-android/#identify-the-user)
+  sends the same SHA-256 hash as the browser SDK, so one user's web and Android
+  sessions share a `user.id`.
+
 ## Example: what happened to this user?
 
 <Steps>
