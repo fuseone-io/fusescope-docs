@@ -12,8 +12,12 @@ can build and run.
 The SDK, `io.fuseone.fusescope:android`, is a thin distribution of
 [OpenTelemetry Android](https://github.com/open-telemetry/opentelemetry-android). It
 records sessions, screens, crashes, ANRs (Application Not Responding), app start and
-OkHttp requests linked to backend traces. It is in beta, `0.1.0-beta.1`, and its options
-may change before 1.0. Native (NDK) crashes are not captured yet.
+OkHttp requests linked to backend traces. It is in beta, `0.1.0-beta.2`, and its options
+may change before 1.0. Native (NDK) crashes are not captured yet; they are planned.
+
+`0.1.0-beta.2` needs FuseScope 0.156.0 or later to keep one
+[R8 mapping per build](/fusescope-docs/frontend/r8-mappings/#the-release-rule);
+`0.1.0-beta.1` works with 0.155.0 or later.
 
 If you don't know what RUM records yet, start with
 [Real User Monitoring](/fusescope-docs/frontend/real-user-monitoring/).
@@ -68,7 +72,7 @@ creation.
 The **New application** sheet is the same as for the web, with **Package names and
 tracing** instead of origins:
 
-- **Name**: sent as `service.name`; it is how the app appears in
+- **Name**: the gateway sends it as `service.name`; it is how the app appears in
   [Services](/fusescope-docs/apm/services/) and the explorers. Use lowercase letters,
   digits and dashes, such as `shop-android`.
 - **Environment**: sent as `deployment.environment.name`. Create one application per
@@ -124,12 +128,12 @@ Then, in the app module:
 ```kotlin title="app/build.gradle.kts"
 plugins {
     id("com.android.application")
-    id("io.fuseone.fusescope.android.mappings") version "0.1.0-beta.1" // optional, uploads R8 mappings
+    id("io.fuseone.fusescope.android.mappings") version "0.1.0-beta.2" // optional, uploads R8 mappings
 }
 
 dependencies {
-    implementation("io.fuseone.fusescope:android:0.1.0-beta.1")
-    implementation("io.fuseone.fusescope:android-compose:0.1.0-beta.1") // optional, Compose and Navigation screens
+    implementation("io.fuseone.fusescope:android:0.1.0-beta.2")
+    implementation("io.fuseone.fusescope:android-compose:0.1.0-beta.2") // optional, Compose and Navigation screens
 }
 ```
 
@@ -161,8 +165,6 @@ class ShopApplication : Application() {
                 applicationId = "01a16431-12ca-7064-bae9-6ac64cf20a29",
                 key = "rum_pub_…",
                 endpoint = "https://fusescope.example.com",
-                service = "shop-android",
-                release = BuildConfig.VERSION_NAME,
                 environment = "production",
             ),
         )
@@ -182,9 +184,12 @@ Register the class in the manifest, if it isn't already:
   through `localhost` or an internal host name, use its public URL. The SDK sends to
   `<endpoint>/rum/v1/traces` and `<endpoint>/rum/v1/logs`. On the emulator, the host
   machine is `http://10.0.2.2`.
-- `release = BuildConfig.VERSION_NAME` needs `buildFeatures { buildConfig = true }` in
-  the app module. You can also leave `release` out: it defaults to the app's
-  `versionName` anyway.
+- `service` and `release` are left out: the gateway names the service after the
+  application, and `release` defaults to the app's `versionName`, as the mapping upload
+  does.
+- With **Link requests to backend traces** set, the snippet also passes those URLs'
+  hosts as `traceparentHosts`; see
+  [Link requests to backend traces](#link-requests-to-backend-traces).
 - A second `init` call, or an invalid configuration, is logged under the `FuseScope`
   tag and ignored; the app keeps running.
 
@@ -195,10 +200,11 @@ Register the class in the manifest, if it isn't already:
 | `applicationId` | required | The RUM application id from the **Install** step. |
 | `key` | required | The public key, `rum_pub_…`. |
 | `endpoint` | required | The FuseScope base URL. |
-| `service` | `applicationId` | `service.name`. Set it to the application's name, as the generated snippet does, or the app shows under its id in Services. |
+| `service` | none | `service.name`. When unset, the gateway uses the application's name; set it only to override that. |
 | `environment` | none | `deployment.environment.name`. When unset, the gateway uses the application's environment. |
 | `release` | `versionName` | `service.version`: the **Release** filter, and the release [R8 mappings](/fusescope-docs/frontend/r8-mappings/) are looked up by. |
 | `sessionSampleRate` | `1.0` | Share of sessions recorded, 0 to 1. Decided once per session. |
+| `traceparentHosts` | the `endpoint`'s host | Hosts whose requests carry `traceparent`; see [Link requests to backend traces](#link-requests-to-backend-traces). |
 | `requireConsent` | `false` | Collect nothing until `FuseScope.setConsent(true)`. |
 | `diskBuffering` | `false` | Keep data on disk while the device is offline. Data is then exported 30 s or more after it is recorded. |
 | `privacy` | `PrivacyConfig()` | See [Privacy defaults](#privacy-defaults). |
@@ -332,17 +338,36 @@ OpenTelemetry and send its traces to FuseScope; see
 [Instrument applications](/fusescope-docs/sending-data/instrumentation/). There is no CORS
 on Android, so the API needs no change.
 
+Only requests to the hosts in `traceparentHosts` carry `traceparent`. By default that is
+the `endpoint`'s host alone, so list your API hosts:
+
+```kotlin
+FuseScopeConfig(
+    // …
+    traceparentHosts = listOf("api.example.com", "*.example.com"),
+)
+```
+
+- An entry is an exact host (`api.example.com`), `*.example.com` for its subdomains only
+  (not `example.com` itself), or `*` for every host. Hosts are matched alone, whatever
+  the scheme or port.
+- An invalid entry, such as a URL or a host with a port, makes `init` log an error and do
+  nothing.
+- Requests to other hosts are still traced as spans, just without the header, so
+  third-party APIs never receive your trace ids.
+- The **Install** step fills `traceparentHosts` from the hosts of the application's
+  **Link requests to backend traces** URLs.
 - The factory can be created before `init`. While collection is off, requests go through
   your client unchanged.
 - Requests of an unsampled session carry **no** `traceparent`, so they don't change how
   your backend samples its traces.
 - Requests made with a plain `OkHttpClient`, or another HTTP library, are not traced.
 
-<Aside type="caution">
-  In `0.1.0-beta.1` the SDK adds `traceparent` to requests to **every** host, whatever
-  the application's **Link requests to backend traces** list says. If you call
-  third-party APIs that reject unknown headers, make those calls with your plain client,
-  not through `callFactory`.
+<Aside type="caution" title="Changed in 0.1.0-beta.2">
+  `0.1.0-beta.1` added `traceparent` to requests to every host. From `0.1.0-beta.2`, only
+  the `endpoint`'s host gets it unless you set `traceparentHosts`: when upgrading, list
+  your API hosts, or backend traces stop being linked. `listOf("*")` restores the old
+  behaviour.
 </Aside>
 
 ## Privacy defaults
@@ -364,7 +389,7 @@ Run the app, on a device or the emulator, and move through a few screens. The
 application's **Install** step updates by itself: it reads **Waiting for first data…**
 until the gateway accepts the first request, then **Receiving data**, with what arrived
 in the last 5 minutes (**Sessions**, **Views**, **Errors** and the vitals, counted under
-**Web Vitals**) and the SDK seen, such as `io.fuseone.fusescope:android 0.1.0-beta.1`
+**Web Vitals**) and the SDK seen, such as `io.fuseone.fusescope:android 0.1.0-beta.2`
 **Supported**. **Open shop-android** opens the application's
 [overview](/fusescope-docs/frontend/applications/#the-overview).
 

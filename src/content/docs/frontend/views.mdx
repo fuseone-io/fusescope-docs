@@ -117,10 +117,10 @@ On an Android application, a view is a **screen**, and the same tab lists them:
 - **Time on view** ends when the next screen starts or the app goes to the background.
 - **Slowest request** covers OkHttp requests made through
   [`FuseScope.callFactory`](/fusescope-docs/frontend/set-up-android/#link-requests-to-backend-traces).
-- **LCP**, **INP** and **CLS** stay empty: they are browser measures. Android's app start
-  time is sent as the `app_start` vital, which these screens don't chart yet; see the
-  note in [the overview](/fusescope-docs/frontend/applications/#key-numbers).
-- **Browsers and OS** stays empty, since an app sends no user agent.
+- **LCP**, **INP** and **CLS** stay empty: they are browser measures. App start p75 is on
+  [the overview](/fusescope-docs/frontend/applications/#key-numbers).
+- A route's detail shows **Devices and OS** instead of **Browsers and OS**: the share of
+  views per device and per OS, without LCP.
 
 ## Example: is a page slow, and why?
 

@@ -25,7 +25,7 @@ The filters next to **Release** narrow the list. They are kept in the URL, so a 
 list can be shared.
 
 1. **Browser**: **All**, or one browser such as **Chrome**, **Safari**, **Firefox** or
-   **Edge**.
+   **Edge**. Hidden on Android.
 2. **Route**: only sessions that saw this [route](/fusescope-docs/frontend/views/).
 3. **Duration**: **< 10 s**, **10 s – 1 min**, **≥ 1 min**, **≥ 5 min** or
    **≥ 15 min**. Very short sessions often mean users who left at once.
@@ -42,7 +42,7 @@ list can be shared.
 8. **User**: the short `user.id`, or **—** when the app set no user.
 9. **Started**, **Duration**, **Views**, **Actions** (clicks and custom actions) and
    **Errors**.
-10. **Browser · OS** and **Release**.
+10. **Browser · OS** (**Device · OS** on Android) and **Release**.
 
 ## The session timeline
 
@@ -115,9 +115,9 @@ Sessions of an Android application differ in a few ways:
   4 hours. A relaunch within those 15 minutes, such as after a crash or after the system
   killed the app, continues the same session. Both limits are SDK options
   (`session.inactivityTimeoutMillis` and `session.maxDurationMillis`).
-- **Browser** and **Browser · OS** don't apply: an app sends no user agent. The device
-  and OS are on every span's resource, as `device.*`, `os.*` and
-  `android.os.api_level`; open **Traces of this session** to read them.
+- **Device · OS** replaces **Browser · OS**, such as **Google Pixel 8 · Android 14**,
+  from the `device.*` and `os.*` resource attributes, since an app sends no user agent.
+  The **Browser** filter is hidden.
 - **Views** are screens, named as in [Android screens](/fusescope-docs/frontend/views/#android-screens).
 - **Actions** are the custom actions sent with `FuseScope.addAction()`; taps are not
   recorded.

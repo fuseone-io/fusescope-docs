@@ -31,7 +31,7 @@ for both; the differences are noted where they matter. On Android, a view is a s
 (an Activity, a Fragment or a Compose destination), errors include **crashes** and
 **ANRs** (the app not responding), and stack traces are retraced with
 [R8 mappings](/fusescope-docs/frontend/r8-mappings/) instead of source maps. Native (NDK)
-crashes are not captured yet.
+crashes are not captured yet; they are planned.
 
 **Use RUM when** users say "the site is slow" and the backend looks healthy, when you
 want to know whether a release made pages slower, or when you need the backend trace
@@ -59,11 +59,11 @@ behind one user's failing click.
   [R8 mappings](/fusescope-docs/frontend/r8-mappings/) uploaded, stack traces show your
   original code. See [Errors](/fusescope-docs/frontend/errors/).
 - **App start** (Android). Cold, warm and hot start times, rated with Android vitals'
-  thresholds.
+  thresholds, shown as p75 on the overview.
 - **Clicks.** Each click records which element was clicked, as a short selector such as
   `button#checkout`, never its text.
 - **Requests linked to backend traces.** Each `fetch` or `XMLHttpRequest` call in the
-  browser, and each OkHttp request on Android, is a span. The SDK adds the W3C `traceparent` header to it, so the backend's
+  browser, and each OkHttp request on Android, is a span. The SDK adds the W3C `traceparent` header to requests to your backend, so the backend's
   trace becomes a child of the browser's request. From a session, a route or an error,
   one click opens the backend trace in
   [Trace details](/fusescope-docs/explore/trace-details/).

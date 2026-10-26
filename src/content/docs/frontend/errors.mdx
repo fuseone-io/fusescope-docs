@@ -152,10 +152,10 @@ exception crashing the app and caught by your code are different problems:
 | **ANR** | `anr` | *Application Not Responding*: the main thread was blocked for about 10 seconds. The stack trace is the main thread's at that moment: what it was stuck on. | **ANR**, amber |
 | **Handled** | `manual` | An exception your code passed to `FuseScope.addError()`. | none |
 
-The source shows next to the type, as `fusescope.rum.error.source`. The **Source**
-filter offers the browser sources only in this release, so use the badges, or search by
-type: an ANR's type is `ApplicationNotResponding` from the FuseScope SDK and `ANR` from
-a plain OpenTelemetry Android client. Native (NDK) crashes are not captured yet.
+The source shows next to the type, as `fusescope.rum.error.source`, and the **Source**
+filter offers **Crash**, **ANR** and **Manual** on Android. An ANR's type is `ANR`; the
+gateway also stores the `ApplicationNotResponding` type of SDK `0.1.0-beta.1` as `ANR`
+on new events. Native (NDK) crashes are not captured yet; they are planned.
 
 ### Retraced stack traces
 

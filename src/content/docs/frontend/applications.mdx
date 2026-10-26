@@ -38,9 +38,8 @@ All numbers follow the time range at the top right, **Last 30 minutes** by defau
    - **Good LCP**: the share of page loads with an LCP of 2.5 s or less;
    - **Outdated SDKs**: applications whose latest data came from an SDK version this
      server no longer supports, or **All supported**.
-4. **Search applications** by name, and filter by **platform** and **Environment**. In
-   this release the platform filter still marks Android as coming soon, so it can't
-   select Android applications; search by name instead.
+4. **Search applications** by name, and filter by **platform** (**Web** or
+   **Android**) and **Environment**.
 5. **Application**: its name, platform and environment. Click the row to open its
    [overview](#the-overview).
 6. **Sessions** and **Error rate**, with the change from the previous period of the
@@ -121,11 +120,10 @@ narrowed to release `1.0.0`:
    good.
 
 <Aside>
-  For an Android application, the LCP, INP and CLS tiles and **Top routes by LCP** stay
-  empty: those are browser measures. Android's `app_start` vital is not charted on the
-  Frontend screens yet; find it in the [Logs explorer](/fusescope-docs/explore/logs/)
-  with `event.name = rum.vital`, its value in `fusescope.rum.vital.value` (ms) and its
-  kind in `start.type` (`cold`, `warm` or `hot`).
+  For an Android application, the strip shows **Cold start p75**, **Warm start p75** and
+  **Hot start p75** instead, from the `app_start` vital, with the same split bars. Good
+  is below 2.5 s cold, 1 s warm and 0.75 s hot; poor from 5 s, 2 s and 1.5 s, Android
+  vitals' thresholds. **Top routes by LCP** has no vitals: LCP is a browser measure.
 </Aside>
 
 ### Panels
@@ -144,7 +142,8 @@ narrowed to release `1.0.0`:
 12. Click an error to open its [detail](/fusescope-docs/frontend/errors/#error-detail),
     with its stack trace. **View in Logs** opens its events.
 13. **Recent sessions**: the latest sessions with when they **Started**, their
-    **Duration**, number of **Views** and **Errors**, **Browser · OS** and **Release**.
+    **Duration**, number of **Views** and **Errors**, **Browser · OS** (**Device · OS**
+    on Android, such as **Google Pixel 8 · Android 14**) and **Release**.
     **All sessions** opens the Sessions tab.
 14. Click a session to open its
     [timeline](/fusescope-docs/frontend/sessions/#the-session-timeline).
