@@ -76,7 +76,7 @@ function App() {
       <Link to="/products/blue-boot">Blue boot</Link>{' '}
       <Link to="/debug/render-error">Test render error</Link>
     </nav>
-    <ErrorBoundary key={location.pathname} fallback={<p role="alert">This page could not be displayed.</p>}>
+    <ErrorBoundary resetKeys={[location.pathname]} fallback={<p role="alert">This page could not be displayed.</p>}>
       <Pages />
     </ErrorBoundary>
   </>;
@@ -108,10 +108,29 @@ produce the pathname navigations this adapter tracks.
 `ErrorBoundary` renders its `fallback` when a descendant throws during rendering
 or a lifecycle method. It calls the browser SDK's `addError()`, producing an
 exception with `fusescope.rum.error.source=manual`, the current route and session,
-and a component stack in `fusescope.rum.react.component_stack`.
+and a component stack in `fusescope.rum.react.component_stack`. URL query strings
+and fragments are always removed from that component stack, which is limited to
+the first 4,096 characters, even if general URL collection is enabled.
 
-Use a different React `key` to reset a failed boundary, for example a pathname key
-in a component that reads `useLocation()`. A boundary does not catch failures in
+Pass `resetKeys={[location.pathname]}` in a component that reads `useLocation()`
+to recover when the user navigates away from a failed page. Reset keys are compared
+by value with `Object.is`. Alternatively, use a fallback render function to offer
+a retry after the cause of the error has been resolved:
+
+```tsx
+<ErrorBoundary
+  resetKeys={[location.pathname]}
+  fallback={({ reset }) => <div role="alert">
+    <p>This page could not be displayed.</p>
+    <button type="button" onClick={reset}>Try again</button>
+  </div>}
+>
+  <Pages />
+</ErrorBoundary>
+```
+
+The fallback function also receives `error` (an `unknown` value). A different React
+`key` still resets the boundary by remounting it. A boundary does not catch failures in
 its own fallback, event handlers, asynchronous callbacks, or server-side rendering.
 Use the browser SDK's `addError()` for handled errors outside rendering; unhandled
 browser errors still use its automatic capture.
@@ -122,7 +141,7 @@ report those through `addError()` in your own error UI if needed. The outer boun
 around `RouterProvider` does not intercept errors React Router has already caught.
 
 <Aside type="note">
-React development builds can also forward a caught render error to the global
+React development builds, including React 18, can also forward a caught render error to the global
 browser error handler. Verify the `manual` event from the boundary, even if a
 development build also sends an `onerror` event. React Strict Mode does not add a
 second view listener: the adapter uses the browser SDK's existing tracking.
