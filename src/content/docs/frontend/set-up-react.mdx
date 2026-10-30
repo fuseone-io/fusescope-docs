@@ -1,0 +1,163 @@
+---
+title: Set up React RUM
+description: Name React Router views by route pattern and report React rendering errors to FuseScope with @fusescope/browser-react.
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+`@fusescope/browser-react` connects a React application to the
+[browser SDK](/fusescope-docs/frontend/sdk-reference/). It names views from your
+React Router configuration and reports caught rendering errors to
+[Errors](/fusescope-docs/frontend/errors/).
+
+## Before you start
+
+[Create a web application](/fusescope-docs/frontend/set-up-web/#create-the-application)
+and copy its public `rum_pub_…` key. Allow the origin your React application runs on.
+Use React 18 or 19 and React Router 6.30.6+ or 7.18.5+ with `BrowserRouter` or
+`createBrowserRouter`. The browser SDK must be `0.2.0-beta.1` or later.
+
+```sh
+npm install @fusescope/browser@next @fusescope/browser-react@next
+```
+
+Keep the React and React Router versions already used by your application. The
+adapter uses them as peers. If your app has no router, you can use just
+`ErrorBoundary`; importing it does not import React Router.
+
+## Name views from route patterns
+
+Pass `reactRouterRouteTemplate(routes)` to the browser SDK's `routeTemplate`
+configuration, using the **same route objects** you give React Router. Call `init()`
+before mounting the app so the initial view and page-load Web Vitals already carry
+the correct pattern.
+
+```tsx title="src/main.tsx"
+import { init } from '@fusescope/browser';
+import { ErrorBoundary } from '@fusescope/browser-react';
+import { reactRouterRouteTemplate } from '@fusescope/browser-react/react-router';
+import { createRoot } from 'react-dom/client';
+import { BrowserRouter, Link, type RouteObject, useLocation, useParams, useRoutes } from 'react-router-dom';
+
+function Product() {
+  const { productId } = useParams();
+  return <h1>Product: {productId}</h1>;
+}
+
+function TestRenderError(): never {
+  throw new Error('React RUM test render error');
+}
+
+const routes: RouteObject[] = [
+  { path: '/', element: <h1>Shop</h1> },
+  { path: '/products/:productId', element: <Product /> },
+  { path: '/debug/render-error', element: <TestRenderError /> },
+];
+
+init({
+  applicationId: '<your RUM application id>',
+  publicKey: 'rum_pub_…',
+  endpoint: 'https://fusescope.example.com',
+  service: 'web-shop',
+  environment: 'production',
+  version: '<your app version>',
+  routeTemplate: reactRouterRouteTemplate(routes),
+});
+
+function Pages() {
+  return useRoutes(routes);
+}
+
+function App() {
+  const location = useLocation();
+  return <>
+    <nav>
+      <Link to="/products/red-shoe">Red shoe</Link>{' '}
+      <Link to="/products/blue-boot">Blue boot</Link>{' '}
+      <Link to="/debug/render-error">Test render error</Link>
+    </nav>
+    <ErrorBoundary key={location.pathname} fallback={<p role="alert">This page could not be displayed.</p>}>
+      <Pages />
+    </ErrorBoundary>
+  </>;
+}
+
+const root = document.getElementById('root');
+if (root) createRoot(root).render(<BrowserRouter><App /></BrowserRouter>);
+```
+
+The two product URLs both use `/products/:productId` in FuseScope. Navigating from
+one product to another still creates a new view; the pattern groups visits without
+putting product identifiers into the route label. Nested routes, index routes,
+pathless layouts, optional segments and splats use their declared patterns.
+An unmatched path is named `/*`.
+
+If the router uses a basename, pass the same value to both:
+
+```tsx
+routeTemplate: reactRouterRouteTemplate(routes, '/shop')
+// Mount the app under <BrowserRouter basename="/shop">.
+```
+
+Route patterns exclude the basename. Changing only a query string or fragment
+keeps the current view, as in the browser SDK. Hash and memory routers do not
+produce the pathname navigations this adapter tracks.
+
+## Catch rendering errors
+
+`ErrorBoundary` renders its `fallback` when a descendant throws during rendering
+or a lifecycle method. It calls the browser SDK's `addError()`, producing an
+exception with `fusescope.rum.error.source=manual`, the current route and session,
+and a component stack in `fusescope.rum.react.component_stack`.
+
+Use a different React `key` to reset a failed boundary, for example a pathname key
+in a component that reads `useLocation()`. A boundary does not catch failures in
+its own fallback, event handlers, asynchronous callbacks, or server-side rendering.
+Use the browser SDK's `addError()` for handled errors outside rendering; unhandled
+browser errors still use its automatic capture.
+
+For data routers, place this boundary **inside the route element** you want to
+protect. React Router's `errorElement` handles loader/action failures separately;
+report those through `addError()` in your own error UI if needed. The outer boundary
+around `RouterProvider` does not intercept errors React Router has already caught.
+
+<Aside type="note">
+React development builds can also forward a caught render error to the global
+browser error handler. Verify the `manual` event from the boundary, even if a
+development build also sends an `onerror` event. React Strict Mode does not add a
+second view listener: the adapter uses the browser SDK's existing tracking.
+</Aside>
+
+## Privacy and consent
+
+The adapter shares the browser SDK's sampling, privacy settings and consent. With
+`requireConsent: true`, neither views nor caught render errors are recorded until
+`setConsent(true)`. Initialize before mounting the router even when consent is
+required. Collection starts on the route the user is visiting when consent arrives.
+
+Route labels contain patterns, but URL attributes still contain paths. Continue to
+use [privacy settings](/fusescope-docs/frontend/set-up-web/#3-privacy) and the
+application's server-side PII policy. Do not place personal information in error
+messages or route definitions.
+
+## Verify in FuseScope
+
+1. Open `/products/red-shoe`, then follow the link to `/products/blue-boot`.
+2. In **Frontend → your application → Views**, find `/products/:productId`. Both
+   visits contribute to that route, rather than separate rows for the product IDs.
+3. Follow **Test render error**. The fallback should appear while the navigation
+   remains visible.
+4. In **Errors**, find `React RUM test render error`. Open it and check its source
+   is **manual**, with the route `/debug/render-error` and a linked session.
+5. [Upload source maps](/fusescope-docs/frontend/source-maps/) for the same `version`
+   you pass to `init()` to see the original stack. Remove the test route afterwards.
+
+Use a sampled session, grant consent if required, and allow a few seconds for the
+browser SDK to export before refreshing FuseScope. Follow the general
+[web troubleshooting steps](/fusescope-docs/frontend/set-up-web/#troubleshoot-rejected-requests)
+if no data arrives.
+
+The SDK repository also includes a runnable
+[React sample](https://github.com/fuseone-io/fusescope-sdk/tree/main/packages/browser-react#development-sample).
+Its default server records OTLP locally; the sample README explains how to point
+it at your own FuseScope application.
