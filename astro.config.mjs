@@ -148,6 +148,7 @@ export default defineConfig({
           items: [
             { label: "Real User Monitoring", slug: "frontend/real-user-monitoring" },
             { label: "Set up a web application", slug: "frontend/set-up-web" },
+            { label: "Set up React RUM", slug: "frontend/set-up-react" },
             { label: "Set up an Android application", slug: "frontend/set-up-android" },
             { label: "Applications and Overview", slug: "frontend/applications" },
             { label: "Views", slug: "frontend/views" },
