@@ -142,14 +142,14 @@ For React Router views and caught rendering errors, also follow
 [Set up React RUM](/fusescope-docs/frontend/set-up-react/).
 
 Install [`@fusescope/browser`](https://www.npmjs.com/package/@fusescope/browser) from
-npm, with the `next` tag, which has the current beta, `0.2.0-beta.0`:
+npm, with the `next` tag, which has the current beta, `0.2.0-beta.1`:
 
 ```bash
 npm install @fusescope/browser@next
 ```
 
 The **Install** tab shows `npm install @fusescope/browser` without the tag, which installs
-the older `0.1.0-beta.0`; add `@next`.
+an older beta; add `@next`.
 
 Then paste the snippet from the **Install** step **as early as possible** in your app's
 entry point, before your app renders, such as `src/main.tsx` or `src/main.ts`. The
@@ -190,12 +190,42 @@ init({
 
 The SDK is published as ESM for bundlers.
 
-<Aside type="note" title="Script tag: coming soon">
-  The **Script tag · CDN** and **Script tag · this FuseScope** install methods are
-  marked **Soon**. A versioned CDN build with SRI hashes, and the same build served by
-  your FuseScope server at `/rum/sdk/browser/<version>.js`, come in a later release.
-  Until then, use npm.
-</Aside>
+### Install with a script tag
+
+For a site without a bundler, choose **Script tag** on the **Install** tab. The SDK is
+then a single file that defines a global `FuseScope`. Pick where browsers load it from:
+
+| Source | URL | Use when |
+|---|---|---|
+| **This FuseScope** (default) | `https://<your FuseScope>/rum/v1/sdk/browser/<version>/fusescope.min.js` | Self-hosted or air-gapped installs; browsers need to reach FuseScope anyway. |
+| **cdn.fuseone.io** | `https://cdn.fuseone.io/browser/<version>/fusescope.min.js` | A public CDN run by FuseOne. |
+| **jsDelivr** | `https://cdn.jsdelivr.net/npm/@fusescope/browser@<version>/dist/fusescope.min.js` | The npm package served by jsDelivr. |
+
+All three serve the same file. Your FuseScope serves the version it was built with; the
+**Install** tab uses that version for every source. The snippet looks like this:
+
+```html
+<script
+  src="https://fusescope.example.com/rum/v1/sdk/browser/0.2.0-beta.1/fusescope.min.js"
+  integrity="sha384-W9beoX1Dd3K5Qeu+f2RfXYn3RF/Z5NSY/TUye/4XmIr7RUnT23UwZSqyiY3UWDAs"
+  crossorigin="anonymous"
+></script>
+<script>
+  FuseScope.init({
+    applicationId: '01a16431-12ca-7064-bae9-6ac64cf20a29',
+    publicKey: 'rum_pub_…',
+    endpoint: 'https://fusescope.example.com',
+    version: '<your app version>', // your release
+  });
+</script>
+```
+
+- Put both tags in the `<head>`, before your own scripts, so the first view and its
+  Web Vitals are recorded.
+- Keep `integrity` and `crossorigin="anonymous"`. The browser computes the file's hash
+  and refuses to run it if it differs, so a tampered CDN copy never executes. Each
+  release publishes its hash in `fusescope.min.js.sri` next to the file.
+- The page's origin must be in the application's **Allowed origins**, as with npm.
 
 ### Allow traceparent in your API's CORS
 
