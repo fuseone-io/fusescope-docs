@@ -160,6 +160,23 @@ export const sidebar = [
     ],
   },
   {
+    label: "Infrastructure as code",
+    items: [
+      { label: "Terraform provider", slug: "terraform" },
+      { label: "Alerts as code", slug: "terraform/alerts-as-code" },
+      { label: "RUM applications", slug: "terraform/rum-applications" },
+      { label: "Import existing resources", slug: "terraform/import" },
+    ],
+  },
+  {
+    label: "AI assistants (MCP)",
+    items: [
+      { label: "MCP server", slug: "mcp" },
+      { label: "Set up the MCP server", slug: "mcp/setup" },
+      { label: "Tools and resources", slug: "mcp/tools" },
+    ],
+  },
+  {
     label: "Operate",
     items: [
       { label: "Users and roles", slug: "administration/users-and-roles" },

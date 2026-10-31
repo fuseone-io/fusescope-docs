@@ -1,0 +1,269 @@
+---
+title: Set up the MCP server
+description: Build the FuseScope MCP server, connect Claude Code, Claude Desktop, Cursor or VS Code over stdio or HTTP, and configure OAuth, the instance allowlist and the docs refresh.
+---
+
+import { Aside, Steps, Tabs, TabItem } from "@astrojs/starlight/components";
+
+This page installs the [FuseScope MCP server](/fusescope-docs/mcp/) and connects an
+MCP client to it.
+
+**Use this page when** you are connecting an assistant to FuseScope for the first time,
+or running the server for a team.
+
+## Before you start
+
+- A running FuseScope instance; see [Install with Helm](/fusescope-docs/install/helm/).
+- A [service account](/fusescope-docs/administration/service-accounts/) API key. Use a
+  service account with the **Viewer** role unless the assistant should change things;
+  see [read-only or read-write](/fusescope-docs/mcp/#read-only-or-read-write).
+
+## Install
+
+Release binaries and a container image are coming. Until then, build the server from
+source with Go 1.26 or later:
+
+```sh
+git clone https://github.com/fuseone-io/fusescope-mcp-server.git
+cd fusescope-mcp-server
+make build
+```
+
+The binary is `./bin/fusescope-mcp-server`. Move it onto your `PATH`, or note its
+absolute path for the client configuration.
+
+To run it in a container, build the image from the same checkout:
+
+```sh
+docker build -t fusescope-mcp-server .
+```
+
+## Connect a client over stdio
+
+In stdio mode the client starts the server as a subprocess, one per client. Give it the
+FuseScope URL and the API key as environment variables.
+
+<Tabs>
+<TabItem label="Claude Code">
+
+```sh
+claude mcp add fusescope \
+  --env FUSESCOPE_URL=https://fusescope.example.com \
+  --env FUSESCOPE_API_KEY=<service account API key> \
+  -- /absolute/path/to/fusescope-mcp-server
+```
+
+</TabItem>
+<TabItem label="Claude Desktop">
+
+In *Settings → Developer → Edit Config*, add the server to
+`claude_desktop_config.json` and restart Claude Desktop:
+
+```json title="claude_desktop_config.json"
+{
+  "mcpServers": {
+    "fusescope": {
+      "command": "/absolute/path/to/fusescope-mcp-server",
+      "env": {
+        "FUSESCOPE_URL": "https://fusescope.example.com",
+        "FUSESCOPE_API_KEY": "<service account API key>"
+      }
+    }
+  }
+}
+```
+
+You can also build a Claude Desktop extension bundle with `make bundle` (needs
+Node.js) and add `./bundle/bundle.mcpb` in the same settings page; it asks for the URL
+and key.
+
+</TabItem>
+<TabItem label="Cursor">
+
+```json title=".cursor/mcp.json"
+{
+  "mcpServers": {
+    "fusescope": {
+      "command": "/absolute/path/to/fusescope-mcp-server",
+      "env": {
+        "FUSESCOPE_URL": "https://fusescope.example.com",
+        "FUSESCOPE_API_KEY": "<service account API key>"
+      }
+    }
+  }
+}
+```
+
+</TabItem>
+<TabItem label="VS Code">
+
+```json title=".vscode/mcp.json"
+{
+  "servers": {
+    "fusescope": {
+      "type": "stdio",
+      "command": "/absolute/path/to/fusescope-mcp-server",
+      "env": {
+        "FUSESCOPE_URL": "https://fusescope.example.com",
+        "FUSESCOPE_API_KEY": "<service account API key>"
+      }
+    }
+  }
+}
+```
+
+</TabItem>
+</Tabs>
+
+Ask the assistant "What is the status of my FuseScope?" to check the connection. It
+calls `fusescope_get_org_overview` and summarizes what the instance holds.
+
+<Aside type="caution">
+  The client configuration then contains the API key in plain text. Keep it out of
+  repositories; for a shared project file, use your client's support for environment
+  variable references.
+</Aside>
+
+## Run it over HTTP
+
+In HTTP mode one server serves many clients at `/mcp`. Start it with
+`TRANSPORT_MODE=http`:
+
+```sh
+docker run -p 8000:8000 \
+  -e TRANSPORT_MODE=http \
+  -e FUSESCOPE_URL=https://fusescope.example.com \
+  fusescope-mcp-server
+```
+
+The server listens on all interfaces; set `MCP_SERVER_HOST=127.0.0.1` to accept local
+connections only. The API key can live in one of three places:
+
+| Setup | Server has | Client sends |
+|---|---|---|
+| Key on the server | `FUSESCOPE_URL`, `FUSESCOPE_API_KEY` | nothing; every client shares the key |
+| Key on the client | `FUSESCOPE_URL` | its own key in the `SIGNOZ-API-KEY` header |
+| OAuth | `OAUTH_ENABLED=true` and the OAuth settings | nothing; the user signs in in the browser |
+
+With the key on the client, each user's key decides what they can do:
+
+<Tabs>
+<TabItem label="Claude Code">
+
+```sh
+claude mcp add --transport http fusescope https://mcp.example.com/mcp \
+  --header "SIGNOZ-API-KEY: <service account API key>"
+```
+
+</TabItem>
+<TabItem label="Cursor">
+
+```json title=".cursor/mcp.json"
+{
+  "mcpServers": {
+    "fusescope": {
+      "url": "https://mcp.example.com/mcp",
+      "headers": { "SIGNOZ-API-KEY": "<service account API key>" }
+    }
+  }
+}
+```
+
+</TabItem>
+<TabItem label="VS Code">
+
+```json title=".vscode/mcp.json"
+{
+  "servers": {
+    "fusescope": {
+      "type": "http",
+      "url": "https://mcp.example.com/mcp",
+      "headers": { "SIGNOZ-API-KEY": "<service account API key>" }
+    }
+  }
+}
+```
+
+</TabItem>
+</Tabs>
+
+A client may also send `X-SigNoz-URL` to choose the FuseScope instance; restrict that
+with [`FUSESCOPE_INSTANCE_URL_ALLOWLIST`](#security).
+
+### OAuth
+
+With OAuth, clients need only the URL. On first use they discover the OAuth endpoints,
+open a browser page where the user enters a FuseScope URL and API key, and store the
+resulting token.
+
+```sh
+TRANSPORT_MODE=http \
+OAUTH_ENABLED=true \
+OAUTH_TOKEN_SECRET=$(openssl rand -base64 32) \
+OAUTH_ISSUER_URL=https://mcp.example.com \
+./fusescope-mcp-server
+```
+
+`OAUTH_TOKEN_SECRET` encrypts the tokens and must stay the same across restarts and
+replicas. `OAUTH_ISSUER_URL` is the server's public URL.
+
+### Probes and memory
+
+`/livez` answers as soon as the process is up; `/readyz` returns `200` once the docs
+search index is built and `503` before. The `/mcp` endpoint is stateless, so replicas
+need no sticky sessions. Give a container at least `512Mi` of memory: building the docs
+index takes up to about 130 MiB above the baseline.
+
+### Browser links
+
+Tool results include `webUrl` deep links into the FuseScope UI. The server reads the
+browser URL from the FuseScope setting `global.external_url`, so set it on FuseScope
+(for example `SIGNOZ_GLOBAL_EXTERNAL__URL=https://fusescope.example.com`) when users
+open FuseScope at a different address from the one in `FUSESCOPE_URL`.
+
+## Security
+
+- **Least privilege.** The server can do only what the API key's role allows. Prefer a
+  Viewer service account, one per team or assistant, and revoke its keys when you are
+  done.
+- **Instance allowlist.** In HTTP mode, a client can name the FuseScope instance with
+  `X-SigNoz-URL` or on the OAuth page. Set `FUSESCOPE_INSTANCE_URL_ALLOWLIST` to the
+  hosts the server may call, such as `fusescope.example.com,*.fusescope.example.com`.
+  Other hosts are refused with `403`. `FUSESCOPE_URL` is always allowed.
+- **Loopback only.** For a server used from the same machine, set
+  `MCP_SERVER_HOST=127.0.0.1`.
+- **Reverse proxy.** If FuseScope sits behind an authenticating proxy, pass its headers
+  with `FUSESCOPE_CUSTOM_HEADERS`, as `Key1:Value1,Key2:Value2`.
+- **No analytics.** The server sends no usage data. Its own traces and metrics are
+  exported only when an `OTEL_EXPORTER_OTLP_ENDPOINT` is set.
+- **Docs refresh.** The docs tools ship with an index of this site and refresh it from
+  `fuseone-io.github.io` every 6 hours, with a full rebuild every 24 hours. Set both
+  `FUSESCOPE_DOCS_REFRESH_INTERVAL=0` and `FUSESCOPE_DOCS_FULL_REFRESH_INTERVAL=0` for
+  an offline server; it then serves the docs bundled with its release.
+
+## Environment variables
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `FUSESCOPE_URL` | none | FuseScope URL. Required in stdio mode and for HTTP without OAuth. |
+| `FUSESCOPE_API_KEY` | none | Service account API key. Required in stdio mode unless the client sends one. |
+| `FUSESCOPE_CUSTOM_HEADERS` | none | Extra headers on every FuseScope request, `Key1:Value1,Key2:Value2`. |
+| `FUSESCOPE_INSTANCE_URL_ALLOWLIST` | any host | HTTP mode: comma-separated hosts or `*.domain` wildcards the server may call. |
+| `FUSESCOPE_DOCS_REFRESH_INTERVAL` | `6h` | Incremental docs refresh; `0` turns it off. |
+| `FUSESCOPE_DOCS_FULL_REFRESH_INTERVAL` | `24h` | Forced full docs refresh; `0` turns it off. |
+| `TRANSPORT_MODE` | `stdio` | `stdio` or `http`. |
+| `MCP_SERVER_HOST` | all interfaces | HTTP listen address. |
+| `MCP_SERVER_PORT` | `8000` | HTTP port. |
+| `MCP_MAX_REQUEST_BYTES` | `4194304` | Largest HTTP request body. |
+| `CLIENT_CACHE_SIZE`, `CLIENT_CACHE_TTL_MINUTES` | `256`, `30` | Per-tenant client cache in HTTP mode. |
+| `OAUTH_ENABLED` | `false` | Turn on OAuth 2.1 in HTTP mode. |
+| `OAUTH_TOKEN_SECRET` | none | Token encryption key, at least 32 bytes. Required with OAuth. |
+| `OAUTH_ISSUER_URL` | none | Public URL of the server. Required with OAuth. |
+| `OAUTH_ACCESS_TOKEN_TTL_MINUTES`, `OAUTH_REFRESH_TOKEN_TTL_MINUTES`, `OAUTH_AUTH_CODE_TTL_SECONDS` | `60`, `43200`, `600` | OAuth token lifetimes. |
+| `LOG_LEVEL` | `info` | `debug`, `info`, `warn` or `error`. Logs are JSON on stderr. |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | none | OTLP gRPC endpoint for the server's own traces and metrics. |
+
+The former `SIGNOZ_URL`, `SIGNOZ_API_KEY`, `SIGNOZ_CUSTOM_HEADERS`,
+`SIGNOZ_INSTANCE_URL_ALLOWLIST` and `SIGNOZ_DOCS_*` names still work when the
+`FUSESCOPE_*` variable is unset, with a deprecation warning at startup. Rename them;
+they will be removed.

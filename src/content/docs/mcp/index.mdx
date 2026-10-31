@@ -1,0 +1,74 @@
+---
+title: MCP server
+description: Let AI assistants such as Claude, Cursor and VS Code query FuseScope metrics, traces, logs, alerts and dashboards through the FuseScope MCP server.
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+The FuseScope MCP server connects AI assistants to FuseScope over the
+[Model Context Protocol](https://modelcontextprotocol.io) (MCP). An assistant such as
+Claude Code, Claude Desktop, Cursor or VS Code can then answer questions from your
+telemetry and, if you allow it, change alerts, dashboards and channels for you.
+
+**Use this page when** you want to ask an assistant about your services in plain
+language, or let it draft dashboards and alert rules.
+
+## What you can ask
+
+- "Which services had the most errors in the last hour?"
+- "Show me error logs for `payment` from the last 30 minutes."
+- "Get the trace for request `4bf92f3577b34da6a3ce929d0e0e4736` and tell me where the
+  time went."
+- "What is the p99 latency of `checkout` today compared with yesterday?"
+- "Which metrics drive most of our ingestion volume, and are they used in any
+  dashboard?"
+- "Create a dashboard with CPU and memory per host."
+- "How do I send Docker logs to FuseScope?"
+
+The assistant picks the [tools](/fusescope-docs/mcp/tools/) it needs: it searches logs
+and traces, runs metric queries, reads alert state and history, and looks up these docs.
+
+## How it works
+
+The server is a single binary, `fusescope-mcp-server`. It calls the same FuseScope API
+as the UI, authenticated with a
+[service account](/fusescope-docs/administration/service-accounts/) API key, so it can
+do only what that key's role allows.
+
+| Transport | Runs | Use it when |
+|---|---|---|
+| **stdio** (default) | On your machine, started by the MCP client | One person, one FuseScope instance. |
+| **HTTP** | As a shared service, `/mcp` endpoint | A team shares one server; optional OAuth so each user signs in with their own key. |
+
+Setup for both is in [Set up the MCP server](/fusescope-docs/mcp/setup/).
+
+## Read-only or read-write
+
+Tools are marked read-only, create, update or delete with standard MCP tool
+annotations, so clients can auto-approve reads and ask before writes. What a write can
+actually do is decided by the role of the API key:
+
+| Role | What the assistant can do |
+|---|---|
+| Viewer | Query telemetry and read dashboards, alert rules, saved views and channels. Every write tool fails with `PERMISSION_DENIED`. |
+| Editor | Also create, change and delete dashboards, saved views and alert rules. |
+| Admin | Also manage notification channels. |
+
+<Aside type="tip">
+  Start with a dedicated service account with the **Viewer** role. Grant **Editor** only
+  to the assistants you want to change things.
+</Aside>
+
+## Privacy
+
+- The server sends no product analytics or usage data anywhere.
+- It exports its own traces and metrics only when you set an OTLP endpoint, for
+  example to your FuseScope.
+- Besides your FuseScope API, it fetches these docs (to answer how-to questions) and,
+  when asked to import a dashboard template, the template file from GitHub. See
+  [Security](/fusescope-docs/mcp/setup/#security) to turn the docs refresh off.
+- Telemetry the assistant reads is sent to the assistant's model provider like any
+  other conversation content. Choose the role and the data accordingly.
+
+The server is open source under the Apache License 2.0:
+[fuseone-io/fusescope-mcp-server](https://github.com/fuseone-io/fusescope-mcp-server).

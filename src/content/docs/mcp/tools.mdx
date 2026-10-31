@@ -1,0 +1,125 @@
+---
+title: MCP tools and resources
+description: The tools and resources the FuseScope MCP server offers AI assistants, grouped by area, with which ones read and which ones change FuseScope.
+---
+
+The [FuseScope MCP server](/fusescope-docs/mcp/) offers the tools below. Assistants
+choose them on their own; you rarely call one by name. The
+[README](https://github.com/fuseone-io/fusescope-mcp-server#available-tools) lists every
+parameter.
+
+**Use this page when** you want to know what an assistant can see or change, or which
+tools to auto-approve in your client.
+
+In the **Kind** column, *read* tools never change FuseScope and are safe to
+auto-approve. *Create*, *update* and *delete* tools change it and need an Editor or
+Admin key; see [read-only or read-write](/fusescope-docs/mcp/#read-only-or-read-write).
+
+## Overview
+
+| Tool | Kind | Does |
+|---|---|---|
+| `fusescope_get_org_overview` | read | Summarize the instance: data freshness and volume, dashboards, alert rules, channels, users, feature flags. |
+
+## Logs and traces
+
+| Tool | Kind | Does |
+|---|---|---|
+| `fusescope_search_logs` | read | Return log records that match a filter. |
+| `fusescope_aggregate_logs` | read | Count or aggregate logs, grouped or top-N. |
+| `fusescope_search_traces` | read | Return spans, or one row per trace, that match a filter. |
+| `fusescope_aggregate_traces` | read | Aggregate spans or AI traces, grouped or top-N. |
+| `fusescope_get_trace_details` | read | Get one trace with all its spans and their hierarchy. |
+| `fusescope_list_services` | read | List services with traces in a time range. |
+| `fusescope_get_service_top_operations` | read | Rank a service's operations by p99 latency, with calls and errors. |
+| `fusescope_get_field_keys` | read | List the attribute keys available for logs, traces or metrics. |
+| `fusescope_get_field_values` | read | List values seen for one key. |
+
+## Metrics
+
+| Tool | Kind | Does |
+|---|---|---|
+| `fusescope_list_metrics` | read | Find metric names, types and units. |
+| `fusescope_query_metrics` | read | Query a metric: values, trends, breakdowns, formulas. |
+| `fusescope_get_top_metrics` | read | Top 100 metrics by ingested samples, for cost work. |
+| `fusescope_check_metric_usage` | read | Which dashboards and alerts use a metric. |
+| `fusescope_check_metric_cardinality` | read | A metric's labels ranked by number of distinct values. |
+| `fusescope_execute_builder_query` | read | Run a full [Query Builder](/fusescope-docs/querying/query-builder/) request, including PromQL and ClickHouse SQL. |
+
+## AI Observability
+
+| Tool | Kind | Does |
+|---|---|---|
+| `fusescope_get_ai_pricing` | read | Model prices, and models seen without a price. |
+| `fusescope_list_ai_attribute_mappings` | read | Mappings from vendor span attributes to `gen_ai.*` keys. |
+| `fusescope_test_ai_attribute_mapping` | read | Try sample spans against the mappings without saving. |
+
+See [AI Observability](/fusescope-docs/analyze/ai-observability/).
+
+## Alerts
+
+| Tool | Kind | Does |
+|---|---|---|
+| `fusescope_list_alerts` | read | Alerts firing, silenced or inhibited right now. |
+| `fusescope_list_alert_rules` | read | Configured rules, including disabled and OK ones. |
+| `fusescope_get_alert` | read | One rule's full definition. |
+| `fusescope_get_alert_history` | read | One rule's state changes over time. |
+| `fusescope_create_alert` | create | Create a threshold or PromQL rule. |
+| `fusescope_update_alert` | update | Replace a rule. |
+| `fusescope_delete_alert` | delete | Delete a rule. |
+
+Anomaly rules are not offered, because FuseScope does not accept them.
+
+## Notification channels
+
+| Tool | Kind | Does |
+|---|---|---|
+| `fusescope_list_notification_channels` | read | Channel names and kinds, without settings. |
+| `fusescope_get_notification_channel` | read | One channel's full settings, credentials included. |
+| `fusescope_create_notification_channel` | create | Create a channel, optionally sending a test. |
+| `fusescope_update_notification_channel` | update | Replace a channel's settings. |
+| `fusescope_delete_notification_channel` | delete | Delete a channel. |
+
+## Dashboards
+
+| Tool | Kind | Does |
+|---|---|---|
+| `fusescope_list_dashboards` | read | List dashboards with a filter. |
+| `fusescope_get_dashboard` | read | One dashboard's panels, queries and variables. |
+| `fusescope_list_dashboard_templates` | read | Search the catalog of ready-made dashboards. |
+| `fusescope_create_dashboard` | create | Create a dashboard. |
+| `fusescope_import_dashboard` | create | Create a dashboard from a template. |
+| `fusescope_update_dashboard` | update | Replace a dashboard. |
+| `fusescope_patch_dashboard` | update | Change part of a dashboard with a JSON Patch. |
+| `fusescope_delete_dashboard` | delete | Delete a dashboard. |
+
+## Saved views
+
+| Tool | Kind | Does |
+|---|---|---|
+| `fusescope_list_views` | read | Saved Explorer views for logs, traces, metrics and Cost Meter. |
+| `fusescope_get_view` | read | One view's query. |
+| `fusescope_create_view` | create | Save a view. |
+| `fusescope_update_view` | update | Replace a view. |
+| `fusescope_delete_view` | delete | Delete a view. |
+
+## Docs
+
+| Tool | Kind | Does |
+|---|---|---|
+| `fusescope_search_docs` | read | Search these docs. |
+| `fusescope_fetch_doc` | read | Fetch one page or section of these docs as Markdown. |
+
+## Resources
+
+Besides tools, the server offers MCP **resources**: reference texts the assistant reads
+before writing a query, alert or dashboard. They hold no data from your instance.
+
+| Area | Resources |
+|---|---|
+| Alerts | `fusescope://alert/instructions`, `fusescope://alert/examples` |
+| Dashboards | `fusescope://dashboard/instructions`, `…/widgets-instructions`, `…/widgets-examples`, `…/list-filter-guide`, `…/patch-instructions`, `…/examples`, `…/query-builder-example` |
+| ClickHouse SQL | `fusescope://dashboard/clickhouse-schema-for-logs`, `…-for-metrics`, `…-for-traces`, and a worked example for each |
+| Queries | `fusescope://logs/query-builder-guide`, `fusescope://traces/query-builder-guide`, `fusescope://ai/query-builder-guide`, `fusescope://metrics-aggregation-guide`, `fusescope://promql/instructions`, `fusescope://query-builder/examples` |
+| Channels and views | `fusescope://notification-channel/examples`, `fusescope://view/instructions`, `fusescope://view/examples` |
+| Docs | `fusescope://docs/sitemap` |
