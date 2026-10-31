@@ -1,6 +1,6 @@
 name: Docs
 
-# Checks that the site builds. Cloudflare Pages deploys it through its Git integration.
+# Checks that the site builds. Cloudflare Workers Builds deploys it through its Git integration.
 
 on:
   pull_request:

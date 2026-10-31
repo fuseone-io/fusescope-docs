@@ -5,19 +5,18 @@ published at https://docs.fusescope.fuseone.io/.
 
 ## Deploy
 
-Cloudflare Pages builds and deploys the site through its Git integration: every push to
-`main` goes to production and every pull request gets a preview URL. The project settings
-are:
+The site runs on Cloudflare Workers as static assets (`wrangler.jsonc`). Workers Builds
+deploys it through the Git integration: every push to `main` goes to production. The
+Worker's build settings are:
 
 | Setting | Value |
 | --- | --- |
-| Framework preset | Astro |
 | Build command | `pnpm build` |
-| Build output directory | `dist` |
+| Deploy command | `npx wrangler deploy` |
 | Environment variable | `PNPM_VERSION=10.34.6` |
 
-The Node.js version comes from `.node-version`. The GitHub Actions workflow only checks
-that the site builds.
+The Worker name in Cloudflare must match `name` in `wrangler.jsonc`. The Node.js version
+comes from `.node-version`. The GitHub Actions workflow only checks that the site builds.
 
 ## License
 
