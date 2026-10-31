@@ -1,0 +1,85 @@
+---
+title: Import existing resources
+description: Bring alert rules, dashboards, channels and other FuseScope objects created in the UI under Terraform management with import blocks or terraform import.
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+
+Every resource of the [Terraform provider](/fusescope-docs/terraform/) can be imported
+by its ID, so objects first built in the FuseScope UI can move under Terraform without
+being recreated.
+
+**Use this page when** you already have rules, dashboards or channels in FuseScope and
+want to manage them as code from now on.
+
+## Find the ID
+
+Imports use the object's ID, a UUID such as `0192a9c2-1234-7abc-8def-0123456789ab`.
+For dashboards and alert rules it is in the page URL when you open the object in
+FuseScope. For any object, the list endpoints of the
+[FuseScope API](/fusescope-docs/administration/service-accounts/#call-the-api) return
+it, for example:
+
+```sh
+curl -H "SIGNOZ-API-KEY: $FUSESCOPE_ACCESS_TOKEN" \
+  https://fusescope.example.com/api/v3/rules
+```
+
+`fusescope_public_dashboard` is imported with the ID of the dashboard it publishes.
+
+## Import with an import block
+
+With Terraform 1.5+ or OpenTofu, declare the import and let Terraform write the
+configuration for you:
+
+<Steps>
+
+1. Add an `import` block:
+
+   ```hcl title="imports.tf"
+   import {
+     to = fusescope_rule.checkout_latency
+     id = "0192a9c2-1234-7abc-8def-0123456789ab"
+   }
+   ```
+
+2. Generate the configuration from the live object:
+
+   ```sh
+   terraform plan -generate-config-out=generated.tf
+   ```
+
+3. Review `generated.tf`: rename the resource, replace literal channel names and IDs
+   with references to other resources, and drop attributes you want left at their
+   defaults.
+4. Run `terraform plan` again until it shows only the import and no changes, then
+   `terraform apply`. Remove the `import` block afterwards.
+
+</Steps>
+
+## Import with the CLI
+
+On Terraform 1.4, write the resource block yourself and import into it:
+
+```sh
+terraform import fusescope_dashboard.redis_overview 0192a9c2-1234-7abc-8def-0123456789ab
+terraform plan
+```
+
+Adjust the configuration until `plan` shows no changes.
+
+## What does not come back
+
+- **Secrets.** A `fusescope_rum_application` has a null `key` after an import, because
+  FuseScope returns the key only on create; see
+  [RUM applications](/fusescope-docs/terraform/rum-applications/). Generated
+  configuration for a notification channel can hold its credentials; move them into
+  sensitive variables before you commit the file.
+- **Defaults filled by the server.** Generated configuration lists every attribute the
+  server returned. Removing the ones you never set keeps the files short; `plan` tells
+  you if a removal would change the object.
+
+<Aside type="tip">
+  To read an object without managing it, use the data source of the same name, such as
+  `data "fusescope_dashboard"`, with its `id`.
+</Aside>

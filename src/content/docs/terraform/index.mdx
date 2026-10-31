@@ -1,0 +1,167 @@
+---
+title: Terraform provider
+description: Manage FuseScope alert rules, notification channels, dashboards, RUM applications, users and service accounts as code with Terraform or OpenTofu.
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+
+The FuseScope provider, `fuseone-io/fusescope`, lets
+[Terraform](https://developer.hashicorp.com/terraform) and
+[OpenTofu](https://opentofu.org) create, change and delete FuseScope resources through
+the FuseScope API. Keep alerts, dashboards and access in Git, review them in pull
+requests and apply the same configuration to every environment.
+
+**Use this page when** you want to manage FuseScope from Terraform or OpenTofu: install
+the provider, authenticate it and find the resource you need.
+
+## Requirements
+
+- Terraform 1.4 or later, or OpenTofu 1.6 or later. Older Terraform versions show
+  permanent drift on nested attributes that FuseScope fills in.
+- A FuseScope instance reachable from where Terraform runs.
+- A [service account](/fusescope-docs/administration/service-accounts/) API key whose
+  role can manage the resources you declare (see [Authenticate](#authenticate)).
+
+## Install
+
+The provider is published on the
+[Terraform Registry](https://registry.terraform.io/providers/fuseone-io/fusescope/latest)
+as `fuseone-io/fusescope`. Declare it and run `terraform init` (or `tofu init`):
+
+```hcl title="versions.tf"
+terraform {
+  required_providers {
+    fusescope = {
+      source  = "fuseone-io/fusescope"
+      version = "~> 0.1"
+    }
+  }
+}
+
+provider "fusescope" {
+  endpoint = "https://fusescope.example.com"
+}
+```
+
+### Install without the Registry
+
+Each [GitHub release](https://github.com/fuseone-io/terraform-provider-fusescope/releases)
+has signed zip archives for Linux, macOS, Windows and FreeBSD. For an air-gapped
+machine, unpack the archive for your platform into a
+[local plugin directory](https://developer.hashicorp.com/terraform/cli/config/config-file#implied-local-mirror-directories):
+
+```sh
+VERSION=0.1.0
+PLATFORM=linux_amd64
+DIR=~/.terraform.d/plugins/registry.terraform.io/fuseone-io/fusescope/$VERSION/$PLATFORM
+mkdir -p "$DIR"
+unzip terraform-provider-fusescope_${VERSION}_${PLATFORM}.zip -d "$DIR"
+terraform init
+```
+
+Check the archive against `terraform-provider-fusescope_<version>_SHA256SUMS` from the
+same release before you unpack it. OpenTofu reads the same directory layout under
+`~/.terraform.d/plugins`.
+
+## Authenticate
+
+The provider sends a FuseScope API key on every request. Create it on a service account:
+
+<Steps>
+
+1. In *Settings → Service Accounts*, create a service account, for example
+   `terraform`.
+2. Give it a [role](/fusescope-docs/administration/users-and-roles/#roles) that covers
+   what you manage. **Editor** is enough for alert rules, dashboards, saved views and
+   planned downtimes. Notification channels, routing policies, users, service accounts
+   and single sign-on need **Admin**.
+3. Add a key and copy it. It is shown only once.
+
+</Steps>
+
+Pass the key and the URL through environment variables, so the secret stays out of
+your configuration:
+
+```sh
+export FUSESCOPE_ENDPOINT=https://fusescope.example.com
+export FUSESCOPE_ACCESS_TOKEN=<service account API key>
+terraform plan
+```
+
+| Provider argument | Environment variable | Default | Meaning |
+|---|---|---|---|
+| `endpoint` | `FUSESCOPE_ENDPOINT` | `http://localhost:8080` | Root URL of the FuseScope instance. |
+| `access_token` | `FUSESCOPE_ACCESS_TOKEN` | none | Service account API key. Sensitive. |
+| `http_timeout` | `FUSESCOPE_HTTP_TIMEOUT` | provider default | Request timeout as a Go duration, for example `35s`. |
+| `http_max_retry` | `FUSESCOPE_HTTP_MAX_RETRY` | provider default | Retries on transient failures. |
+
+An argument set in the `provider` block wins over its environment variable.
+
+<Aside type="caution">
+  Terraform state holds the values of sensitive attributes, such as webhook URLs,
+  PagerDuty keys and the RUM public key. Keep state in an encrypted remote backend
+  with restricted access.
+</Aside>
+
+## Resources
+
+Every resource has a data source with the same name, so you can read objects created
+in the UI. The full attribute reference is on the
+[Registry](https://registry.terraform.io/providers/fuseone-io/fusescope/latest/docs).
+
+| Area | Resource | What it manages |
+|---|---|---|
+| Alerting | [`fusescope_rule`](https://registry.terraform.io/providers/fuseone-io/fusescope/latest/docs/resources/rule) | [Alert rules](/fusescope-docs/alerts/alert-rules/): metrics, logs, traces, exceptions and PromQL |
+| | [`fusescope_notification_channel`](https://registry.terraform.io/providers/fuseone-io/fusescope/latest/docs/resources/notification_channel) | [Notification channels](/fusescope-docs/alerts/notification-channels/): Slack, PagerDuty, Opsgenie, Microsoft Teams, Google Chat, email, webhook and more |
+| | [`fusescope_route_policy`](https://registry.terraform.io/providers/fuseone-io/fusescope/latest/docs/resources/route_policy) | [Routing policies](/fusescope-docs/alerts/routing-and-downtime/#routing-policies) |
+| | [`fusescope_planned_maintenance`](https://registry.terraform.io/providers/fuseone-io/fusescope/latest/docs/resources/planned_maintenance) | [Planned downtime](/fusescope-docs/alerts/routing-and-downtime/#planned-downtime) |
+| Dashboards | [`fusescope_dashboard`](https://registry.terraform.io/providers/fuseone-io/fusescope/latest/docs/resources/dashboard) | [Dashboards](/fusescope-docs/dashboards/dashboards/) |
+| | [`fusescope_public_dashboard`](https://registry.terraform.io/providers/fuseone-io/fusescope/latest/docs/resources/public_dashboard) | Public sharing of a dashboard |
+| | [`fusescope_saved_view`](https://registry.terraform.io/providers/fuseone-io/fusescope/latest/docs/resources/saved_view) | Saved Explorer views for logs, traces and metrics |
+| Real User Monitoring | [`fusescope_rum_application`](https://registry.terraform.io/providers/fuseone-io/fusescope/latest/docs/resources/rum_application) | [RUM applications](/fusescope-docs/frontend/applications/) and their first public key |
+| Access | [`fusescope_user`](https://registry.terraform.io/providers/fuseone-io/fusescope/latest/docs/resources/user), [`fusescope_user_role`](https://registry.terraform.io/providers/fuseone-io/fusescope/latest/docs/resources/user_role) | [Users and role assignments](/fusescope-docs/administration/users-and-roles/) |
+| | [`fusescope_service_account`](https://registry.terraform.io/providers/fuseone-io/fusescope/latest/docs/resources/service_account), [`fusescope_service_account_role`](https://registry.terraform.io/providers/fuseone-io/fusescope/latest/docs/resources/service_account_role) | [Service accounts](/fusescope-docs/administration/service-accounts/) and their roles |
+| | [`fusescope_auth_domain`](https://registry.terraform.io/providers/fuseone-io/fusescope/latest/docs/resources/auth_domain) | [Single sign-on](/fusescope-docs/configuration/sso/) domains (OIDC, SAML) |
+
+[`fusescope_role`](https://registry.terraform.io/providers/fuseone-io/fusescope/latest/docs/data-sources/role)
+is a data source only. Role assignments take the ID of a built-in role
+(`signoz-viewer`, `signoz-editor` or `signoz-admin`); `GET /api/v1/roles` lists the IDs
+of your instance.
+
+```hcl
+variable "viewer_role_id" {
+  type = string
+}
+
+resource "fusescope_service_account" "dashboards_bot" {
+  name = "dashboards-bot"
+}
+
+resource "fusescope_service_account_role" "dashboards_bot" {
+  service_account_id = fusescope_service_account.dashboards_bot.id
+  role_id            = var.viewer_role_id
+}
+```
+
+## Not supported
+
+The provider follows what the FuseScope backend accepts:
+
+- **Custom roles.** FuseScope has only the built-in Viewer, Editor and Admin roles, so
+  there is no `fusescope_role` resource.
+- **Anomaly alert rules.** A `fusescope_rule` with `rule_type = "anomaly_rule"` is
+  rejected; use `threshold_rule` or `promql_rule`.
+- **Telegram channels.** The `telegram` channel config is in the schema but FuseScope
+  does not accept it.
+
+## Guides
+
+- [Alerts as code](/fusescope-docs/terraform/alerts-as-code/): channels, rules and
+  routing policies for one service.
+- [RUM applications](/fusescope-docs/terraform/rum-applications/): create an application
+  and feed its key to the browser SDK.
+- [Import existing resources](/fusescope-docs/terraform/import/): bring objects created
+  in the UI under Terraform.
+
+The provider is open source under the Mozilla Public License 2.0:
+[fuseone-io/terraform-provider-fusescope](https://github.com/fuseone-io/terraform-provider-fusescope).

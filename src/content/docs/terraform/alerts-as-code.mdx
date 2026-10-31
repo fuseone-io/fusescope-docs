@@ -1,0 +1,190 @@
+---
+title: Alerts as code
+description: Declare notification channels, alert rules and routing policies for a service with the FuseScope Terraform provider, and route alerts by severity.
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+This guide builds golden-signal alerts for one service with the
+[Terraform provider](/fusescope-docs/terraform/): two notification channels, a rule per
+signal and two routing policies that send each alert to the right channel by severity.
+It follows the
+[`service-alerts` recipe](https://github.com/fuseone-io/terraform-provider-fusescope/tree/main/examples/recipes/service-alerts),
+which you can clone and apply as is.
+
+**Use this page when** you want alert rules reviewed in pull requests and applied the
+same way to every environment.
+
+The service account needs the **Admin** role, because notification channels and
+routing policies are admin-only.
+
+## How the pieces fit
+
+- A [notification channel](/fusescope-docs/alerts/notification-channels/) says where a
+  message goes (Slack, PagerDuty, …).
+- An [alert rule](/fusescope-docs/alerts/alert-rules/) runs a query and fires when a
+  threshold is crossed. Each threshold has a name, such as `warning` or `critical`,
+  which becomes the alert's `severity` label.
+- A [routing policy](/fusescope-docs/alerts/routing-and-downtime/#routing-policies)
+  matches alert labels with an expression and picks the channels. It applies to rules
+  that set `notification_settings.use_policy = true`.
+
+## Channels
+
+```hcl title="channels.tf"
+resource "fusescope_notification_channel" "slack" {
+  name         = "checkout-slack"
+  display_name = "checkout Slack"
+
+  config = {
+    slack = {
+      kind = "slack"
+      spec = {
+        api_url       = var.slack_webhook_url
+        channel       = "#alerts"
+        send_resolved = true
+      }
+    }
+  }
+}
+
+resource "fusescope_notification_channel" "pagerduty" {
+  name         = "checkout-pagerduty"
+  display_name = "checkout PagerDuty"
+
+  config = {
+    pagerduty = {
+      kind = "pagerduty"
+      spec = {
+        routing_key   = var.pagerduty_routing_key
+        send_resolved = true
+        severity      = "{{ .CommonLabels.severity }}"
+      }
+    }
+  }
+}
+```
+
+Declare `slack_webhook_url` and `pagerduty_routing_key` as `sensitive` variables and
+set them with `TF_VAR_slack_webhook_url` and `TF_VAR_pagerduty_routing_key`.
+
+## A rule
+
+This rule watches the p99 latency of the service's server spans, with a warning and a
+critical threshold. Grouping by `service.name` and `deployment.environment` puts both
+labels on every alert, so the routing policies can match them.
+
+```hcl title="rules.tf"
+resource "fusescope_rule" "latency" {
+  alert          = "checkout: p99 latency"
+  alert_type     = "TRACES_BASED_ALERT"
+  rule_type      = "threshold_rule"
+  schema_version = "v2alpha1"
+
+  annotations = {
+    summary = "{{$service.name}} p99 latency is {{$value}} (threshold {{$threshold}})"
+  }
+
+  condition = {
+    composite_query = {
+      panel_type = "graph"
+      query_type = "builder"
+      unit       = "ns"
+      queries = [{
+        builder_query = {
+          type = "builder_query"
+          spec = {
+            traces = {
+              name         = "A"
+              signal       = "traces"
+              aggregations = [{ expression = "p99(duration_nano)" }]
+              filter = {
+                expression = "service.name = 'checkout' AND kind_string = 'Server'"
+              }
+              group_by = [
+                { name = "service.name", field_context = "resource" },
+                { name = "deployment.environment", field_context = "resource" },
+              ]
+            }
+          }
+        }
+      }]
+    }
+    selected_query_name = "A"
+    thresholds = {
+      basic = {
+        kind = "basic"
+        spec = [
+          { name = "warning", op = "above", match_type = "on_average", target = 500, target_unit = "ms" },
+          { name = "critical", op = "above", match_type = "on_average", target = 1000, target_unit = "ms" },
+        ]
+      }
+    }
+  }
+
+  evaluation = {
+    rolling = {
+      kind = "rolling"
+      spec = { eval_window = "5m", frequency = "1m" }
+    }
+  }
+
+  notification_settings = {
+    group_by   = ["service.name", "deployment.environment"]
+    use_policy = true
+  }
+}
+```
+
+Set `schema_version = "v2alpha1"` explicitly: FuseScope reads a missing value as the
+older rule format. The recipe adds an error-rate rule (a formula over two trace
+queries), a traffic-drop rule that also fires on missing data and an error-logs rule.
+The [`fusescope_rule` reference](https://registry.terraform.io/providers/fuseone-io/fusescope/latest/docs/resources/rule)
+has metric, logs, exceptions and PromQL examples.
+
+<Aside type="tip">
+  To route a rule straight to channels without a policy, leave `use_policy` unset and
+  list channel display names in each threshold's `channels`.
+</Aside>
+
+## Routing policies
+
+```hcl title="routing.tf"
+resource "fusescope_route_policy" "critical" {
+  name       = "checkout-critical"
+  kind       = "policy"
+  expression = "service.name == \"checkout\" && severity == \"critical\""
+  channels = [
+    fusescope_notification_channel.pagerduty.display_name,
+    fusescope_notification_channel.slack.display_name,
+  ]
+}
+
+resource "fusescope_route_policy" "warning" {
+  name       = "checkout-warning"
+  kind       = "policy"
+  expression = "service.name == \"checkout\" && severity == \"warning\""
+  channels   = [fusescope_notification_channel.slack.display_name]
+}
+```
+
+Policies and rules refer to channels by **display name**. Referencing the channel
+resource, as above, also makes Terraform create the channels first.
+
+## Apply
+
+```sh
+export FUSESCOPE_ENDPOINT=https://fusescope.example.com
+export FUSESCOPE_ACCESS_TOKEN=<service account API key>
+export TF_VAR_slack_webhook_url=<Slack incoming webhook URL>
+export TF_VAR_pagerduty_routing_key=<PagerDuty integration key>
+terraform init
+terraform apply
+```
+
+The rules appear in *Alerts* and the policies in *Alerts → Configuration → Routing
+Policies*. Changes
+made in the UI to a managed rule show up as drift on the next `terraform plan`.
+
+To silence alerts during a deploy window, add a
+[`fusescope_planned_maintenance`](https://registry.terraform.io/providers/fuseone-io/fusescope/latest/docs/resources/planned_maintenance).

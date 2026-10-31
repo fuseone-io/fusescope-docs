@@ -1,0 +1,108 @@
+---
+title: RUM applications with Terraform
+description: Create FuseScope Real User Monitoring applications with Terraform and pass the application ID and public key to the browser SDK at build time.
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+[`fusescope_rum_application`](https://registry.terraform.io/providers/fuseone-io/fusescope/latest/docs/resources/rum_application)
+creates a [Real User Monitoring](/fusescope-docs/frontend/real-user-monitoring/)
+application, the same object as **Create application** in
+[Set up a web application](/fusescope-docs/frontend/set-up-web/#create-the-application),
+and its first public key.
+
+**Use this page when** you want one RUM application per environment, created by the
+same pipeline that deploys the site.
+
+## Declare the application
+
+```hcl title="rum.tf"
+resource "fusescope_rum_application" "shop" {
+  name        = "shop-web"
+  platform    = "web"
+  environment = "production"
+
+  allowed_origins        = ["https://shop.example.com"]
+  trace_propagation_urls = ["https://api.example.com"]
+  sample_rate            = 0.5
+
+  pii_policy = {
+    query_allowlist = ["page", "sort"]
+    require_consent = true
+  }
+}
+
+output "shop_rum_application_id" {
+  value = fusescope_rum_application.shop.id
+}
+
+output "shop_rum_key" {
+  value     = fusescope_rum_application.shop.key
+  sensitive = true
+}
+```
+
+For an Android app, set `platform = "android"` and list `allowed_package_names` instead
+of `allowed_origins`; `source_maps.retention` then also applies to
+[R8 mappings](/fusescope-docs/frontend/r8-mappings/). Changing `platform` replaces the
+application.
+
+The attributes map to the form fields in
+[Set up a web application](/fusescope-docs/frontend/set-up-web/#2-origins-and-tracing):
+
+| Attribute | Form field | Applied by |
+|---|---|---|
+| `allowed_origins`, `allowed_package_names` | Allowed origins | Server |
+| `pii_policy.drop_query`, `pii_policy.query_allowlist` | Drop query strings, Keep these query parameters | Server |
+| `trace_propagation_urls` | Link requests to backend traces | SDK |
+| `sample_rate` | Session sample rate | SDK |
+| `pii_policy.require_consent` | Wait for consent | SDK |
+| `pii_policy.hash_user_id` | Hash user IDs | SDK |
+
+Server settings take effect on `terraform apply`. SDK settings must also be in the
+`init()` options of your app, as below.
+
+## Pass the key to the browser SDK
+
+The public key is write-only and safe to ship in your bundle, but FuseScope returns it
+only when the application is created. Terraform keeps it in state; read it from the
+outputs when you build the site:
+
+```sh
+export VITE_FUSESCOPE_RUM_APP_ID=$(terraform output -raw shop_rum_application_id)
+export VITE_FUSESCOPE_RUM_KEY=$(terraform output -raw shop_rum_key)
+npm run build
+```
+
+```ts title="src/main.ts"
+import { init } from '@fusescope/browser';
+
+init({
+  applicationId: import.meta.env.VITE_FUSESCOPE_RUM_APP_ID,
+  publicKey: import.meta.env.VITE_FUSESCOPE_RUM_KEY,
+  endpoint: 'https://fusescope.example.com',
+  service: 'shop-web',
+  environment: 'production',
+  version: import.meta.env.VITE_APP_VERSION,
+  sessionSampleRate: 0.5,
+  requireConsent: true,
+  propagateTraceHeaderCorsUrls: ['https://api.example.com'],
+  privacy: { queryAllowlist: ['page', 'sort'] },
+});
+```
+
+The variable names are an example for Vite; use your bundler's convention. The other
+options are in the [browser SDK reference](/fusescope-docs/frontend/sdk-reference/).
+
+<Aside>
+  `key` is null after an import, and Terraform does not rotate keys. To get a new key,
+  [rotate it](/fusescope-docs/frontend/keys/#rotate-a-key) in the application's
+  settings and store it where your build reads it.
+</Aside>
+
+## Related
+
+- [Keys](/fusescope-docs/frontend/keys/): what a public key can do, rotation and
+  revocation.
+- [Frontend alerts](/fusescope-docs/frontend/alerts/): alert on Web Vitals and errors
+  with [`fusescope_rule`](/fusescope-docs/terraform/alerts-as-code/).
