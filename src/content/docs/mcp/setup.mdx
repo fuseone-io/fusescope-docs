@@ -243,7 +243,7 @@ open FuseScope at a different address from the one in `FUSESCOPE_URL`.
 
 ## Run in Kubernetes (Helm)
 
-The [FuseScope Helm chart](/fusescope-docs/install/helm/) (version 0.158.2 or later)
+The [FuseScope Helm chart](/install/helm/) (version 0.158.2 or later)
 runs the server in HTTP mode next to FuseScope. It calls only the release's backend
 Service and serves `/mcp` on the FuseScope host, with the same TLS:
 
@@ -288,7 +288,7 @@ call; the chart README lists every value.
 - **No analytics.** The server sends no usage data. Its own traces and metrics are
   exported only when an `OTEL_EXPORTER_OTLP_ENDPOINT` is set.
 - **Docs refresh.** The docs tools ship with an index of this site and refresh it from
-  `fuseone-io.github.io` every 6 hours, with a full rebuild every 24 hours. Set both
+  `docs.fusescope.fuseone.io` every 6 hours, with a full rebuild every 24 hours. Set both
   `FUSESCOPE_DOCS_REFRESH_INTERVAL=0` and `FUSESCOPE_DOCS_FULL_REFRESH_INTERVAL=0` for
   an offline server; it then serves the docs bundled with its release.
 
