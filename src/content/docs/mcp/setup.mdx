@@ -1,6 +1,6 @@
 ---
 title: Set up the MCP server
-description: Build the FuseScope MCP server, connect Claude Code, Claude Desktop, Cursor or VS Code over stdio or HTTP, and configure OAuth, the instance allowlist and the docs refresh.
+description: Install the FuseScope MCP server, connect Claude Code, Claude Desktop, Cursor or VS Code over stdio or HTTP, run it with Helm, and configure OAuth, the instance allowlist and the docs refresh.
 ---
 
 import { Aside, Steps, Tabs, TabItem } from "@astrojs/starlight/components";
@@ -20,8 +20,35 @@ or running the server for a team.
 
 ## Install
 
-Release binaries and a container image are coming. Until then, build the server from
-source with Go 1.26 or later:
+Download the archive for your platform from the
+[v0.18.0 release](https://github.com/fuseone-io/fusescope-mcp-server/releases/tag/v0.18.0)
+(Linux, macOS and Windows, amd64 and arm64) and check it against `checksums.txt`:
+
+```sh
+curl -LO https://github.com/fuseone-io/fusescope-mcp-server/releases/download/v0.18.0/fusescope-mcp-server_linux_amd64.tar.gz
+tar xzf fusescope-mcp-server_linux_amd64.tar.gz
+```
+
+The binary is `fusescope-mcp-server_linux_amd64/bin/fusescope-mcp-server`. Move it onto
+your `PATH`, or note its absolute path for the client configuration.
+
+The container image is `ghcr.io/fuseone-io/fusescope-mcp-server:0.18.0`, multi-arch,
+running as non-root uid 1001 and signed with cosign:
+
+```sh
+docker run --rm -p 8000:8000 \
+  -e TRANSPORT_MODE=http \
+  -e FUSESCOPE_URL=https://fusescope.example.com \
+  ghcr.io/fuseone-io/fusescope-mcp-server:0.18.0
+```
+
+```sh
+cosign verify ghcr.io/fuseone-io/fusescope-mcp-server:0.18.0 \
+  --certificate-identity-regexp '^https://github.com/fuseone-io/fusescope-mcp-server/.github/workflows/release.yaml@refs/tags/v' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com
+```
+
+To build from source instead, use Go 1.26 or later:
 
 ```sh
 git clone https://github.com/fuseone-io/fusescope-mcp-server.git
@@ -29,14 +56,7 @@ cd fusescope-mcp-server
 make build
 ```
 
-The binary is `./bin/fusescope-mcp-server`. Move it onto your `PATH`, or note its
-absolute path for the client configuration.
-
-To run it in a container, build the image from the same checkout:
-
-```sh
-docker build -t fusescope-mcp-server .
-```
+The binary is then `./bin/fusescope-mcp-server`.
 
 ## Connect a client over stdio
 
@@ -133,7 +153,7 @@ In HTTP mode one server serves many clients at `/mcp`. Start it with
 docker run -p 8000:8000 \
   -e TRANSPORT_MODE=http \
   -e FUSESCOPE_URL=https://fusescope.example.com \
-  fusescope-mcp-server
+  ghcr.io/fuseone-io/fusescope-mcp-server:0.18.0
 ```
 
 The server listens on all interfaces; set `MCP_SERVER_HOST=127.0.0.1` to accept local
@@ -220,6 +240,37 @@ Tool results include `webUrl` deep links into the FuseScope UI. The server reads
 browser URL from the FuseScope setting `global.external_url`, so set it on FuseScope
 (for example `SIGNOZ_GLOBAL_EXTERNAL__URL=https://fusescope.example.com`) when users
 open FuseScope at a different address from the one in `FUSESCOPE_URL`.
+
+## Run in Kubernetes (Helm)
+
+The [FuseScope Helm chart](/fusescope-docs/install/helm/) (version 0.158.2 or later)
+runs the server in HTTP mode next to FuseScope. It calls only the release's backend
+Service and serves `/mcp` on the FuseScope host, with the same TLS:
+
+```yaml title="values.yaml"
+mcpServer:
+  enabled: true
+  ingress:
+    enabled: true   # needs signoz.ingress, or set mcpServer.ingress.hosts
+```
+
+No API key is stored on the server: each user sends their own, so each gets their own
+role.
+
+```sh
+claude mcp add --transport http fusescope https://fusescope.example.com/mcp \
+  --header "SIGNOZ-API-KEY: <your API key>"
+```
+
+Other clients take the same URL and header; see [Run it over HTTP](#run-it-over-http).
+`mcpServer.networkPolicy.enabled` limits who can reach the server and what it can
+call; the chart README lists every value.
+
+<Aside type="caution">
+  `mcpServer.apiKey.existingSecret` gives the server a shared key for clients that send
+  none. Everyone who can reach the endpoint then acts with that key's role. Use a Viewer
+  service account and keep the endpoint private.
+</Aside>
 
 ## Security
 
