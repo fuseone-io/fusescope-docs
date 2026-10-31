@@ -16,7 +16,7 @@ maintenance and don't want alerts to wake anyone up while it runs.
 ## Routing policies
 
 A routing policy sends every alert whose labels match an expression to a set of
-[notification channels](/fusescope-docs/alerts/notification-channels/). It lets one
+[notification channels](/alerts/notification-channels/). It lets one
 rule notify different teams, for example by `service.name` or environment, without
 listing channels on each threshold.
 
@@ -40,7 +40,7 @@ links to this page; the search box finds a policy by name.
    and one or more **Notification Channels**, then click **Save Routing Policy**.
 3. In each alert rule that should use policies, turn on
    **Use Routing Policies for dynamic routing** in the
-   [conditions step](/fusescope-docs/alerts/alert-rules/#thresholds-and-severity). The
+   [conditions step](/alerts/alert-rules/#thresholds-and-severity). The
    rule's per-threshold channel pickers are then hidden.
 
 </Steps>
@@ -55,15 +55,15 @@ service.name == "payment" && threshold.name == "critical"
 Every policy is evaluated against each alert, and the channels of all matching
 policies are notified. Creating, editing and deleting
 routing policies needs the Admin
-[role](/fusescope-docs/administration/users-and-roles/#roles).
+[role](/administration/users-and-roles/#roles).
 
 ## Planned downtime
 
 A planned downtime silences alerts during a maintenance window. Alerts are still
 evaluated and recorded, and they show as **Suppressed** on
-[Triggered Alerts](/fusescope-docs/alerts/alert-rules/#triggered-alerts); only the
+[Triggered Alerts](/alerts/alert-rules/#triggered-alerts); only the
 notifications are held back. Managing downtimes needs the Editor or Admin
-[role](/fusescope-docs/administration/users-and-roles/#roles).
+[role](/administration/users-and-roles/#roles).
 
 ![The Planned Downtime tab, numbered: 1 New downtime, 2 the search box, 3 the downtime's scope env = "dev" under its name, 4 the Scheduled status, 5 edit, delete and expand, 6 the expanded details: Created by, Created on, Updated on, Updated by, Timeframe, Timezone, Repeats and Alerts silenced.](../../../assets/alerts/planned-downtime-list.png)
 

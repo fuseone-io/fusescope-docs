@@ -5,16 +5,16 @@ description: Send alert notifications to Slack, PagerDuty, Opsgenie, Microsoft T
 
 import { Aside, Steps } from "@astrojs/starlight/components";
 
-A [notification channel](/fusescope-docs/reference/glossary/#notification-channel) is a
+A [notification channel](/reference/glossary/#notification-channel) is a
 destination for alerts. Alert rules pick channels per threshold, or through
-[routing policies](/fusescope-docs/alerts/routing-and-downtime/#routing-policies).
+[routing policies](/alerts/routing-and-downtime/#routing-policies).
 Creating, editing and deleting channels needs the Admin
-[role](/fusescope-docs/administration/users-and-roles/#roles); the Editor role can send
+[role](/administration/users-and-roles/#roles); the Editor role can send
 test notifications.
 
 **Use this page when** you connect FuseScope to Slack, email, PagerDuty or another tool,
 before creating alert rules. An example with Slack is in
-[Set up your first alert](/fusescope-docs/guides/first-alert/).
+[Set up your first alert](/guides/first-alert/).
 
 ## The channels list
 
@@ -25,7 +25,7 @@ channel's **Name** and **Type**, with **Edit** and **Delete**.
 
 A channel does nothing on its own: a rule sends to it only when the channel is picked
 under **send to** on one of the rule's thresholds, or when a
-[routing policy](/fusescope-docs/alerts/routing-and-downtime/#routing-policies)
+[routing policy](/alerts/routing-and-downtime/#routing-policies)
 matching the alert lists it.
 
 ## Create a channel
@@ -98,7 +98,7 @@ Links in notifications point to `alertmanager.signoz.external_url`
 ## Email and SMTP
 
 Email channels send through the SMTP settings under `alertmanager.signoz.global` in the
-[configuration file](/fusescope-docs/configuration/config-file/). These are separate from
+[configuration file](/configuration/config-file/). These are separate from
 the `emailing` section, which only sends invitations and password resets.
 
 ```yaml
@@ -122,7 +122,7 @@ alertmanager:
 | `smtp_require_tls` | `true` | `SIGNOZ_ALERTMANAGER_SIGNOZ_GLOBAL_SMTP__REQUIRE__TLS` |
 
 Pass the password as an environment variable rather than in the file. The
-`alertmanager@signoz.io` default and the `SIGNOZ_` prefix are [internal name](/fusescope-docs/configuration/config-file/#internal-names)s.
+`alertmanager@signoz.io` default and the `SIGNOZ_` prefix are [internal name](/configuration/config-file/#internal-names)s.
 
 ## Grouping and repeats
 
@@ -136,4 +136,4 @@ Alertmanager settings under `alertmanager.signoz.route` apply to every rule:
 | `repeat_interval` | `1h` | Wait before repeating a notification. |
 
 A rule's own *Group alerts by* and *Repeat notifications* settings override these for its
-alerts. See [alert rules](/fusescope-docs/alerts/alert-rules/#notification-settings).
+alerts. See [alert rules](/alerts/alert-rules/#notification-settings).

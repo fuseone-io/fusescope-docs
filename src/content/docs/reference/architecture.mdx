@@ -14,7 +14,7 @@ description: The components of a FuseScope installation and how data flows betwe
 `fusescope server`, image `ghcr.io/fuseone-io/fusescope`. It serves the web UI and the
 API on port 8080, runs queries against ClickHouse, evaluates alert rules and sends
 notifications through its embedded Alertmanager. It keeps users, dashboards, alert rules
-and SSO domains in the [metadata store](/fusescope-docs/configuration/metadata-store/).
+and SSO domains in the [metadata store](/configuration/metadata-store/).
 
 Its OpAMP server on port 4320 pushes collector configuration managed in the UI, such as
 log pipelines, to the collectors.
@@ -49,7 +49,7 @@ across the cluster. The chart installs it with ClickHouse (`clickhouse.zookeeper
 ### Metadata store
 
 SQLite on a persistent volume for a single backend replica, or PostgreSQL for several. See
-[Metadata store](/fusescope-docs/configuration/metadata-store/).
+[Metadata store](/configuration/metadata-store/).
 
 ## Ports
 

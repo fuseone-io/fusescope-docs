@@ -8,7 +8,7 @@ import { Aside, Steps, Tabs, TabItem } from "@astrojs/starlight/components";
 This page adds tracing for language model calls to a Python application, such as one
 that uses the OpenAI, Anthropic or Bedrock clients, or LangChain. The spans go to
 FuseScope over OTLP like any other trace and fill
-[AI Observability](/fusescope-docs/analyze/ai-observability/).
+[AI Observability](/analyze/ai-observability/).
 
 **Use this page when** your Python service calls an LLM and you want to see each call,
 its tokens and its cost in FuseScope.
@@ -19,7 +19,7 @@ its tokens and its cost in FuseScope.
   `chat gpt-4o-mini`. It carries the model, the provider, the input and output token
   counts, the finish reason, the duration and any error.
 - **Cost** per call, once the model has a price under
-  [Model pricing](/fusescope-docs/analyze/ai-observability/#model-pricing).
+  [Model pricing](/analyze/ai-observability/#model-pricing).
 - **Agent and tool spans** when you use a framework that has them, such as LangChain
   or the OpenAI Agents SDK: one agent run becomes one trace with every model and tool
   call in it.
@@ -157,14 +157,14 @@ OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
     From inside the Kubernetes cluster that runs FuseScope, use
     `http://fusescope-otel-collector.fusescope.svc.cluster.local:4318`. From outside,
     use the address you exposed, such as `https://otlp.example.com`; see
-    [From outside the cluster](/fusescope-docs/sending-data/otlp/#from-outside-the-cluster).
+    [From outside the cluster](/sending-data/otlp/#from-outside-the-cluster).
     For gRPC, use port 4317 and `OTEL_EXPORTER_OTLP_PROTOCOL=grpc`.
   </TabItem>
   <TabItem label="Through a local collector">
     Point the app at a collector on the same host or node, such as
     `http://localhost:4318`, and let the collector forward to FuseScope. That is also
     the place to drop or redact prompt content. See
-    [From another collector](/fusescope-docs/sending-data/otlp/#from-another-collector).
+    [From another collector](/sending-data/otlp/#from-another-collector).
   </TabItem>
 </Tabs>
 
@@ -251,7 +251,7 @@ Install the packages in your image and make `opentelemetry-instrument` the entry
 point, for example `CMD ["opentelemetry-instrument", "python", "main.py"]`, and pass
 the `OTEL_*` variables as container environment. On Kubernetes, set the same variables in the
 Deployment, pointing at the in-cluster address. See
-[Python instrumentation](/fusescope-docs/sending-data/instrumentation/python/).
+[Python instrumentation](/sending-data/instrumentation/python/).
 
 ## Semantic conventions
 
@@ -272,7 +272,7 @@ v1.30.0 unless you set `OTEL_SEMCONV_STABILITY_OPT_IN=gen_ai_latest_experimental
 OpenLLMetry still writes `gen_ai.system`.
 
 You don't need to rename anything yourself: FuseScope's
-[attribute mappings](/fusescope-docs/analyze/ai-observability/#attribute-mapping)
+[attribute mappings](/analyze/ai-observability/#attribute-mapping)
 copy the older names, OpenLLMetry's and OpenInference's among them, onto the current
 ones before the spans are stored.
 
@@ -285,7 +285,7 @@ ones before the spans are stored.
    **Service**, **Model** or **Provider**.
 2. **Model pricing**: the cost stays `0` until the model has a price. Check
    **Unpriced models** and add or map a price. See
-   [Model pricing](/fusescope-docs/analyze/ai-observability/#model-pricing).
+   [Model pricing](/analyze/ai-observability/#model-pricing).
 3. **Attribute Mapping**: if spans arrive but show no model or tokens, paste one in
    **Attribute Mapping › Test** to see what FuseScope picks up.
 4. **Overview**: cost, tokens, latency and errors per model, over time.
@@ -305,10 +305,10 @@ ones before the spans are stored.
 
 ## Related
 
-- [AI Observability](/fusescope-docs/analyze/ai-observability/): the Overview,
+- [AI Observability](/analyze/ai-observability/): the Overview,
   Explorer, Model pricing and Attribute Mapping tabs.
-- [AI Observability for Node.js](/fusescope-docs/analyze/ai-observability-nodejs/):
+- [AI Observability for Node.js](/analyze/ai-observability-nodejs/):
   the same for Node.js.
-- [Python instrumentation](/fusescope-docs/sending-data/instrumentation/python/):
+- [Python instrumentation](/sending-data/instrumentation/python/):
   HTTP, database and framework spans for the rest of the service.
-- [OTLP](/fusescope-docs/sending-data/otlp/): endpoints and ports.
+- [OTLP](/sending-data/otlp/): endpoints and ports.

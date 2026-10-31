@@ -13,8 +13,8 @@ stdout or stderr arrives as a log, labelled with its pod, namespace and node.
 logs it collects, join multiline logs such as Java stack traces, or give pod logs a
 `service.name`.
 
-To install the chart, see [Kubernetes](/fusescope-docs/sending-data/kubernetes/#install).
-Its main values are in [Key values](/fusescope-docs/sending-data/kubernetes/#key-values).
+To install the chart, see [Kubernetes](/sending-data/kubernetes/#install).
+Its main values are in [Key values](/sending-data/kubernetes/#key-values).
 
 ## How it works
 
@@ -68,7 +68,7 @@ All keys are under `presets.logsCollection`.
 | `fusescope.release` | `fusescope` | Release name of the FuseScope chart, for `signozLogs`. Empty leaves its pods alone. |
 | `fusescope.namespace` | `""` | Its namespace. Empty means the k8s-infra release namespace. |
 
-`signozLogs` uses [internal names](/fusescope-docs/configuration/config-file/#internal-names).
+`signozLogs` uses [internal names](/configuration/config-file/#internal-names).
 
 <Aside type="note" title="Default exclusions">
   Out of the box the chart skips `kube-system` and pods whose names start with
@@ -181,10 +181,10 @@ presets:
           parse_from: attributes.level
 ```
 
-For most parsing, a FuseScope [log pipeline](/fusescope-docs/sending-data/log-pipelines/)
+For most parsing, a FuseScope [log pipeline](/sending-data/log-pipelines/)
 is easier: you build and preview it in the UI and don't redeploy the chart. The
 operators are those of the
-[filelog receiver](/fusescope-docs/sending-data/logs-files/#parse-fields).
+[filelog receiver](/sending-data/logs-files/#parse-fields).
 
 ## Set service.name
 
@@ -240,7 +240,7 @@ spec:
 
 The processor never overwrites a value that is already set, so traces and logs whose
 SDK sets `service.name` keep it. Use the same name your SDK uses, so a service's logs
-and traces line up in [Services](/fusescope-docs/apm/services/).
+and traces line up in [Services](/apm/services/).
 
 ## Kubernetes events
 
@@ -255,14 +255,14 @@ and sends cluster events, such as `Back-off restarting failed container` or
 | `presets.k8sEvents.namespaces` | `[]` | Namespaces to watch. Empty watches all. |
 
 Events also appear on the **Events** tab of a pod, node or other object on the
-[Infrastructure](/fusescope-docs/observe/infrastructure/) page. See
-[Kubernetes events](/fusescope-docs/sending-data/kubernetes/#kubernetes-events).
+[Infrastructure](/observe/infrastructure/) page. See
+[Kubernetes events](/sending-data/kubernetes/#kubernetes-events).
 
 ## Check that data arrives
 
 1. Run a pod that writes a line:
    `kubectl run log-test --image=busybox --restart=Never -- sh -c 'echo hello FuseScope'`.
-2. Open the [Logs explorer](/fusescope-docs/explore/logs/) and filter by
+2. Open the [Logs explorer](/explore/logs/) and filter by
    `k8s.pod.name = log-test`. With the default `startAt: end`, only lines written after
    the agent started arrive.
 3. If nothing arrives, check that the namespace isn't excluded, then read the agent's
@@ -271,10 +271,10 @@ Events also appear on the **Events** tab of a pod, node or other object on the
 
 ## Related
 
-- [Kubernetes](/fusescope-docs/sending-data/kubernetes/): install the chart and its
+- [Kubernetes](/sending-data/kubernetes/): install the chart and its
   other presets.
-- [Log pipelines](/fusescope-docs/sending-data/log-pipelines/): parse pod logs in
+- [Log pipelines](/sending-data/log-pipelines/): parse pod logs in
   FuseScope.
-- [Logs from files](/fusescope-docs/sending-data/logs-files/): the `filelog` receiver
+- [Logs from files](/sending-data/logs-files/): the `filelog` receiver
   outside Kubernetes.
-- [Logs explorer](/fusescope-docs/explore/logs/): search the logs.
+- [Logs explorer](/explore/logs/): search the logs.

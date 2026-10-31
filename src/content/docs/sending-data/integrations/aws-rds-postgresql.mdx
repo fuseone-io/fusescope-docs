@@ -17,12 +17,12 @@ Connecting it adds the **AWS RDS Postgres** and **Postgres overview** dashboards
 app the integration is called **AWS RDS (PostgreSQL)**.
 
 **Use this page when** your PostgreSQL database runs on Amazon RDS. For PostgreSQL you
-run yourself, see [PostgreSQL](/fusescope-docs/sending-data/integrations/postgresql/).
+run yourself, see [PostgreSQL](/sending-data/integrations/postgresql/).
 
 ## Prerequisites
 
 - **An `otelcol-contrib` collector**, v0.88.0 or newer, where you can add config files
-  and environment variables. See [Integrations](/fusescope-docs/sending-data/integrations/#how-it-works).
+  and environment variables. See [Integrations](/sending-data/integrations/#how-it-works).
 - **Java 11 or newer** for the CloudWatch exporter, or Docker to run its
   [image](https://github.com/prometheus/cloudwatch_exporter#docker-images) instead.
 - **AWS credentials** for the exporter and the collector. Both use the standard AWS SDK
@@ -184,7 +184,7 @@ run yourself, see [PostgreSQL](/fusescope-docs/sending-data/integrations/postgre
    | `OTLP_DESTINATION_ENDPOINT` | `fusescope-collector.example.com:4317` | FuseScope collector, OTLP gRPC. |
 
 3. **Run the collector** with `--config postgres-metrics.yaml`, as shown in
-   [Run the collector](/fusescope-docs/sending-data/integrations/#run-the-collector).
+   [Run the collector](/sending-data/integrations/#run-the-collector).
 
 </Steps>
 
@@ -237,7 +237,7 @@ service:
 
 Set `region`, replace the group names with yours, and set `OTLP_DESTINATION_ENDPOINT`.
 Run the collector with `--config postgres-logs.yaml`. To parse the entries, add a
-[log pipeline](/fusescope-docs/sending-data/log-pipelines/) that matches
+[log pipeline](/sending-data/log-pipelines/) that matches
 `source = rds_postgres`.
 
 Set `insecure: false` in the exporter when the FuseScope endpoint uses TLS.
@@ -316,14 +316,14 @@ lists all of them.
 
 The `postgresql` receiver adds `postgresql_*` metrics, such as `postgresql_backends`,
 `postgresql_commits`, `postgresql_deadlocks` and `postgresql_db_size`. The
-[PostgreSQL](/fusescope-docs/sending-data/integrations/postgresql/#metrics) page lists
+[PostgreSQL](/sending-data/integrations/postgresql/#metrics) page lists
 them.
 
 ## Related
 
-- [Integrations](/fusescope-docs/sending-data/integrations/)
-- [PostgreSQL](/fusescope-docs/sending-data/integrations/postgresql/)
-- [AWS RDS for MySQL](/fusescope-docs/sending-data/integrations/aws-rds-mysql/)
-- [Log pipelines](/fusescope-docs/sending-data/log-pipelines/)
+- [Integrations](/sending-data/integrations/)
+- [PostgreSQL](/sending-data/integrations/postgresql/)
+- [AWS RDS for MySQL](/sending-data/integrations/aws-rds-mysql/)
+- [Log pipelines](/sending-data/log-pipelines/)
 - [CloudWatch exporter](https://github.com/prometheus/cloudwatch_exporter)
 - [`awscloudwatch` receiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/awscloudwatchreceiver)

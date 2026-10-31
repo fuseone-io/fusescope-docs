@@ -35,7 +35,7 @@ when you want to compare your usage with a bill.
 - **Billing days run in UTC.** To compare with a bill, pick whole UTC days, even if
   your browser shows another timezone.
 
-See [meter signal](/fusescope-docs/reference/glossary/#meter-signal).
+See [meter signal](/reference/glossary/#meter-signal).
 
 ## The Meter tab
 
@@ -66,7 +66,7 @@ that started logging at debug level.
 ## The Explorer tab
 
 **Explorer** charts any meter metric, split the way you want, with the
-[query builder](/fusescope-docs/querying/query-builder/).
+[query builder](/querying/query-builder/).
 
 ![The Explorer tab on sample data, numbered: 1 Filters, 2 the hourly note, 3 the meter metric signoz.meter.log.size, 4 Aggregate within time series: Increase, 5 Aggregate across time series by, 6 the query as a formula, 7 Y-axis unit.](../../../assets/cost-meter/cost-meter-explorer.png)
 
@@ -135,8 +135,8 @@ written for the range:
 
    If you replaced the collector configuration, add `signozmeter` back to the
    exporters of each pipeline and keep the `metrics/meter` pipeline. See
-   [Install with Helm](/fusescope-docs/install/helm/) and
-   [Architecture](/fusescope-docs/reference/architecture/).
+   [Install with Helm](/install/helm/) and
+   [Architecture](/reference/architecture/).
 
 3. **Wait an hour.** With `metrics_flush_interval: 1h`, the first bars appear about an
    hour after data starts flowing.
@@ -162,7 +162,7 @@ On the sample data above, over one day:
    **by** to `service.name`. One line per service shows which ones send the most logs.
 
 4. **Act.** For a service that logs far more than the others, lower its log level, or
-   drop noisy logs with a [log pipeline](/fusescope-docs/sending-data/log-pipelines/).
+   drop noisy logs with a [log pipeline](/sending-data/log-pipelines/).
    Then save the query as a view and check it again next week.
 
 </Steps>
@@ -172,9 +172,9 @@ Explorer shows which service to talk to first.
 
 ## Related
 
-- [Data retention](/fusescope-docs/administration/retention/): how long data is kept,
+- [Data retention](/administration/retention/): how long data is kept,
   the other half of storage cost.
-- [Log pipelines](/fusescope-docs/sending-data/log-pipelines/): filter logs before they
+- [Log pipelines](/sending-data/log-pipelines/): filter logs before they
   are stored.
-- [Metrics explorer](/fusescope-docs/explore/metrics/#chart-a-metric): the same query
+- [Metrics explorer](/explore/metrics/#chart-a-metric): the same query
   builder for any metric.

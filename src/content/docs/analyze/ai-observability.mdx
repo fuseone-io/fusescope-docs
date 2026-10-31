@@ -38,8 +38,8 @@ FuseScope reads all this from spans that follow the OpenTelemetry **GenAI semant
 conventions**: `gen_ai.request.model`, `gen_ai.provider.name`,
 `gen_ai.usage.input_tokens`, `gen_ai.usage.output_tokens` and, for tools and agents,
 `gen_ai.tool.name` and `gen_ai.agent.name`. See
-[LLM tokens](/fusescope-docs/reference/glossary/#llm-tokens) and
-[TTFT](/fusescope-docs/reference/glossary/#ttft).
+[LLM tokens](/reference/glossary/#llm-tokens) and
+[TTFT](/reference/glossary/#ttft).
 
 <Aside>
   The demo stack makes no LLM calls, so the populated images on this page are
@@ -58,7 +58,7 @@ Until spans with GenAI attributes arrive, the **Explorer** shows what to do:
    calls the model, such as the OpenAI, Anthropic, Bedrock, LangChain or LlamaIndex
    instrumentations for Python and Node.js, or OpenLIT, which covers many of them and
    also reports TTFT. They export to FuseScope over OTLP like any other span; see
-   [Instrument applications](/fusescope-docs/sending-data/instrumentation/).
+   [Instrument applications](/sending-data/instrumentation/).
 
 2. **Check mappings** (9): if your library writes other attribute names, such as
    `llm.model_name` instead of `gen_ai.request.model`,
@@ -81,7 +81,7 @@ The Overview shows `0` and **No data in this time range** in the meantime.
 *Sample data: this image is a Storybook story, not the demo.*
 
 1. **Variables**: `$model`, `$provider`, `$environment` and `$service_name` narrow
-   every panel, like [dashboard variables](/fusescope-docs/dashboards/variables/).
+   every panel, like [dashboard variables](/dashboards/variables/).
 2. to 7. **KPIs**: **Total cost**, **Total tokens** (input plus output), **LLM calls**
    (spans with `gen_ai.request.model`), **LLM latency (p95)**, **LLM error rate** and
    **TTFT (p95)**. TTFT reads `gen_ai.server.ttft`, in seconds. From the release after
@@ -103,7 +103,7 @@ The Overview shows `0` and **No data in this time range** in the meantime.
 ## Explorer
 
 **Explorer** searches LLM, tool and agent spans, with the same tools as the
-[Traces explorer](/fusescope-docs/explore/traces/).
+[Traces explorer](/explore/traces/).
 
 ![The Explorer on sample data in Trace View, numbered: 1 Trace View, 2 List View, 3 Time Series, 4 Table. One row per AI trace, with the trace ID, service, root span such as invoke_agent support-triage, estimated cost such as $0.142, duration and spans.](../../../assets/ai-observability/ai-explorer.png)
 
@@ -113,7 +113,7 @@ The Overview shows `0` and **No data in this time range** in the meantime.
    **Est. cost**, **Duration**, **Spans**, **Tokens** and **Tokens in / out**,
    **Distinct tools**, **LLM calls**, **Tool calls**, **Errors**, the first
    **Input** and last **Output**, and the **Slowest LLM call**. Click a trace ID to
-   open it in [Trace details](/fusescope-docs/explore/trace-details/).
+   open it in [Trace details](/explore/trace-details/).
 2. **List View**: one row per span.
 3. **Time Series**: a chart of any aggregation, such as cost per model.
 4. **Table**: aggregated numbers grouped by attributes.
@@ -161,7 +161,7 @@ Pricing is applied by the FuseScope collector as spans arrive: it writes the cos
 each call to `signoz.gen_ai.usage.tokens.cost` (and one attribute per bucket), which
 the Overview and Explorer read. A new price applies to new spans only. Creating, changing and
 deleting rules needs the Admin
-[role](/fusescope-docs/administration/users-and-roles/#roles).
+[role](/administration/users-and-roles/#roles).
 
 ## Attribute mapping
 
@@ -213,9 +213,9 @@ ratio and the costliest traces tell you where to cut first.
 
 ## Related
 
-- [Trace details](/fusescope-docs/explore/trace-details/): one agent run, call by
+- [Trace details](/explore/trace-details/): one agent run, call by
   call.
-- [Dashboards](/fusescope-docs/dashboards/dashboards/): build your own panels on the
+- [Dashboards](/dashboards/dashboards/): build your own panels on the
   same attributes.
-- [Alert rules](/fusescope-docs/alerts/alert-rules/): be told when LLM cost or error
+- [Alert rules](/alerts/alert-rules/): be told when LLM cost or error
   rate goes up.

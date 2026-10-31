@@ -11,8 +11,8 @@ whole request around it.
 
 ## How logs and traces are linked
 
-A [log](/fusescope-docs/reference/glossary/#log) belongs to a request when it carries
-that request's [trace ID](/fusescope-docs/reference/glossary/#trace-id) and span ID, in
+A [log](/reference/glossary/#log) belongs to a request when it carries
+that request's [trace ID](/reference/glossary/#trace-id) and span ID, in
 the `trace_id` and `span_id` fields. OpenTelemetry SDKs and logging bridges add them
 for you when a log is written inside an active span. Logs without them can still be
 searched, but FuseScope cannot tie them to a trace.
@@ -21,7 +21,7 @@ searched, but FuseScope cannot tie them to a trace.
   If the steps below show no logs, your logs probably have no `trace_id`. Open any log
   in the Logs explorer and check the field. To add it, send logs through an
   OpenTelemetry logging bridge; see
-  [Instrument applications](/fusescope-docs/sending-data/instrumentation/#logs).
+  [Instrument applications](/sending-data/instrumentation/#logs).
 </Aside>
 
 ## From a trace to its logs
@@ -37,7 +37,7 @@ searched, but FuseScope cannot tie them to a trace.
 
 3. **Open the Logs tab.** It lists the logs written while that span ran, and other logs
    of the same trace around them for context, newest first. The stripe on each row is
-   the log's [severity](/fusescope-docs/explore/logs/#severity-levels). Click a log to
+   the log's [severity](/explore/logs/#severity-levels). Click a log to
    open it in the Logs explorer, in a new tab.
 
 4. **Search further.** Click **Open in Logs Explorer**. The Logs explorer opens with a
@@ -109,6 +109,6 @@ move between them in one click.
 
 ## Related
 
-- [Logs explorer](/fusescope-docs/explore/logs/#log-details): log details and context.
-- [Trace details](/fusescope-docs/explore/trace-details/#span-details): the span details tabs.
-- [Find out why a service is failing](/fusescope-docs/guides/failing-service/).
+- [Logs explorer](/explore/logs/#log-details): log details and context.
+- [Trace details](/explore/trace-details/#span-details): the span details tabs.
+- [Find out why a service is failing](/guides/failing-service/).

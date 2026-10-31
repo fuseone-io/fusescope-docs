@@ -6,7 +6,7 @@ description: Build and change a dashboard panel. The header, the Queries panel, 
 import { Aside, Steps } from "@astrojs/starlight/components";
 
 The panel editor is the full-screen page where you build one
-[panel](/fusescope-docs/reference/glossary/#panel): you write its query, check the
+[panel](/reference/glossary/#panel): you write its query, check the
 chart it draws, and set its title, units, colours and other options.
 
 **Use this page when** you are adding a panel to a dashboard, or changing one that
@@ -79,15 +79,15 @@ The tabs at the top of the Queries panel choose how you write the query:
 
 | Tab | Use it to |
 |---|---|
-| **Builder** | Pick a source (metrics, logs or traces), a filter, an aggregation and a group by from lists. The best place to start. See [Query builder](/fusescope-docs/querying/query-builder/). |
-| **ClickHouse** | Write SQL against the ClickHouse tables yourself. See [ClickHouse SQL and PromQL](/fusescope-docs/querying/clickhouse-promql/). |
+| **Builder** | Pick a source (metrics, logs or traces), a filter, an aggregation and a group by from lists. The best place to start. See [Query builder](/querying/query-builder/). |
+| **ClickHouse** | Write SQL against the ClickHouse tables yourself. See [ClickHouse SQL and PromQL](/querying/clickhouse-promql/). |
 | **PromQL** | Write a Prometheus query over metrics. |
-| **AI** | The query builder set up for AI and LLM spans, the data behind [AI Observability](/fusescope-docs/analyze/ai-observability/). It reads traces. |
+| **AI** | The query builder set up for AI and LLM spans, the data behind [AI Observability](/analyze/ai-observability/). It reads traces. |
 
 Each tab keeps its own query. **The tab that is selected when you save is the one the
 panel uses.** Switching tabs counts as a change, so **Unsaved Changes** appears.
 
-Not every panel type takes every query type: a [List](/fusescope-docs/dashboards/dashboards/#panel-types)
+Not every panel type takes every query type: a [List](/dashboards/dashboards/#panel-types)
 panel, for example, only takes the builder on logs or traces. The
 [type picker](#add-a-panel) shows what each type accepts.
 
@@ -113,7 +113,7 @@ or `legend`. Open **Result** for **Group By**, **Having**, **Order By**, **Limit
 Below the cards, **Add Query** adds another query and **Add Formula** adds a formula
 that combines them, such as `B / A * 100`. On traces, **Add Trace Matching** finds
 traces whose spans match several queries. See
-[Several queries and formulas](/fusescope-docs/querying/query-builder/#several-queries-and-formulas).
+[Several queries and formulas](/querying/query-builder/#several-queries-and-formulas).
 
 ## Run the query
 
@@ -145,11 +145,11 @@ options in sections. Which sections you see depends on the panel type.
 | **Chart appearance** | Line style, how points connect, area fill, **Show points**, and whether to connect or break the line on missing data |
 | **Buckets** | **Count**, **Width** and **Combine queries** (Histogram) |
 | **Thresholds** | A dashed line on charts, a colour for Number panels, or per-column colours for tables. The **+** on the section adds one |
-| **Context Links** | Links on the panel, with a **Label** and a URL that can include [variables](/fusescope-docs/dashboards/variables/) as `{{variable}}` |
+| **Context Links** | Links on the panel, with a **Label** and a URL that can include [variables](/dashboards/variables/) as `{{variable}}` |
 
 **Visualization** starts open. **Thresholds** and **Context Links** start open when
 the panel already has some; the others start closed. At the bottom, **Actions** has
-**Create alert**, which starts an [alert rule](/fusescope-docs/alerts/alert-rules/)
+**Create alert**, which starts an [alert rule](/alerts/alert-rules/)
 from the panel's query. It isn't offered for queries on the **AI** tab.
 
 ### Change the panel type
@@ -197,8 +197,8 @@ Any change, whether to a query, a setting, the title or the query tab, shows the
 
 ![The Discard changes? dialog: Your unsaved edits to this panel will be lost, with the Discard and Keep editing buttons.](../../../assets/dashboards/panel-editor-discard.png)
 
-On a [locked](/fusescope-docs/dashboards/dashboards/#lock-a-dashboard) dashboard, or
-if your [role](/fusescope-docs/administration/users-and-roles/#roles) can't edit it,
+On a [locked](/dashboards/dashboards/#lock-a-dashboard) dashboard, or
+if your [role](/administration/users-and-roles/#roles) can't edit it,
 **Save changes** is greyed out; hover it for the reason.
 
 ## Add a panel
@@ -241,7 +241,7 @@ For example, **Pie Chart** shows *Metrics, logs & traces*, *ClickHouse* and
 
 ### Choose where the panel goes
 
-On a dashboard with [sections](/fusescope-docs/dashboards/dashboards/#sections), the
+On a dashboard with [sections](/dashboards/dashboards/#sections), the
 arrow next to the main button opens **Add to section**:
 
 ![The Add to section menu: Dashboard (root) selected, Golden signals, Breakdown and New section, above the Cancel and Add to Dashboard (root) buttons.](../../../assets/dashboards/new-panel-sections.png)
@@ -277,11 +277,11 @@ editor. If you discard, nothing is created.
 
 ## Related
 
-- [Dashboards](/fusescope-docs/dashboards/dashboards/): the dashboard page, sections
+- [Dashboards](/dashboards/dashboards/): the dashboard page, sections
   and the panel menu.
-- [Query builder](/fusescope-docs/querying/query-builder/): aggregations, group by and
+- [Query builder](/querying/query-builder/): aggregations, group by and
   formulas.
-- [Dashboard variables](/fusescope-docs/dashboards/variables/): use `$name` in a
+- [Dashboard variables](/dashboards/variables/): use `$name` in a
   panel's query and title.
-- [Build your first dashboard](/fusescope-docs/guides/first-dashboard/): a step-by-step
+- [Build your first dashboard](/guides/first-dashboard/): a step-by-step
   guide.

@@ -12,7 +12,7 @@ to FuseScope. It ships in the `otelcol-contrib` distribution.
 **Use this page when** an application or a service on a VM or in Docker writes logs to
 files, and you can't or don't want to change it to send logs over OTLP.
 
-On Kubernetes, use the [Kubernetes logs](/fusescope-docs/sending-data/logs-kubernetes/)
+On Kubernetes, use the [Kubernetes logs](/sending-data/logs-kubernetes/)
 preset instead: it already reads every pod's log files.
 
 ## How it works
@@ -20,8 +20,8 @@ preset instead: it already reads every pod's log files.
 <Steps>
 
 1. A collector runs next to the application, as a container or as a service on the
-   host. See [Collector in Docker](/fusescope-docs/sending-data/collector-docker/) or
-   [Collector on a VM](/fusescope-docs/sending-data/collector-vm/) to install it.
+   host. See [Collector in Docker](/sending-data/collector-docker/) or
+   [Collector on a VM](/sending-data/collector-vm/) to install it.
 2. The `filelog` receiver watches the files that match `include` and reads new lines.
 3. Optional operators parse each line into fields, a timestamp and a severity.
 4. An exporter sends the logs to the FuseScope collector over OTLP.
@@ -62,7 +62,7 @@ service:
 ```
 
 Replace `fusescope-collector.example.com` with your FuseScope collector address. See
-[OTLP endpoints](/fusescope-docs/sending-data/otlp/#from-outside-the-cluster) for the
+[OTLP endpoints](/sending-data/otlp/#from-outside-the-cluster) for the
 address and TLS settings.
 
 ## Receiver options
@@ -243,7 +243,7 @@ ways:
 
 ## Parse in the collector or in FuseScope
 
-You can also parse in FuseScope with [log pipelines](/fusescope-docs/sending-data/log-pipelines/),
+You can also parse in FuseScope with [log pipelines](/sending-data/log-pipelines/),
 built and previewed in the UI.
 
 | Parse in the collector when | Parse in a FuseScope log pipeline when |
@@ -276,7 +276,7 @@ docker run -d --name otelcol \
 ```
 
 To read another container's logs, write them to a shared volume and mount it the same
-way. See [Collector in Docker](/fusescope-docs/sending-data/collector-docker/).
+way. See [Collector in Docker](/sending-data/collector-docker/).
 
 </TabItem>
 <TabItem label="VM">
@@ -294,7 +294,7 @@ sudo systemctl restart otelcol-contrib
 
 The `adm` group reads most of `/var/log` on Debian and Ubuntu; for other files, grant
 read access to the group that owns them. See
-[Collector on a VM](/fusescope-docs/sending-data/collector-vm/).
+[Collector on a VM](/sending-data/collector-vm/).
 
 </TabItem>
 </Tabs>
@@ -305,7 +305,7 @@ read access to the group that owns them. See
 
 1. Write a line to a watched file, such as
    `echo "$(date '+%F %T.000') ERROR [main] test - hello FuseScope" >> /var/log/checkout/app.log`.
-2. Open the [Logs explorer](/fusescope-docs/explore/logs/) and filter by
+2. Open the [Logs explorer](/explore/logs/) and filter by
    `service.name = checkout`.
 3. If nothing arrives, check the collector's own logs for errors from `filelog` (often
    a permission error) or from the exporter.
@@ -314,9 +314,9 @@ read access to the group that owns them. See
 
 ## Related
 
-- [Collector in Docker](/fusescope-docs/sending-data/collector-docker/) and
-  [Collector on a VM](/fusescope-docs/sending-data/collector-vm/): install the agent.
-- [Log pipelines](/fusescope-docs/sending-data/log-pipelines/): parse logs in FuseScope.
-- [Kubernetes logs](/fusescope-docs/sending-data/logs-kubernetes/): pod logs with the
+- [Collector in Docker](/sending-data/collector-docker/) and
+  [Collector on a VM](/sending-data/collector-vm/): install the agent.
+- [Log pipelines](/sending-data/log-pipelines/): parse logs in FuseScope.
+- [Kubernetes logs](/sending-data/logs-kubernetes/): pod logs with the
   `k8s-infra` chart.
-- [Logs explorer](/fusescope-docs/explore/logs/): search the logs.
+- [Logs explorer](/explore/logs/): search the logs.

@@ -6,17 +6,17 @@ description: How healthy each service is. Rate, errors and latency per service, 
 import { Aside, Steps } from "@astrojs/starlight/components";
 
 **Services** is FuseScope's APM (application performance monitoring) view. It lists
-every [service](/fusescope-docs/reference/glossary/#service) that sends
-[traces](/fusescope-docs/reference/glossary/#trace) and tells you, for each one, how busy
+every [service](/reference/glossary/#service) that sends
+[traces](/reference/glossary/#trace) and tells you, for each one, how busy
 it is, how often it fails and how long it takes. Any service whose spans carry a
-`service.name` [resource attribute](/fusescope-docs/reference/glossary/#resource-attribute)
+`service.name` [resource attribute](/reference/glossary/#resource-attribute)
 shows up here; you don't need to set up anything else.
 
 **Use this page when** something is slow or failing and you don't yet know where, when
 you want to check a service after a deploy, or when you want to know what a service
 calls and what calls it. For step-by-step walkthroughs, see
-[Investigate a slow endpoint](/fusescope-docs/guides/slow-endpoint/) and
-[Find out why a service is failing](/fusescope-docs/guides/failing-service/).
+[Investigate a slow endpoint](/guides/slow-endpoint/) and
+[Find out why a service is failing](/guides/failing-service/).
 
 ## APM in plain words
 
@@ -25,7 +25,7 @@ If you are new to APM, read this section first. The rest of the page uses these 
 ### Rate, errors and duration
 
 Three numbers describe the health of almost any service. Together they are called the
-[RED](/fusescope-docs/reference/glossary/#red-metrics) metrics:
+[RED](/reference/glossary/#red-metrics) metrics:
 
 - **Rate**: how many requests the service handles, in requests per second (`req/s`).
 - **Errors**: how many of those requests failed, usually shown as a share, the
@@ -39,7 +39,7 @@ long, fails more often, or receives far more (or far fewer) requests than an hou
 
 Latency is never a single number: most requests are fast and a few are slow. An
 average hides the slow ones, so FuseScope shows
-[percentiles](/fusescope-docs/reference/glossary/#percentile):
+[percentiles](/reference/glossary/#percentile):
 
 - **p50** (the median): half the requests are faster than this.
 - **p95**: 95 requests in 100 are faster than this.
@@ -50,11 +50,11 @@ for a few. That slow tail is often what people complain about.
 
 ### Apdex
 
-[Apdex](/fusescope-docs/reference/glossary/#apdex) turns latency into one score from 0 to
+[Apdex](/reference/glossary/#apdex) turns latency into one score from 0 to
 1. You choose a target time *T* (500 ms by default). Requests that finish within *T*
 count fully, those within 4 × *T* count half, and slower or failed ones count zero.
 1.00 means every request was fast enough. See
-[Core concepts](/fusescope-docs/start/concepts/#apdex) for the formula and
+[Core concepts](/start/concepts/#apdex) for the formula and
 [Apdex threshold](#apdex-threshold) to change *T*.
 
 ### Entry points and internal operations
@@ -62,7 +62,7 @@ count fully, those within 4 × *T* count half, and slower or failed ones count z
 One request to a service usually produces several spans in it: the span where the
 request arrives, and spans for the work it does inside, such as a database query or a
 call to another service. The arriving span is the
-[entrypoint span](/fusescope-docs/reference/glossary/#entrypoint-span) (or the root
+[entrypoint span](/reference/glossary/#entrypoint-span) (or the root
 span, if the request started there).
 
 The numbers on the services list and the service KPIs count **entry points only**, so
@@ -95,7 +95,7 @@ top of the page, such as the last 30 minutes.
 1. **Count line**: how many services sent data in the range and how many of them have
    a [highlight](#highlight-badges), such as `7 services in the selected range · 1 with
    highlights`.
-2. **Service map** opens the [Service Map](/fusescope-docs/apm/service-map/).
+2. **Service map** opens the [Service Map](/apm/service-map/).
 3. **Search by service**: type part of a name to narrow the list.
 4. **Filters**: **Select Environment/s** keeps only the services of one or more
    `deployment.environment` values; the box next to it filters by any other resource
@@ -113,7 +113,7 @@ top of the page, such as the last 30 minutes.
     one.
 13. **Requests**: how many requests the service handled in the range.
 14. **View traces**: the traces icon opens the service's traces in the
-    [Traces explorer](/fusescope-docs/explore/traces/) for the same range.
+    [Traces explorer](/explore/traces/) for the same range.
 
 Click a row, or the service name, to open the [service page](#service-details). The
 list shows ten services per page.
@@ -197,7 +197,7 @@ spans say nothing about their protocol, a plain Service.
 The box next to it filters by any resource attribute, such as
 `k8s.namespace.name` or `service.namespace`. Both filters stay set when you open a
 service, and its page uses them on every tab. Set these attributes in your SDK, for
-example with `OTEL_RESOURCE_ATTRIBUTES`; see [OTLP](/fusescope-docs/sending-data/otlp/).
+example with `OTEL_RESOURCE_ATTRIBUTES`; see [OTLP](/sending-data/otlp/).
 
 **Search by service** only narrows the rows you see; it doesn't change the counts.
 
@@ -224,7 +224,7 @@ range at the top and the filters under the tabs.
    [Infrastructure](#infrastructure) tab. `payment` reports no language and no host,
    so only its environment shows.
 3. **View traces**: the service's traces in the Traces explorer.
-4. **View logs**: the service's logs in the [Logs explorer](/fusescope-docs/explore/logs/).
+4. **View logs**: the service's logs in the [Logs explorer](/explore/logs/).
 5. **Apdex settings**: the service's Apdex target. See [Apdex threshold](#apdex-threshold).
 6. **Tabs**: [Overview](#overview), [Endpoints](#endpoints),
    [Dependencies](#dependencies), [Errors](#errors), [Infrastructure](#infrastructure),
@@ -271,7 +271,7 @@ Four charts, two per row: **Latency** (p50, p90 and p99), **Rate** (req/s),
 
 11. **Legend**: with the comparison on, the previous period is the dashed series. On
     Latency only p99 gets a previous-period line, to keep the chart readable.
-12. **Create alert** opens the [alert editor](/fusescope-docs/alerts/alert-rules/) with
+12. **Create alert** opens the [alert editor](/alerts/alert-rules/) with
     the chart's query already filled in, so you only set the threshold.
 13. Each chart is drawn over the selected range. Drag across one to zoom into that
     stretch of time; the whole page follows.
@@ -310,7 +310,7 @@ slower than the rest.
 
 #### Monitors
 
-15. **Monitors** lists the [alert rules](/fusescope-docs/alerts/alert-rules/) that
+15. **Monitors** lists the [alert rules](/alerts/alert-rules/) that
     watch this service, the ones that need attention first: **Firing**, **Pending**,
     **Recovering**, **No data**, **OK**, then **Disabled**. Under each name is the
     rule's first filter. Click a rule to open it; **Create alert** starts a new one,
@@ -337,7 +337,7 @@ A rule that covers every service without naming them, or names the service only 
 ### Endpoints
 
 The **Endpoints** tab lists everything the service does, one row per
-[operation](/fusescope-docs/reference/glossary/#endpoint), with the numbers to compare
+[operation](/reference/glossary/#endpoint), with the numbers to compare
 them.
 
 ![The Endpoints tab of frontend grouped by http.route: a (not set) row with 60.8% of the time spent and no percentiles, and /dispatch with a p99 of 781 ms and 39.2%.](../../../assets/services/service-endpoints.png)
@@ -381,7 +381,7 @@ exist.
 
 The **Dependencies** tab shows what the service calls (**downstream**) and what calls
 it (**upstream**), from the same parent and child spans the
-[Service Map](/fusescope-docs/apm/service-map/) uses.
+[Service Map](/apm/service-map/) uses.
 
 ![The Dependencies tab of driver: the map with frontend as caller and redis-manual as callee, outlined in amber with 18.5% errors and a red arrow; the Downstream table with redis-manual, a Service at 4.77 req/s, p50 12 ms, p99 35 ms and 18.5% errors; the Upstream table with frontend.](../../../assets/services/service-dependencies.png)
 
@@ -402,7 +402,7 @@ it (**upstream**), from the same parent and child spans the
 
 The type icon in each row follows the [service type](#service-types) rules. Click a
 row to open that service's page; for an External address, the
-[External APIs](/fusescope-docs/analyze/external-apis/#a-domain-page) page for it.
+[External APIs](/analyze/external-apis/#a-domain-page) page for it.
 
 An empty **Upstream** with `No traced callers in this range` is normal for a service
 that browsers or other untraced clients call directly: they send no trace context, so
@@ -453,7 +453,7 @@ value of the `host.name` resource attribute on its spans.
 
 For each host: **Requests**, **Rate**, **Error %**, **p99**, **Share of traffic** and
 **Last seen**. **Traces** opens the service's traces from that host; **Host** opens
-the host on the [Infrastructure](/fusescope-docs/observe/infrastructure/#hosts) page. A host that
+the host on the [Infrastructure](/observe/infrastructure/#hosts) page. A host that
 fails much more than the others, or takes all the traffic, is easy to spot here.
 
 The hosts come from your traces, so they appear as soon as your SDK sets `host.name`
@@ -476,7 +476,7 @@ them the tab shows **No database calls in this range**. In that case:
 - **Open Dependencies**: databases the service reaches through `peer.service` still
   appear on the [Dependencies](#dependencies) tab.
 - **Instrument your database client**: add the instrumentation library for your
-  database driver; see [Instrument applications](/fusescope-docs/sending-data/instrumentation/).
+  database driver; see [Instrument applications](/sending-data/instrumentation/).
 
 The HotROD demo fakes its database and cache calls without `db.system`, so this tab is
 empty for every demo service; `customer`'s calls to `mysql` show on its Dependencies
@@ -488,7 +488,7 @@ The **External** tab charts the service's calls to other addresses:
 **External Call Error Percentage**, **External Call duration**,
 **External Call RPS(by Address)** and **External Call duration(by Address)**. Click a
 point for **View traces**, **View logs** or **View External APIs**, which opens the
-[External APIs](/fusescope-docs/analyze/external-apis/) page for that address.
+[External APIs](/analyze/external-apis/) page for that address.
 
 ### Apdex threshold
 
@@ -537,7 +537,7 @@ is going on, starting from the list. The numbers are from the HotROD demo over t
    the Overview and click **View error traces** in the highlight. The Traces explorer
    opens with `serviceName in ['payment'] AND hasError in ['true']`, listing
    `lets-go` spans of 500 ms and `okey-dokey` spans of 250 ms. Open one to read it in
-   [Trace details](/fusescope-docs/explore/trace-details/).
+   [Trace details](/explore/trace-details/).
 
 </Steps>
 
@@ -597,14 +597,14 @@ its latency. Turning on the existing alert rule would warn you when it gets wors
 **Service Map** (`/service-map`, also **Service map** on the services list) draws every
 service and the calls between them, colours them by health and points at the service
 where errors most likely start. It has its own page:
-[Service Map](/fusescope-docs/apm/service-map/). For one service's direct neighbours,
+[Service Map](/apm/service-map/). For one service's direct neighbours,
 the [Dependencies](#dependencies) tab is quicker.
 
 ## Exceptions
 
 **Exceptions** (`/exceptions`) groups the exceptions recorded on spans across all
 services, with each one's stack trace, logs and trace. It has its own page:
-[Exceptions](/fusescope-docs/apm/exceptions/). A service's own exceptions are also on
+[Exceptions](/apm/exceptions/). A service's own exceptions are also on
 its [Errors](#errors) tab.
 
 ## If something is missing
@@ -623,11 +623,11 @@ its [Errors](#errors) tab.
 
 ## Related
 
-- [Investigate a slow endpoint](/fusescope-docs/guides/slow-endpoint/) and
-  [Find out why a service is failing](/fusescope-docs/guides/failing-service/):
+- [Investigate a slow endpoint](/guides/slow-endpoint/) and
+  [Find out why a service is failing](/guides/failing-service/):
   step-by-step guides.
-- [Core concepts](/fusescope-docs/start/concepts/): spans, entrypoint spans,
+- [Core concepts](/start/concepts/): spans, entrypoint spans,
   percentiles and Apdex.
-- [Trace details](/fusescope-docs/explore/trace-details/): read one request end to end.
-- [Alert rules](/fusescope-docs/alerts/alert-rules/): get notified when a service
+- [Trace details](/explore/trace-details/): read one request end to end.
+- [Alert rules](/alerts/alert-rules/): get notified when a service
   degrades.

@@ -15,7 +15,7 @@ brought a new one, or why a particular error happens.
 
 The browser SDK reports uncaught errors (`onerror`), unhandled promise rejections
 (`unhandledrejection`), and errors you report yourself with
-[`addError()`](/fusescope-docs/frontend/sdk-reference/#functions) (`manual`). For Android,
+[`addError()`](/frontend/sdk-reference/#functions) (`manual`). For Android,
 see [Crashes and ANRs](#crashes-and-anrs). All numbers follow the time range and the
 **Release** filter.
 
@@ -35,7 +35,7 @@ see [Crashes and ANRs](#crashes-and-anrs). All numbers follow the time range and
      Their trend line is red.
    - the **source**, such as `onerror`.
 5. **Source map missing**: the group's latest release has no uploaded source maps, so
-   its stack trace is minified. See [Source maps](/fusescope-docs/frontend/source-maps/).
+   its stack trace is minified. See [Source maps](/frontend/source-maps/).
 6. **Trend**: the number of events over the range.
 7. **Events** and **Sessions**, with the share of all sessions in the range that hit the
    error, such as 27.3%. Sort your attention by sessions, not events: one user stuck in a
@@ -74,12 +74,12 @@ Click a group to open its detail (`…/errors/<fingerprint>`).
 2. **Event**: the group keeps its 10 latest events. The arrows move between them, such
    as **Event 1 of 3 latest**; the stack, breadcrumbs and linked request follow the
    selected event. **View in Logs** opens the events in the
-   [Logs explorer](/fusescope-docs/explore/logs/).
+   [Logs explorer](/explore/logs/).
 3. **Alert on this error** opens the alert editor with the **JS errors above 10**
    template, filtered to this exception type and message. See
-   [Frontend alerts](/fusescope-docs/frontend/alerts/).
+   [Frontend alerts](/frontend/alerts/).
 4. **Session timeline** opens the
-   [timeline](/fusescope-docs/frontend/sessions/#the-session-timeline) of the selected
+   [timeline](/frontend/sessions/#the-session-timeline) of the selected
    event's session.
 5. **Key numbers**: **Events** in the range, **Sessions affected** and their share,
    **First seen** and **Last seen** with their release, and the **Top browser**.
@@ -113,7 +113,7 @@ before the error, the detail shows it:
 1. The request's **status**, method and path, its duration, the backend service that
    answered and how long before the error it started.
 2. **View backend trace** opens it in
-   [Trace details](/fusescope-docs/explore/trace-details/), where the failing backend
+   [Trace details](/explore/trace-details/), where the failing backend
    span is.
 
 When there is none, the section reads **No failed request on this view shortly before
@@ -130,7 +130,7 @@ says what to upload:
 2. The **upload command**, with this FuseScope's URL, the application id and the
    release filled in. Export an Editor service account key as `FUSESCOPE_API_KEY` first.
 3. **Source maps settings** opens the application's
-   [Source maps](/fusescope-docs/frontend/source-maps/) tab.
+   [Source maps](/frontend/source-maps/) tab.
 4. The **minified stack**, as received.
 
 Upload the maps of that release and reload the page: stack traces are symbolicated when
@@ -161,7 +161,7 @@ on new events. Native (NDK) crashes are not captured yet; they are planned.
 
 Release builds minified with R8 report obfuscated frames, such as
 `at a.b.c(SourceFile:12)`. With the release's
-[R8 mapping](/fusescope-docs/frontend/r8-mappings/) uploaded, the stack trace shows
+[R8 mapping](/frontend/r8-mappings/) uploaded, the stack trace shows
 **Retraced** and **Original** gives your classes, methods, files and lines, including
 inlined methods; **Obfuscated** shows it as the app sent it. Like source maps, retracing
 runs when you read the error, so uploading a mapping later fixes past events.
@@ -172,7 +172,7 @@ runs when you read the error, so uploading a mapping later fixes past events.
   `java.`, `android.`, `androidx.`, `kotlin.`, `okhttp3.` and the SDK itself, are folded.
 - Without a mapping, the group shows **R8 mapping missing** and the detail reads
   **Obfuscated · no R8 mapping for 1.8.0**, with the `curl` command to upload it. See
-  [When a stack stays obfuscated](/fusescope-docs/frontend/r8-mappings/#when-a-stack-stays-obfuscated).
+  [When a stack stays obfuscated](/frontend/r8-mappings/#when-a-stack-stays-obfuscated).
 
 ### Grouping Android errors
 
@@ -210,7 +210,7 @@ mapping is uploaded.
 
 ## Related
 
-- [Source maps](/fusescope-docs/frontend/source-maps/) and
-  [R8 mappings](/fusescope-docs/frontend/r8-mappings/)
-- [Sessions](/fusescope-docs/frontend/sessions/)
-- [Exceptions](/fusescope-docs/apm/exceptions/): errors raised by your backend services.
+- [Source maps](/frontend/source-maps/) and
+  [R8 mappings](/frontend/r8-mappings/)
+- [Sessions](/frontend/sessions/)
+- [Exceptions](/apm/exceptions/): errors raised by your backend services.

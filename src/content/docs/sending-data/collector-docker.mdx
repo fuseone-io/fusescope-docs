@@ -14,7 +14,7 @@ collector between them and FuseScope.
 ## Why run a local collector
 
 Apps can send straight to FuseScope (see
-[OTLP](/fusescope-docs/sending-data/otlp/#from-an-application)). A collector next to
+[OTLP](/sending-data/otlp/#from-an-application)). A collector next to
 them adds:
 
 | Benefit | What it does |
@@ -23,7 +23,7 @@ them adds:
 | Retries | Queues data and retries when FuseScope is briefly unreachable. |
 | Enrichment | Adds attributes such as `host.name` or `deployment.environment.name` in one place. |
 | One egress point | Only the collector needs network access to FuseScope. Apps only talk to `localhost` or the Compose network. |
-| Extra sources | The same collector can read [host metrics](/fusescope-docs/sending-data/hosts/), [Prometheus endpoints](/fusescope-docs/sending-data/prometheus/) and log files. |
+| Extra sources | The same collector can read [host metrics](/sending-data/hosts/), [Prometheus endpoints](/sending-data/prometheus/) and log files. |
 
 ## Write the config
 
@@ -129,7 +129,7 @@ service:
 </Tabs>
 
 Replace `fusescope-collector.example.com` with your FuseScope collector address; see
-[From outside the cluster](/fusescope-docs/sending-data/otlp/#from-outside-the-cluster).
+[From outside the cluster](/sending-data/otlp/#from-outside-the-cluster).
 Self-hosted FuseScope needs no ingestion key or token header.
 
 What each part does:
@@ -252,15 +252,15 @@ project send to the collector. Publish them if apps outside Compose send too.
 
    Remove it afterwards; it is verbose.
 
-4. In FuseScope, open [Traces](/fusescope-docs/explore/traces/) or
-   [APM › Services](/fusescope-docs/apm/services/) and look for your service.
+4. In FuseScope, open [Traces](/explore/traces/) or
+   [APM › Services](/apm/services/) and look for your service.
 
 </Steps>
 
 ## Related
 
-- [Collector on a VM](/fusescope-docs/sending-data/collector-vm/)
-- [Hosts](/fusescope-docs/sending-data/hosts/): add host metrics to this collector
-- [Prometheus metrics](/fusescope-docs/sending-data/prometheus/)
-- [OTLP endpoints](/fusescope-docs/sending-data/otlp/)
-- [Instrument your application](/fusescope-docs/sending-data/instrumentation/)
+- [Collector on a VM](/sending-data/collector-vm/)
+- [Hosts](/sending-data/hosts/): add host metrics to this collector
+- [Prometheus metrics](/sending-data/prometheus/)
+- [OTLP endpoints](/sending-data/otlp/)
+- [Instrument your application](/sending-data/instrumentation/)

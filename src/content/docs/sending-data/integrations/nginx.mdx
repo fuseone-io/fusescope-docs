@@ -16,7 +16,7 @@ status, path, method or client.
 
 - **Nginx newer than 1.0.0.**
 - **An `otelcol-contrib` collector**, v0.88.0 or newer, where you can add config files
-  and environment variables. See [Integrations](/fusescope-docs/sending-data/integrations/#how-it-works).
+  and environment variables. See [Integrations](/sending-data/integrations/#how-it-works).
 - **The collector can read the Nginx log files**, usually `/var/log/nginx/access.log`
   and `/var/log/nginx/error.log`.
 
@@ -119,7 +119,7 @@ service:
 | `OTLP_DESTINATION_ENDPOINT` | `fusescope-collector.example.com:4317` | FuseScope collector, OTLP gRPC. |
 
 Run the collector with `--config nginx-logs.yaml`, as shown in
-[Run the collector](/fusescope-docs/sending-data/integrations/#run-the-collector). Set
+[Run the collector](/sending-data/integrations/#run-the-collector). Set
 `insecure: false` in the exporter when the FuseScope endpoint uses TLS.
 
 <Aside type="caution" title="Custom log format">
@@ -144,9 +144,9 @@ Run the collector with `--config nginx-logs.yaml`, as shown in
 ## What's included
 
 No dashboard, no log pipelines and no alert rules. Query the logs in the
-[Logs explorer](/fusescope-docs/explore/logs/), for example `source = 'nginx' AND status = '500'`, and
-build your own [dashboard](/fusescope-docs/dashboards/dashboards/) from them. For more
-parsing, see [Log pipelines](/fusescope-docs/sending-data/log-pipelines/).
+[Logs explorer](/explore/logs/), for example `source = 'nginx' AND status = '500'`, and
+build your own [dashboard](/dashboards/dashboards/) from them. For more
+parsing, see [Log pipelines](/sending-data/log-pipelines/).
 
 For Nginx metrics such as active connections, enable `stub_status` and add the
 collector's [`nginx` receiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/nginxreceiver).
@@ -172,7 +172,7 @@ Error log entries also carry `log_level`, `pid`, `tid` and `cid`.
 
 ## Related
 
-- [Integrations](/fusescope-docs/sending-data/integrations/)
-- [Logs explorer](/fusescope-docs/explore/logs/)
-- [Log pipelines](/fusescope-docs/sending-data/log-pipelines/)
-- [Log files](/fusescope-docs/sending-data/logs-files/)
+- [Integrations](/sending-data/integrations/)
+- [Logs explorer](/explore/logs/)
+- [Log pipelines](/sending-data/log-pipelines/)
+- [Log files](/sending-data/logs-files/)

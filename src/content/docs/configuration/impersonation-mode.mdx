@@ -9,7 +9,7 @@ import { Aside, Steps } from "@astrojs/starlight/components";
 instance that opens without a login page.
 
 In impersonation mode FuseScope has no sign-in. Every request, from the browser or the
-API, acts as the [root user](/fusescope-docs/administration/users-and-roles/#first-user),
+API, acts as the [root user](/administration/users-and-roles/#first-user),
 an admin. The UI skips the login page and shows this banner on **Home**:
 
 > Impersonation mode: authentication is disabled. Anyone with access to this instance
@@ -59,7 +59,7 @@ The backend refuses to start when impersonation is on together with the tokenize
 keys, or when the root user is not enabled. At startup it logs a warning that all
 requests impersonate the root user.
 
-See [Configuration file](/fusescope-docs/configuration/config-file/) for where these
+See [Configuration file](/configuration/config-file/) for where these
 settings go.
 
 ## Turn it off
@@ -69,7 +69,7 @@ settings go.
 1. Remove `identn.impersonation.enabled` or set it to `false`, and remove the
    `tokenizer` and `apikey` overrides; both are on by default.
 2. Restart the backend.
-3. Sign in as the root user, then [invite members](/fusescope-docs/administration/users-and-roles/#invite-members)
-   or set up [single sign-on](/fusescope-docs/configuration/sso/).
+3. Sign in as the root user, then [invite members](/administration/users-and-roles/#invite-members)
+   or set up [single sign-on](/configuration/sso/).
 
 </Steps>

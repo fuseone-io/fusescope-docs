@@ -21,7 +21,7 @@ integration is called **AWS RDS (MySQL)**.
 ## Prerequisites
 
 - **An `otelcol-contrib` collector**, v0.88.0 or newer, where you can add config files
-  and environment variables. See [Integrations](/fusescope-docs/sending-data/integrations/#how-it-works).
+  and environment variables. See [Integrations](/sending-data/integrations/#how-it-works).
 - **Java 11 or newer** for the CloudWatch exporter, or Docker to run its
   [image](https://github.com/prometheus/cloudwatch_exporter#docker-images) instead.
 - **AWS credentials** for the exporter and the collector. Both use the standard AWS SDK
@@ -193,7 +193,7 @@ integration is called **AWS RDS (MySQL)**.
    | `OTLP_DESTINATION_ENDPOINT` | `fusescope-collector.example.com:4317` | FuseScope collector, OTLP gRPC. |
 
 3. **Run the collector** with `--config mysql-metrics.yaml`, as shown in
-   [Run the collector](/fusescope-docs/sending-data/integrations/#run-the-collector).
+   [Run the collector](/sending-data/integrations/#run-the-collector).
 
 </Steps>
 
@@ -247,7 +247,7 @@ service:
 
 Set `region`, replace the group names with yours, and set `OTLP_DESTINATION_ENDPOINT`.
 Run the collector with `--config mysql-logs.yaml`. To parse the entries, add a
-[log pipeline](/fusescope-docs/sending-data/log-pipelines/) that matches
+[log pipeline](/sending-data/log-pipelines/) that matches
 `source = rds_mysql`.
 
 Set `insecure: false` in the exporter when the FuseScope endpoint uses TLS.
@@ -327,8 +327,8 @@ The `mysql` receiver adds `mysql.*` metrics, such as `mysql.connection.count`,
 
 ## Related
 
-- [Integrations](/fusescope-docs/sending-data/integrations/)
-- [AWS RDS for PostgreSQL](/fusescope-docs/sending-data/integrations/aws-rds-postgresql/)
-- [Log pipelines](/fusescope-docs/sending-data/log-pipelines/)
+- [Integrations](/sending-data/integrations/)
+- [AWS RDS for PostgreSQL](/sending-data/integrations/aws-rds-postgresql/)
+- [Log pipelines](/sending-data/log-pipelines/)
 - [CloudWatch exporter](https://github.com/prometheus/cloudwatch_exporter)
 - [`awscloudwatch` receiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/awscloudwatchreceiver)

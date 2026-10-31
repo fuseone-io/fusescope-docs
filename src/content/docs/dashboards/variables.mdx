@@ -5,7 +5,7 @@ description: What a dashboard variable is, the four types, how to create, edit a
 
 import { Aside, Steps, Tabs, TabItem } from "@astrojs/starlight/components";
 
-A [variable](/fusescope-docs/reference/glossary/#dashboard-variable) is a value you
+A [variable](/reference/glossary/#dashboard-variable) is a value you
 pick at the top of a dashboard, such as a service name or an environment. Panels use
 it in their queries as `$name`. Change the value, and every panel that uses it shows
 the data for the new value.
@@ -16,7 +16,7 @@ checkout; pick `payment`, and they show payment.
 
 **Use this page when** you want to add a variable to a dashboard, change one, or
 understand what the variables bar shows. How viewers use the bar is described in
-[The variables bar](/fusescope-docs/dashboards/dashboards/#the-variables-bar).
+[The variables bar](/dashboards/dashboards/#the-variables-bar).
 
 ## Variable types
 
@@ -137,7 +137,7 @@ WHERE ts_bucket_start >= $start_timestamp - 1800 AND ts_bucket_start <= $end_tim
 The query runs with the dashboard's time range. Besides other variables, it can use
 `$start_timestamp` and `$end_timestamp`, and their `_ms` and `_nano` forms.
 Statements that drop, alter or truncate are rejected. See
-[ClickHouse SQL and PromQL](/fusescope-docs/querying/clickhouse-promql/#tables) for
+[ClickHouse SQL and PromQL](/querying/clickhouse-promql/#tables) for
 the tables.
 
 ## Dependencies
@@ -227,7 +227,7 @@ Variables also work outside queries:
   *Latency of checkout* on the dashboard. Several values are joined with commas.
 - **Text panels**: write `$owner` in the Markdown and the panel shows the value.
 - **Context links**: write `{{service}}` in the link's URL. See
-  [Panel settings](/fusescope-docs/dashboards/panel-editor/#panel-settings).
+  [Panel settings](/dashboards/panel-editor/#panel-settings).
 
 A variable that doesn't exist is left as it is written.
 
@@ -311,8 +311,8 @@ address.
 
 ## Related
 
-- [Dashboards](/fusescope-docs/dashboards/dashboards/): the dashboard page and the
+- [Dashboards](/dashboards/dashboards/): the dashboard page and the
   variables bar.
-- [Panel editor](/fusescope-docs/dashboards/panel-editor/): write the queries that use
+- [Panel editor](/dashboards/panel-editor/): write the queries that use
   the variables.
-- [Query builder](/fusescope-docs/querying/query-builder/): filters and `IN`.
+- [Query builder](/querying/query-builder/): filters and `IN`.

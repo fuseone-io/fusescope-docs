@@ -5,7 +5,7 @@ description: Bring alert rules, dashboards, channels and other FuseScope objects
 
 import { Aside, Steps } from "@astrojs/starlight/components";
 
-Every resource of the [Terraform provider](/fusescope-docs/terraform/) can be imported
+Every resource of the [Terraform provider](/terraform/) can be imported
 by its ID, so objects first built in the FuseScope UI can move under Terraform without
 being recreated.
 
@@ -17,7 +17,7 @@ want to manage them as code from now on.
 Imports use the object's ID, a UUID such as `0192a9c2-1234-7abc-8def-0123456789ab`.
 For dashboards and alert rules it is in the page URL when you open the object in
 FuseScope. For any object, the list endpoints of the
-[FuseScope API](/fusescope-docs/administration/service-accounts/#call-the-api) return
+[FuseScope API](/administration/service-accounts/#call-the-api) return
 it, for example:
 
 ```sh
@@ -72,7 +72,7 @@ Adjust the configuration until `plan` shows no changes.
 
 - **Secrets.** A `fusescope_rum_application` has a null `key` after an import, because
   FuseScope returns the key only on create; see
-  [RUM applications](/fusescope-docs/terraform/rum-applications/). Generated
+  [RUM applications](/terraform/rum-applications/). Generated
   configuration for a notification channel can hold its credentials; move them into
   sensitive variables before you commit the file.
 - **Defaults filled by the server.** Generated configuration lists every attribute the

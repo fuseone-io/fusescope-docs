@@ -12,10 +12,10 @@ import { Aside, Steps } from "@astrojs/starlight/components";
 On a new installation, the sign-up page creates the first account. It becomes an admin
 and the **root user**, which cannot be deleted, have its roles changed or have its password
 reset from the UI. Sign-up closes once this account exists; everyone else joins by
-invitation or [single sign-on](/fusescope-docs/configuration/sso/).
+invitation or [single sign-on](/configuration/sso/).
 
 The root user can instead be provisioned from the
-[configuration file](/fusescope-docs/configuration/config-file/), which enforces its email
+[configuration file](/configuration/config-file/), which enforces its email
 and password at every startup:
 
 ```yaml
@@ -102,9 +102,9 @@ emailing:
 ```
 
 Set the password with `SIGNOZ_EMAILING_SMTP_AUTH_PASSWORD`. Alert emails use separate
-settings; see [Notification channels](/fusescope-docs/alerts/notification-channels/#email-and-smtp).
+settings; see [Notification channels](/alerts/notification-channels/#email-and-smtp).
 
 <Aside>
   Users created at their first SSO sign-in get roles from the auth domain's role mapping.
-  See [Single sign-on](/fusescope-docs/configuration/sso/#role-mapping).
+  See [Single sign-on](/configuration/sso/#role-mapping).
 </Aside>

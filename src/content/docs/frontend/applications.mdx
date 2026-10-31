@@ -6,7 +6,7 @@ description: A tour of the Frontend screens. The applications list with sessions
 import { Aside, Steps } from "@astrojs/starlight/components";
 
 **Frontend** (`/frontend/applications`, under **Observe** in the sidebar, marked
-**Beta**) lists your [Real User Monitoring](/fusescope-docs/frontend/real-user-monitoring/)
+**Beta**) lists your [Real User Monitoring](/frontend/real-user-monitoring/)
 applications. Click one to open its overview.
 
 **Use these screens when** you want to know how fast your pages are for real users,
@@ -28,8 +28,8 @@ All numbers follow the time range at the top right, **Last 30 minutes** by defau
 1. **Count line**: how many applications there are and how many sessions they had in
    the range.
 2. **New application**: create one; see
-   [Set up a web application](/fusescope-docs/frontend/set-up-web/) or
-   [Set up an Android application](/fusescope-docs/frontend/set-up-android/). **SDK docs**
+   [Set up a web application](/frontend/set-up-web/) or
+   [Set up an Android application](/frontend/set-up-android/). **SDK docs**
    opens the SDK's README.
 3. **KPI strip**, over every application:
    - **Applications**, with how many are web and mobile;
@@ -45,14 +45,14 @@ All numbers follow the time range at the top right, **Last 30 minutes** by defau
 6. **Sessions** and **Error rate**, with the change from the previous period of the
    same length.
 7. **LCP p75**, **INP p75** and **CLS p75**, each rated **Good**, **Needs work** or
-   **Poor**. See [Web Vitals in plain words](/fusescope-docs/frontend/real-user-monitoring/#web-vitals-in-plain-words).
+   **Poor**. See [Web Vitals in plain words](/frontend/real-user-monitoring/#web-vitals-in-plain-words).
 8. **SDK**: the SDK and version the application last reported, such as
    `@fusescope/browser` or `io.fuseone.fusescope:android`, and its support badge: **Supported**, **Outdated** (data is still accepted) or
    **Other client** for another OpenTelemetry SDK. **Last seen** shows recent activity
    and when the last data arrived, or **No data yet**.
 9. **Settings** opens the application's sheet: **Settings**, **Public key**,
-   **Install** and [Source maps](/fusescope-docs/frontend/source-maps/#the-source-maps-tab),
-   or [R8 mappings](/fusescope-docs/frontend/r8-mappings/#the-r8-mappings-tab) for an
+   **Install** and [Source maps](/frontend/source-maps/#the-source-maps-tab),
+   or [R8 mappings](/frontend/r8-mappings/#the-r8-mappings-tab) for an
    Android application.
 10. **Supported SDK**: the SDK this server is tested with. Any OTLP client is
     accepted.
@@ -77,8 +77,8 @@ with the application's key, which the gateway checks on every request:
   build.
 
 The other settings, sampling, consent and privacy, are the same for both platforms; see
-[Set up a web application](/fusescope-docs/frontend/set-up-web/#create-the-application)
-and [Set up an Android application](/fusescope-docs/frontend/set-up-android/#create-the-application).
+[Set up a web application](/frontend/set-up-web/#create-the-application)
+and [Set up an Android application](/frontend/set-up-android/#create-the-application).
 
 ## The overview
 
@@ -95,16 +95,16 @@ narrowed to release `1.0.0`:
 2. **SDK badge**: the SDK and version last seen, such as
    `@fusescope/browser 0.2.0-beta.0 · Supported`.
 3. **Create alert** starts an alert rule from a frontend template: LCP p75, session error
-   rate or JavaScript errors. See [Frontend alerts](/fusescope-docs/frontend/alerts/).
+   rate or JavaScript errors. See [Frontend alerts](/frontend/alerts/).
 4. **View traces** and **View logs** open the
-   [Traces](/fusescope-docs/explore/traces/) and
-   [Logs](/fusescope-docs/explore/logs/) explorers filtered to this application. RUM
+   [Traces](/explore/traces/) and
+   [Logs](/explore/logs/) explorers filtered to this application. RUM
    spans (views and requests) are traces; errors, Web Vitals and clicks are logs.
 5. **Settings** opens the application's sheet: **Settings**, **Public key**,
    **Install** and **Source maps**.
-6. **Tabs**: this **Overview**, then [Views](/fusescope-docs/frontend/views/) (one row
-   per route), [Errors](/fusescope-docs/frontend/errors/) (errors grouped, with their
-   stack traces) and [Sessions](/fusescope-docs/frontend/sessions/) (every visit, with
+6. **Tabs**: this **Overview**, then [Views](/frontend/views/) (one row
+   per route), [Errors](/frontend/errors/) (errors grouped, with their
+   stack traces) and [Sessions](/frontend/sessions/) (every visit, with
    its timeline). The release and the time range follow you from tab to tab.
 
 ### Key numbers
@@ -132,23 +132,23 @@ narrowed to release `1.0.0`:
     LCP first, with the number of **Page loads**, **LCP p75** and its split, **INP p75**,
     **CLS p75** and **Errors**. Vitals belong to the route the page was loaded on, so a
     single-page app that is always entered through `/` shows mostly `/` here. **All
-    views** opens the [Views](/fusescope-docs/frontend/views/) tab, which has every
+    views** opens the [Views](/frontend/views/) tab, which has every
     route.
 11. **Recent errors**: errors (on Android, crashes and ANRs too) grouped by
-    [fingerprint](/fusescope-docs/frontend/errors/#how-errors-are-grouped), with the
+    [fingerprint](/frontend/errors/#how-errors-are-grouped), with the
     **Route**, the number of **Events** and of **Sessions** affected, and **Last seen**.
     **Open in Logs** shows all of them in the Logs explorer; **All errors** opens the
     Errors tab.
-12. Click an error to open its [detail](/fusescope-docs/frontend/errors/#error-detail),
+12. Click an error to open its [detail](/frontend/errors/#error-detail),
     with its stack trace. **View in Logs** opens its events.
 13. **Recent sessions**: the latest sessions with when they **Started**, their
     **Duration**, number of **Views** and **Errors**, **Browser · OS** (**Device · OS**
     on Android, such as **Google Pixel 8 · Android 14**) and **Release**.
     **All sessions** opens the Sessions tab.
 14. Click a session to open its
-    [timeline](/fusescope-docs/frontend/sessions/#the-session-timeline).
+    [timeline](/frontend/sessions/#the-session-timeline).
 15. **View backend trace** opens, in
-    [Trace details](/fusescope-docs/explore/trace-details/), the backend trace of the
+    [Trace details](/explore/trace-details/), the backend trace of the
     session's slowest or failing request, such as `GET /dispatch 200 · 759 ms`.
     **No backend requests** means the session made no linked request.
 16. **All traces for these sessions** opens the Traces explorer filtered to their
@@ -173,7 +173,7 @@ Release `2.0.0` is a bundled build whose source maps are uploaded.
 
 3. **See the stack trace.** Click the `TypeError`. Its detail shows the original code
    when source maps are uploaded for the release, and the clicks and requests that led
-   to it. See [Errors](/fusescope-docs/frontend/errors/).
+   to it. See [Errors](/frontend/errors/).
 
 4. **Open the backend side of a click.** Back on the overview, in **Recent sessions**,
    each row's **Backend trace** shows the session's slowest request, such as
@@ -189,9 +189,9 @@ span by span.
 
 ## Related
 
-- [Views](/fusescope-docs/frontend/views/), [Errors](/fusescope-docs/frontend/errors/)
-  and [Sessions](/fusescope-docs/frontend/sessions/)
-- [Set up a web application](/fusescope-docs/frontend/set-up-web/) and
-  [Set up an Android application](/fusescope-docs/frontend/set-up-android/)
-- [Keys](/fusescope-docs/frontend/keys/)
-- [Trace details](/fusescope-docs/explore/trace-details/)
+- [Views](/frontend/views/), [Errors](/frontend/errors/)
+  and [Sessions](/frontend/sessions/)
+- [Set up a web application](/frontend/set-up-web/) and
+  [Set up an Android application](/frontend/set-up-android/)
+- [Keys](/frontend/keys/)
+- [Trace details](/explore/trace-details/)

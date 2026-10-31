@@ -6,7 +6,7 @@ description: Declare notification channels, alert rules and routing policies for
 import { Aside } from "@astrojs/starlight/components";
 
 This guide builds golden-signal alerts for one service with the
-[Terraform provider](/fusescope-docs/terraform/): two notification channels, a rule per
+[Terraform provider](/terraform/): two notification channels, a rule per
 signal and two routing policies that send each alert to the right channel by severity.
 It follows the
 [`service-alerts` recipe](https://github.com/fuseone-io/terraform-provider-fusescope/tree/main/examples/recipes/service-alerts),
@@ -20,12 +20,12 @@ routing policies are admin-only.
 
 ## How the pieces fit
 
-- A [notification channel](/fusescope-docs/alerts/notification-channels/) says where a
+- A [notification channel](/alerts/notification-channels/) says where a
   message goes (Slack, PagerDuty, …).
-- An [alert rule](/fusescope-docs/alerts/alert-rules/) runs a query and fires when a
+- An [alert rule](/alerts/alert-rules/) runs a query and fires when a
   threshold is crossed. Each threshold has a name, such as `warning` or `critical`,
   which becomes the alert's `severity` label.
-- A [routing policy](/fusescope-docs/alerts/routing-and-downtime/#routing-policies)
+- A [routing policy](/alerts/routing-and-downtime/#routing-policies)
   matches alert labels with an expression and picks the channels. It applies to rules
   that set `notification_settings.use_policy = true`.
 

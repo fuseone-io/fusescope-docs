@@ -22,14 +22,14 @@ you are new to a workspace and want to know what has already been set up.
    `Your workspace is receiving logs, traces and metrics.` Before any data arrives it
    reads `You are not sending any data yet.`
 2. **Connect data source**: opens
-   [Instrument applications](/fusescope-docs/sending-data/instrumentation/), which
+   [Instrument applications](/sending-data/instrumentation/), which
    explains how to send data to FuseScope. Viewers don't see this button.
 3. **Data sources**: one row per signal received in the **last 30 minutes**, with the
    **Ingestion active** badge. Logs show how many log records arrived and traces how
    many spans. A signal that sent nothing in the last 30 minutes has no row.
 4. **Explore logs**, **Explore traces** and **Explore metrics** open the
-   [Logs](/fusescope-docs/explore/logs/), [Traces](/fusescope-docs/explore/traces/) or
-   [Metrics](/fusescope-docs/explore/metrics/) explorer.
+   [Logs](/explore/logs/), [Traces](/explore/traces/) or
+   [Metrics](/explore/metrics/) explorer.
 5. **Build your observability base**: the [setup checklist](#the-setup-checklist).
    **I'll do this later** hides it.
 6. **Shortcuts**: **Logs explorer**, **Traces explorer**, **Metrics explorer**,
@@ -39,7 +39,7 @@ you are new to a workspace and want to know what has already been set up.
 8. **Services**: the [services that need a look first](#services), over the time
    range you pick here.
 9. **Highlight badges** on services, the same as on the
-   [services list](/fusescope-docs/apm/services/#highlight-badges).
+   [services list](/apm/services/#highlight-badges).
 
 Below these, two more panels list your [dashboards and saved views](#dashboards-and-saved-views).
 
@@ -69,10 +69,10 @@ such as `1 of 8 steps done`:
 | Step | Done when | **Get started** opens |
 |---|---|---|
 | **Set up your workspace** | Always done | |
-| **Add your first data source** | Any logs, traces or metrics arrived | [Instrument applications](/fusescope-docs/sending-data/instrumentation/) |
-| **Send your logs** | Logs arrived in the last 30 minutes | [Logs explorer](/fusescope-docs/explore/logs/) docs |
-| **Send your traces** | Spans arrived in the last 30 minutes | [Traces explorer](/fusescope-docs/explore/traces/) docs |
-| **Send your metrics** | The workspace has metrics | [Metrics explorer](/fusescope-docs/explore/metrics/) docs |
+| **Add your first data source** | Any logs, traces or metrics arrived | [Instrument applications](/sending-data/instrumentation/) |
+| **Send your logs** | Logs arrived in the last 30 minutes | [Logs explorer](/explore/logs/) docs |
+| **Send your traces** | Spans arrived in the last 30 minutes | [Traces explorer](/explore/traces/) docs |
+| **Send your metrics** | The workspace has metrics | [Metrics explorer](/explore/metrics/) docs |
 | **Set up alerts** | At least one alert rule exists | The new alert rule editor |
 | **Set up saved views** | At least one saved view exists | The Logs explorer |
 | **Set up dashboards** | At least one dashboard exists | The dashboards list |
@@ -92,17 +92,17 @@ The **Alerts** panel shows up to five alert rules, the firing ones first, then t
 recently updated. Its subtitle counts them: `2 firing`, `1 pending`, or, when nothing
 is wrong, `2 rules, none firing`. Each row shows the rule name, its severity, such as
 `warning`, and its state, such as **Firing** or **Disabled**. Click a rule to open it,
-or **All alert rules** for the [Alerts](/fusescope-docs/alerts/alert-rules/) page.
+or **All alert rules** for the [Alerts](/alerts/alert-rules/) page.
 
 With no rules yet, the panel says **No Alert rules yet.** with a button to create one.
 
 ## Services
 
 The **Services** panel lists five services, **Highlighted first, then by error rate**:
-the ones with a [highlight badge](/fusescope-docs/apm/services/#highlight-badges) at
+the ones with a [highlight badge](/apm/services/#highlight-badges) at
 the top, then the ones that fail most. For each service it shows **P99** latency,
 **Error rate** and **Rate**, each with its change against the previous period, as on
-the [services list](/fusescope-docs/apm/services/#how-to-read-the-list).
+the [services list](/apm/services/#how-to-read-the-list).
 
 The time range picker on the panel goes from **Last 5 minutes** to **Last 1 month**;
 the default is **Last 30 minutes**. Click a service to open its page, or
@@ -114,7 +114,7 @@ the default is **Last 30 minutes**. Click a service to open its page, or
 
 - **Dashboards** lists the five most recently updated dashboards, with up to two tags
   each (`+1` when there are more) and how long ago each changed, such as `12 h ago`.
-  **All dashboards** opens the [dashboards list](/fusescope-docs/dashboards/dashboards/).
+  **All dashboards** opens the [dashboards list](/dashboards/dashboards/).
 - **Saved views** lists up to five saved views for the signal you pick: **Logs**,
   **Traces** or **Metrics**. Click one to open the explorer with that view. With none,
   **Get started** opens the explorer and **Learn more** explains views for that
@@ -132,7 +132,7 @@ The numbers are from the HotROD demo.
 
 2. **Is anything firing?** **Alerts** reads `2 rules, none firing`. Both rules are
    **Disabled**, so they couldn't fire anyway: worth turning one on (see
-   [Alert rules](/fusescope-docs/alerts/alert-rules/)).
+   [Alert rules](/alerts/alert-rules/)).
 
 3. **Which service needs a look?** **Services** puts `payment` at the top with a red
    **100% errors** badge: every request fails, at 0.17 req/s, with `no change` against
@@ -140,7 +140,7 @@ The numbers are from the HotROD demo.
    at 18.5% errors.
 
 4. **Dig in.** Click `payment` to open its service page. The
-   [Services](/fusescope-docs/apm/services/#example-why-is-payment-failing) page walks
+   [Services](/apm/services/#example-why-is-payment-failing) page walks
    through this case.
 
 </Steps>
@@ -150,7 +150,7 @@ watches the failing service, and where to start.
 
 ## Related
 
-- [Tour of the interface](/fusescope-docs/start/tour/): the sidebar and the top bar.
-- [Instrument applications](/fusescope-docs/sending-data/instrumentation/): send your
+- [Tour of the interface](/start/tour/): the sidebar and the top bar.
+- [Instrument applications](/sending-data/instrumentation/): send your
   first data.
-- [Services](/fusescope-docs/apm/services/): the full services list and service pages.
+- [Services](/apm/services/): the full services list and service pages.

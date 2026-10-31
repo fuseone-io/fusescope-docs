@@ -8,7 +8,7 @@ import { Aside, Steps, Tabs, TabItem } from "@astrojs/starlight/components";
 This page adds tracing for language model calls to a Node.js application, such as one
 that uses the `openai`, Anthropic or Bedrock clients, or LangChain.js. The spans go to
 FuseScope over OTLP like any other trace and fill
-[AI Observability](/fusescope-docs/analyze/ai-observability/).
+[AI Observability](/analyze/ai-observability/).
 
 **Use this page when** your Node.js service calls an LLM and you want to see each
 call, its tokens and its cost in FuseScope.
@@ -19,7 +19,7 @@ call, its tokens and its cost in FuseScope.
   `chat gpt-4o-mini`. It carries the model, the provider, the input and output token
   counts, the finish reason, the duration and any error.
 - **Cost** per call, once the model has a price under
-  [Model pricing](/fusescope-docs/analyze/ai-observability/#model-pricing).
+  [Model pricing](/analyze/ai-observability/#model-pricing).
 - **Agent and tool spans** when you use a framework that has them, such as
   LangChain.js: one agent run becomes one trace with every model and tool call in it.
 - **Prompts and responses**, only if you turn them on.
@@ -152,14 +152,14 @@ OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
     From inside the Kubernetes cluster that runs FuseScope, use
     `http://fusescope-otel-collector.fusescope.svc.cluster.local:4318`. From outside,
     use the address you exposed, such as `https://otlp.example.com`; see
-    [From outside the cluster](/fusescope-docs/sending-data/otlp/#from-outside-the-cluster).
+    [From outside the cluster](/sending-data/otlp/#from-outside-the-cluster).
     For gRPC, use port 4317 and `OTEL_EXPORTER_OTLP_PROTOCOL=grpc`.
   </TabItem>
   <TabItem label="Through a local collector">
     Point the app at a collector on the same host or node, such as
     `http://localhost:4318`, and let the collector forward to FuseScope. That is also
     the place to drop or redact prompt content. See
-    [From another collector](/fusescope-docs/sending-data/otlp/#from-another-collector).
+    [From another collector](/sending-data/otlp/#from-another-collector).
   </TabItem>
 </Tabs>
 
@@ -242,7 +242,7 @@ Install the packages in your image and start Node with the hook, for example
 or set `NODE_OPTIONS="--require @opentelemetry/auto-instrumentations-node/register"`.
 Pass the `OTEL_*` variables as container environment; on Kubernetes, point them at
 the in-cluster address. See
-[Node.js instrumentation](/fusescope-docs/sending-data/instrumentation/nodejs/).
+[Node.js instrumentation](/sending-data/instrumentation/nodejs/).
 
 ## Semantic conventions
 
@@ -262,7 +262,7 @@ completions, which still write `gen_ai.system`, and v1.38.0 for the Responses AP
 which writes `gen_ai.provider.name`. The `ai.*` names come from the Vercel AI SDK.
 
 You don't need to rename anything yourself: FuseScope's
-[attribute mappings](/fusescope-docs/analyze/ai-observability/#attribute-mapping)
+[attribute mappings](/analyze/ai-observability/#attribute-mapping)
 copy these older names onto the current ones before the spans are stored.
 
 ## See it in FuseScope
@@ -274,7 +274,7 @@ copy these older names onto the current ones before the spans are stored.
    **Service**, **Model** or **Provider**.
 2. **Model pricing**: the cost stays `0` until the model has a price. Check
    **Unpriced models** and add or map a price. See
-   [Model pricing](/fusescope-docs/analyze/ai-observability/#model-pricing).
+   [Model pricing](/analyze/ai-observability/#model-pricing).
 3. **Attribute Mapping**: if spans arrive but show no model or tokens, paste one in
    **Attribute Mapping › Test** to see what FuseScope picks up.
 4. **Overview**: cost, tokens, latency and errors per model, over time.
@@ -285,7 +285,7 @@ copy these older names onto the current ones before the spans are stored.
 
 | Symptom | Cause and fix |
 |---|---|
-| No spans at all | The hook loaded after `openai`, or the app is an ES module. Load the hook with `--require` and keep the client in CommonJS; for ES modules see [Node.js instrumentation](/fusescope-docs/sending-data/instrumentation/nodejs/). Set `OTEL_TRACES_EXPORTER=console` to print spans locally. |
+| No spans at all | The hook loaded after `openai`, or the app is an ES module. Load the hook with `--require` and keep the client in CommonJS; for ES modules see [Node.js instrumentation](/sending-data/instrumentation/nodejs/). Set `OTEL_TRACES_EXPORTER=console` to print spans locally. |
 | No spans for `openai` 7 or newer | `@opentelemetry/instrumentation-openai` and `@traceloop/instrumentation-openai` support versions below 7. Pin `openai@6` until they add support. |
 | Spans arrive, but not in AI Observability | They have no `gen_ai.request.model`. Check them in **Attribute Mapping › Test** and add a mapping for the names your library uses. |
 | Streaming calls have no tokens | OpenAI sends usage on a stream only when asked. Pass `stream_options: { include_usage: true }` with `stream: true`. |
@@ -295,10 +295,10 @@ copy these older names onto the current ones before the spans are stored.
 
 ## Related
 
-- [AI Observability](/fusescope-docs/analyze/ai-observability/): the Overview,
+- [AI Observability](/analyze/ai-observability/): the Overview,
   Explorer, Model pricing and Attribute Mapping tabs.
-- [AI Observability for Python](/fusescope-docs/analyze/ai-observability-python/):
+- [AI Observability for Python](/analyze/ai-observability-python/):
   the same for Python.
-- [Node.js instrumentation](/fusescope-docs/sending-data/instrumentation/nodejs/):
+- [Node.js instrumentation](/sending-data/instrumentation/nodejs/):
   HTTP, database and framework spans for the rest of the service.
-- [OTLP](/fusescope-docs/sending-data/otlp/): endpoints and ports.
+- [OTLP](/sending-data/otlp/): endpoints and ports.

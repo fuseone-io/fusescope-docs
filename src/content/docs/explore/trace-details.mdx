@@ -5,14 +5,14 @@ description: Read one request end to end. The flame graph, the waterfall, span d
 
 import { Aside, Steps } from "@astrojs/starlight/components";
 
-The trace details page shows one [trace](/fusescope-docs/reference/glossary/#trace):
-every [span](/fusescope-docs/reference/glossary/#span) of a single request, from the
+The trace details page shows one [trace](/reference/glossary/#trace):
+every [span](/reference/glossary/#span) of a single request, from the
 first service it reached to the last database call, laid out on a shared timeline.
 
 **Use this page when** you have found one request worth a closer look, such as a slow
 one, a failed one or one a user reported, and you want to know where its time went or
 which call broke. To find such a request first, use the
-[Traces explorer](/fusescope-docs/explore/traces/).
+[Traces explorer](/explore/traces/).
 
 ## Open a trace
 
@@ -21,11 +21,11 @@ usually get there by clicking through from another page:
 
 | From | Do this |
 |---|---|
-| **Traces explorer** | Click a row in the **List** or **Traces** view. See [Traces explorer](/fusescope-docs/explore/traces/). |
-| **A service** | On the service page, click an operation on the **Endpoints** tab, a point on a chart and **View traces**, or **View traces** on the **Errors** tab, then click a row. See [Services](/fusescope-docs/apm/services/). |
-| **An exception** | On the exception's page, click **See the error in trace graph**. See [Exceptions](/fusescope-docs/apm/services/#exceptions). |
-| **A log** | Open the log and click **View trace**, or its [trace ID](/fusescope-docs/reference/glossary/#trace-id). See [See the logs for one request](/fusescope-docs/guides/logs-for-a-request/). |
-| **An alert** | On the rule's **History** tab, follow the link to the related traces, then click a row. See [Alert rules](/fusescope-docs/alerts/alert-rules/#history). |
+| **Traces explorer** | Click a row in the **List** or **Traces** view. See [Traces explorer](/explore/traces/). |
+| **A service** | On the service page, click an operation on the **Endpoints** tab, a point on a chart and **View traces**, or **View traces** on the **Errors** tab, then click a row. See [Services](/apm/services/). |
+| **An exception** | On the exception's page, click **See the error in trace graph**. See [Exceptions](/apm/services/#exceptions). |
+| **A log** | Open the log and click **View trace**, or its [trace ID](/reference/glossary/#trace-id). See [See the logs for one request](/guides/logs-for-a-request/). |
+| **An alert** | On the rule's **History** tab, follow the link to the related traces, then click a row. See [Alert rules](/alerts/alert-rules/#history). |
 
 ## Read the page
 
@@ -33,7 +33,7 @@ usually get there by clicking through from another page:
 
 1. **Trace ID** and, when any span failed, a red badge with the number of errors. The
    arrow on the left goes back to where you came from.
-2. **Summary row**: the [root span](/fusescope-docs/reference/glossary/#root-span)'s
+2. **Summary row**: the [root span](/reference/glossary/#root-span)'s
    service and operation (`frontend → HTTP GET /dispatch`), the **Duration** of the
    whole request, the number of spans, when it **Started**, and the root span's
    **Status** code.
@@ -101,7 +101,7 @@ Click a span in the waterfall or the flame graph to open **Span details**. The t
 panel always shows:
 
 - the span name, with an **Error** badge if it failed;
-- a [percentile](/fusescope-docs/reference/glossary/#percentile) badge such as `p95`:
+- a [percentile](/reference/glossary/#percentile) badge such as `p95`:
   how this span's duration compares with other spans of the same name and service.
   Click it for the full table over the last hours;
 - its duration and the share of the whole trace it covers (`of total exec time`), when
@@ -114,7 +114,7 @@ moves into the **Overview** tab.
 
 ### Overview
 
-Every field and [attribute](/fusescope-docs/reference/glossary/#attribute) of the span.
+Every field and [attribute](/reference/glossary/#attribute) of the span.
 Attributes are the facts the program recorded about the work: which URL was called
 (`http.url`), which status came back (`http.status_code`), which query ran
 (`db.statement`), which host or pod ran it. They are what turns "this span was slow"
@@ -139,13 +139,13 @@ Things that happened at one moment inside the span, each with a time and its own
 attributes. The most common is an `exception` event: the error type, message and stack
 trace your code raised. Use it to read the error itself. The tab shows a count when the
 span has events; search them with the box on top. See
-[span event](/fusescope-docs/reference/glossary/#span-event).
+[span event](/reference/glossary/#span-event).
 
 ![Span details, Events tab: the span's events, each with its time from the start of the trace and its attributes, such as the error message.](../../../assets/traces/trace-details-span-events.png)
 
 ### Logs
 
-The [logs](/fusescope-docs/reference/glossary/#log) your code wrote while this request
+The [logs](/reference/glossary/#log) your code wrote while this request
 ran, from five minutes before to five minutes after the trace. Logs of the selected span
 are marked; the others give context. **Open in Logs Explorer** opens the same search in
 the Logs explorer.
@@ -154,8 +154,8 @@ the Logs explorer.
   A log appears here only when it carries the request's `trace_id` (and, to be tied to a
   span, its `span_id`). OpenTelemetry SDKs and logging bridges add them when a log is
   written inside an active span. If the tab is empty, see
-  [Instrument applications](/fusescope-docs/sending-data/instrumentation/#logs) and
-  [How logs and traces are linked](/fusescope-docs/guides/logs-for-a-request/#how-logs-and-traces-are-linked).
+  [Instrument applications](/sending-data/instrumentation/#logs) and
+  [How logs and traces are linked](/guides/logs-for-a-request/#how-logs-and-traces-are-linked).
 </Aside>
 
 ### Metrics
@@ -183,7 +183,7 @@ Close the panel with the **×** next to the dock buttons.
 ## Find spans in a trace
 
 A trace can have hundreds of spans. Click **Search...** at the top of the page and write
-a filter with the [search syntax](/fusescope-docs/querying/search-syntax/), for example
+a filter with the [search syntax](/querying/search-syntax/), for example
 `service.name = 'redis-manual'` or `duration_nano > 100000000` (100 ms). Matching spans
 are highlighted in the flame graph and the waterfall, and the others are dimmed.
 
@@ -245,7 +245,7 @@ Hover a row in the waterfall for two buttons at its right end:
 - **Copy Span Link** copies a link that opens this trace with this span selected. Paste
   it into a ticket or a chat so others land on the same span.
 - **Add to Trace Funnel** adds the span as a step of a new or existing
-  [funnel](/fusescope-docs/explore/traces/#funnels), to follow how many requests reach
+  [funnel](/explore/traces/#funnels), to follow how many requests reach
   it.
 
 From the span details you can also open its logs in the Logs explorer
@@ -291,7 +291,7 @@ timeout adds a retry. Fetching drivers in one batch, or in parallel, would remov
 of the second step.
 
 The same steps, starting from the service list, are in
-[Investigate a slow endpoint](/fusescope-docs/guides/slow-endpoint/).
+[Investigate a slow endpoint](/guides/slow-endpoint/).
 
 ## If something is missing
 
@@ -299,18 +299,18 @@ The same steps, starting from the service list, are in
   service is not instrumented, dropped them, or sent them to another backend. The tree
   shows a gap where they belong.
 - **The trace stops at one service.** The next service does not pass the trace context
-  on. See [Instrument applications](/fusescope-docs/sending-data/instrumentation/).
+  on. See [Instrument applications](/sending-data/instrumentation/).
 - **The Logs tab is empty.** Your logs have no `trace_id`; see [Logs](#logs).
 - **No trace found.** The trace is older than your
-  [retention](/fusescope-docs/administration/retention/), or the ID is wrong.
+  [retention](/administration/retention/), or the ID is wrong.
 - **A warning next to Flame graph.** The trace has too many spans to draw them all, so
   the flame graph shows a sample. The waterfall still has every span.
 
 ## Related
 
-- [Traces explorer](/fusescope-docs/explore/traces/): find the traces to open.
-- [Investigate a slow endpoint](/fusescope-docs/guides/slow-endpoint/).
-- [Find out why a service is failing](/fusescope-docs/guides/failing-service/).
-- [See the logs for one request](/fusescope-docs/guides/logs-for-a-request/).
-- [Core concepts](/fusescope-docs/start/concepts/#traces-and-spans): traces, spans and
+- [Traces explorer](/explore/traces/): find the traces to open.
+- [Investigate a slow endpoint](/guides/slow-endpoint/).
+- [Find out why a service is failing](/guides/failing-service/).
+- [See the logs for one request](/guides/logs-for-a-request/).
+- [Core concepts](/start/concepts/#traces-and-spans): traces, spans and
   root spans.

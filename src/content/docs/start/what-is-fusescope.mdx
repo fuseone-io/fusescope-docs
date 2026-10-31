@@ -31,16 +31,16 @@ different question.
 
 <CardGrid>
   <Card title="Traces" icon="random">
-    **Where did the time go?** A [trace](/fusescope-docs/reference/glossary/#trace)
+    **Where did the time go?** A [trace](/reference/glossary/#trace)
     follows one request through every service it touches. Each step is a
-    [span](/fusescope-docs/reference/glossary/#span), with a start time and a duration.
+    [span](/reference/glossary/#span), with a start time and a duration.
   </Card>
   <Card title="Logs" icon="document">
-    **What exactly happened?** A [log](/fusescope-docs/reference/glossary/#log) is a
+    **What exactly happened?** A [log](/reference/glossary/#log) is a
     line of text a program writes, such as `payment declined: card expired`.
   </Card>
   <Card title="Metrics" icon="analytics">
-    **How much, how often?** A [metric](/fusescope-docs/reference/glossary/#metric) is
+    **How much, how often?** A [metric](/reference/glossary/#metric) is
     a number measured over time, such as requests per second or memory in use.
   </Card>
 </CardGrid>
@@ -72,27 +72,27 @@ shows the timeouts started at 10:05. Three signals, one answer.
 <Aside type="tip">
   The signals are most useful together. FuseScope links them: from a span you can open
   its logs, and from a log you can open its trace. See
-  [Core concepts](/fusescope-docs/start/concepts/) for how.
+  [Core concepts](/start/concepts/) for how.
 </Aside>
 
 ## What FuseScope gives you
 
 - **Services**: latency, error rate and throughput for every service, with no extra
-  setup. See [Services](/fusescope-docs/apm/services/).
-- **Explorers** to search [traces](/fusescope-docs/explore/traces/),
-  [logs](/fusescope-docs/explore/logs/) and [metrics](/fusescope-docs/explore/metrics/).
-- **[Dashboards](/fusescope-docs/dashboards/dashboards/)** to put the charts you care about
+  setup. See [Services](/apm/services/).
+- **Explorers** to search [traces](/explore/traces/),
+  [logs](/explore/logs/) and [metrics](/explore/metrics/).
+- **[Dashboards](/dashboards/dashboards/)** to put the charts you care about
   on one page.
-- **[Alerts](/fusescope-docs/alerts/alert-rules/)** that notify Slack, email, PagerDuty and
+- **[Alerts](/alerts/alert-rules/)** that notify Slack, email, PagerDuty and
   others when a number crosses a line.
 
 ## How data gets in
 
-Your applications send data using [OpenTelemetry](/fusescope-docs/reference/glossary/#opentelemetry),
+Your applications send data using [OpenTelemetry](/reference/glossary/#opentelemetry),
 an open standard supported by most languages and frameworks. They send it to the
-FuseScope [collector](/fusescope-docs/reference/glossary/#collector), which writes it to
+FuseScope [collector](/reference/glossary/#collector), which writes it to
 a ClickHouse database. The FuseScope app reads from there. You don't need any
-FuseScope-specific library. See [Architecture](/fusescope-docs/reference/architecture/)
+FuseScope-specific library. See [Architecture](/reference/architecture/)
 for the details.
 
 ## Next steps
@@ -101,11 +101,11 @@ for the details.
   <LinkCard
     title="Core concepts"
     description="The words you will see everywhere: span, service, attribute, P99 and more."
-    href="/fusescope-docs/start/concepts/"
+    href="/start/concepts/"
   />
   <LinkCard
     title="Tour of the interface"
     description="A map of the app: what each part of the screen does."
-    href="/fusescope-docs/start/tour/"
+    href="/start/tour/"
   />
 </CardGrid>

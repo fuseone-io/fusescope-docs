@@ -16,11 +16,11 @@ OkHttp requests linked to backend traces. It is in beta, `0.1.0-beta.2`, and its
 may change before 1.0. Native (NDK) crashes are not captured yet; they are planned.
 
 `0.1.0-beta.2` needs FuseScope 0.156.0 or later to keep one
-[R8 mapping per build](/fusescope-docs/frontend/r8-mappings/#the-release-rule);
+[R8 mapping per build](/frontend/r8-mappings/#the-release-rule);
 `0.1.0-beta.1` works with 0.155.0 or later.
 
 If you don't know what RUM records yet, start with
-[Real User Monitoring](/fusescope-docs/frontend/real-user-monitoring/).
+[Real User Monitoring](/frontend/real-user-monitoring/).
 
 ## The steps at a glance
 
@@ -73,7 +73,7 @@ The **New application** sheet is the same as for the web, with **Package names a
 tracing** instead of origins:
 
 - **Name**: the gateway sends it as `service.name`; it is how the app appears in
-  [Services](/fusescope-docs/apm/services/) and the explorers. Use lowercase letters,
+  [Services](/apm/services/) and the explorers. Use lowercase letters,
   digits and dashes, such as `shop-android`.
 - **Environment**: sent as `deployment.environment.name`. Create one application per
   environment, so each has its own key and numbers.
@@ -91,7 +91,7 @@ tracing** instead of origins:
   [Link requests to backend traces](#link-requests-to-backend-traces).
 - **Session sample rate**, **Drop query strings and fragments**, **Keep these query
   parameters**, **Wait for consent** and **Hash user IDs**: the same settings as for the
-  web; see [Set up a web application](/fusescope-docs/frontend/set-up-web/#3-privacy). The
+  web; see [Set up a web application](/frontend/set-up-web/#3-privacy). The
   **SDK** ones are written into the generated snippet.
 
 **Create application** saves it and opens the **Install** step with the application's
@@ -99,7 +99,7 @@ tracing** instead of origins:
 hash of it. The key is public and write-only: it is safe to ship in an APK or app
 bundle, where anyone can read it, since it can only send data for this application, from
 its allowed packages, within its rate limit. To replace a lost or leaked key, see
-[Keys](/fusescope-docs/frontend/keys/).
+[Keys](/frontend/keys/).
 
 ## Add the SDK
 
@@ -141,7 +141,7 @@ dependencies {
 |---|---|
 | `io.fuseone.fusescope:android` | The SDK. Kotlin package `io.fuseone.fusescope.android`. |
 | `io.fuseone.fusescope:android-compose` | Optional. Views for Jetpack Compose and Navigation screens; see [Compose screens](#compose-screens). |
-| `io.fuseone.fusescope.android.mappings` | Optional Gradle plugin. Uploads `mapping.txt` after each minified build; see [R8 mappings](/fusescope-docs/frontend/r8-mappings/). |
+| `io.fuseone.fusescope.android.mappings` | Optional Gradle plugin. Uploads `mapping.txt` after each minified build; see [R8 mappings](/frontend/r8-mappings/). |
 
 The SDK is Apache-2.0 licensed, like OpenTelemetry.
 
@@ -202,7 +202,7 @@ Register the class in the manifest, if it isn't already:
 | `endpoint` | required | The FuseScope base URL. |
 | `service` | none | `service.name`. When unset, the gateway uses the application's name; set it only to override that. |
 | `environment` | none | `deployment.environment.name`. When unset, the gateway uses the application's environment. |
-| `release` | `versionName` | `service.version`: the **Release** filter, and the release [R8 mappings](/fusescope-docs/frontend/r8-mappings/) are looked up by. |
+| `release` | `versionName` | `service.version`: the **Release** filter, and the release [R8 mappings](/frontend/r8-mappings/) are looked up by. |
 | `sessionSampleRate` | `1.0` | Share of sessions recorded, 0 to 1. Decided once per session. |
 | `traceparentHosts` | the `endpoint`'s host | Hosts whose requests carry `traceparent`; see [Link requests to backend traces](#link-requests-to-backend-traces). |
 | `requireConsent` | `false` | Collect nothing until `FuseScope.setConsent(true)`. |
@@ -249,7 +249,7 @@ FuseScope.setUser(null)         // on sign-out
 With **Hash user IDs** on (the default), `user.id` is the hex SHA-256 of the id, the same
 value `@fusescope/browser` sends for the same id, so web and Android sessions of one user
 match. To find a user's sessions, hash their id the same way and search for the hash in
-[Sessions](/fusescope-docs/frontend/sessions/). The user applies to spans started after
+[Sessions](/frontend/sessions/). The user applies to spans started after
 the call; the current view keeps its previous value. `setUser` may be called before
 collection starts, such as before consent: it is applied when it starts.
 
@@ -258,7 +258,7 @@ collection starts, such as before consent: it is applied when it starts.
 The SDK records the following on its own:
 
 - **Views**: one `view` span per Activity or Fragment, ending when the next one starts
-  or the app goes to the background. See [Views](/fusescope-docs/frontend/views/).
+  or the app goes to the background. See [Views](/frontend/views/).
 - **Crashes**: uncaught Java and Kotlin exceptions, flushed before the process dies.
 - **ANRs**: the main thread blocked for about 10 seconds, with the main thread's stack.
 - **App start**: cold, warm and hot starts, as the `app_start` vital.
@@ -335,7 +335,7 @@ val retrofit = Retrofit.Builder()
 The backend's trace then becomes a child of the app's request, and **View backend
 trace** works from sessions, views and errors. The backend must be instrumented with
 OpenTelemetry and send its traces to FuseScope; see
-[Instrument applications](/fusescope-docs/sending-data/instrumentation/). There is no CORS
+[Instrument applications](/sending-data/instrumentation/). There is no CORS
 on Android, so the API needs no change.
 
 Only requests to the hosts in `traceparentHosts` carry `traceparent`. By default that is
@@ -391,7 +391,7 @@ until the gateway accepts the first request, then **Receiving data**, with what 
 in the last 5 minutes (**Sessions**, **Views**, **Errors** and the vitals, counted under
 **Web Vitals**) and the SDK seen, such as `io.fuseone.fusescope:android 0.1.0-beta.2`
 **Supported**. **Open shop-android** opens the application's
-[overview](/fusescope-docs/frontend/applications/#the-overview).
+[overview](/frontend/applications/#the-overview).
 
 The SDK exports in batches, every few seconds. Putting the app in the background ends
 the current view.
@@ -404,9 +404,9 @@ the last 5 minutes:
 | Message | Cause | Fix |
 |---|---|---|
 | **package com.example.shop.debug is not allowed** | The app's `applicationId` is not in **Allowed package names**, often a debug build with an `applicationIdSuffix`. The gateway answers `403`. | Add the package, or `com.example.shop.*`, in the application's **Settings**. |
-| **no `app.package.name` in the resource** | The client sent no package name: a hand-configured OpenTelemetry client. | Add the attribute; see [Use another OpenTelemetry client](/fusescope-docs/frontend/opentelemetry-clients/#android). |
-| **the key is not valid for this application** | The key was revoked, or its rotation overlap ended. The gateway answers `401`. | Ship the current key; see [Keys](/fusescope-docs/frontend/keys/). |
-| **rate limited** | Too many requests from one client or for the whole key. The gateway answers `429`. | Usually a loop. Behind a proxy, check the [client IP setting](/fusescope-docs/frontend/set-up-web/#self-hosted-fusescope). |
+| **no `app.package.name` in the resource** | The client sent no package name: a hand-configured OpenTelemetry client. | Add the attribute; see [Use another OpenTelemetry client](/frontend/opentelemetry-clients/#android). |
+| **the key is not valid for this application** | The key was revoked, or its rotation overlap ended. The gateway answers `401`. | Ship the current key; see [Keys](/frontend/keys/). |
+| **rate limited** | Too many requests from one client or for the whole key. The gateway answers `429`. | Usually a loop. Behind a proxy, check the [client IP setting](/frontend/set-up-web/#self-hosted-fusescope). |
 
 If nothing arrives and nothing is rejected, filter Logcat by the `FuseScope` tag, then
 check:
@@ -418,7 +418,7 @@ check:
   `setConsent(true)` hasn't been called.
 - **Requests fail without reaching FuseScope**: `endpoint` is wrong or unreachable from
   the device, or the `/rum/` path is not exposed; see
-  [Self-hosted FuseScope](/fusescope-docs/frontend/set-up-web/#self-hosted-fusescope).
+  [Self-hosted FuseScope](/frontend/set-up-web/#self-hosted-fusescope).
   The Android app sends no `Origin` header, so the gateway's CORS settings don't apply.
 - **Cleartext HTTP**: Android blocks `http://` URLs by default. Use HTTPS, or a
   [network security config](https://developer.android.com/privacy-and-security/security-config)
@@ -440,13 +440,13 @@ fusescope {
 
 Export an Editor service account key as `FUSESCOPE_API_KEY` in your CI, then build:
 `./gradlew :app:bundleRelease` uploads `mapping.txt` for the release the SDK reports. See
-[R8 mappings](/fusescope-docs/frontend/r8-mappings/) for the details.
+[R8 mappings](/frontend/r8-mappings/) for the details.
 
 ## Related
 
-- [R8 mappings](/fusescope-docs/frontend/r8-mappings/): original stack traces.
-- [Applications and Overview](/fusescope-docs/frontend/applications/): read what arrives.
-- [Errors](/fusescope-docs/frontend/errors/): crashes, ANRs and handled errors.
-- [Keys](/fusescope-docs/frontend/keys/): rotate or revoke the public key.
+- [R8 mappings](/frontend/r8-mappings/): original stack traces.
+- [Applications and Overview](/frontend/applications/): read what arrives.
+- [Errors](/frontend/errors/): crashes, ANRs and handled errors.
+- [Keys](/frontend/keys/): rotate or revoke the public key.
 - [SDK README](https://github.com/fuseone-io/fusescope-sdk-android#readme): every
   attribute the SDK sends.

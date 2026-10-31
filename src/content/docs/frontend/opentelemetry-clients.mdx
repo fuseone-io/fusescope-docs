@@ -5,15 +5,15 @@ description: Send RUM data to FuseScope from the OpenTelemetry web SDK, opentele
 
 import { Aside } from "@astrojs/starlight/components";
 
-FuseScope's [browser SDK](/fusescope-docs/frontend/sdk-reference/) and
-[Android SDK](/fusescope-docs/frontend/set-up-android/) are recommended, but not
+FuseScope's [browser SDK](/frontend/sdk-reference/) and
+[Android SDK](/frontend/set-up-android/) are recommended, but not
 required. The RUM gateway accepts OTLP from **any** client and never checks which
 SDK sent it. If your app already uses the OpenTelemetry web SDK, point its exporters at
 FuseScope and add the attributes below; the Frontend screens then work as with
 `@fusescope/browser`.
 
 Create the application first, as in
-[Set up a web application](/fusescope-docs/frontend/set-up-web/#create-the-application),
+[Set up a web application](/frontend/set-up-web/#create-the-application),
 to get its public key and allowed origins. The **SDK** settings, such as the sample rate
 and consent, are then yours to implement in your client.
 
@@ -89,7 +89,7 @@ Your client must send the rest:
 | Every span and log record, optional | `session.previous_id`, `user.id` | The **after** link between sessions, and the user column and search. Hash `user.id` yourself if it identifies a person. |
 | Log record, event `browser.user_action.click`, optional | `fusescope.rum.action.target` | The element named on **Click** events in the timeline and breadcrumbs. |
 | HTTP client spans | `http.request.method`, `http.response.status_code`, `url.full`, with `traceparent` sent to the backend | **View backend trace** in recent sessions. |
-| Log record, event `exception` | `exception.type`, `exception.message`, `exception.stacktrace`, `fusescope.rum.error.source` (`onerror`, `unhandledrejection` or `manual`) | **Errors**, their grouping and the error rate. Send the stack raw, as the browser wrote it: FuseScope symbolicates it with your [source maps](/fusescope-docs/frontend/source-maps/), looked up by `service.version`. |
+| Log record, event `exception` | `exception.type`, `exception.message`, `exception.stacktrace`, `fusescope.rum.error.source` (`onerror`, `unhandledrejection` or `manual`) | **Errors**, their grouping and the error rate. Send the stack raw, as the browser wrote it: FuseScope symbolicates it with your [source maps](/frontend/source-maps/), looked up by `service.version`. |
 | Log record, event `rum.vital`, Android | `fusescope.rum.vital.name` = `app_start`, `fusescope.rum.vital.value` (ms), `fusescope.rum.vital.rating`, `start.type` (`cold`, `warm` or `hot`) | App start p75 on the Android overview. |
 | Log record, event `browser.web_vital` | `browser.web_vital.name` (`lcp`, `inp`, `cls`, `fcp`, `ttfb`), `browser.web_vital.value`, `browser.web_vital.rating` (`good`, `needs-improvement`, `poor`) | The vitals, their split bars and **Top routes by LCP**. Values in milliseconds; CLS unitless. |
 
@@ -111,7 +111,7 @@ lists every attribute `@fusescope/browser` sends.
 A plain [OpenTelemetry Android](https://github.com/open-telemetry/opentelemetry-android)
 client, or any OTLP client in an Android app, sends to the same endpoints with the same
 `FuseScope-RUM-Key` header. Create an **Android** application first, as in
-[Set up an Android application](/fusescope-docs/frontend/set-up-android/#create-the-application),
+[Set up an Android application](/frontend/set-up-android/#create-the-application),
 to get its key and allowed package names. Then:
 
 - **Set `app.package.name`** on the resource, to the app's `applicationId`. The gateway
@@ -122,7 +122,7 @@ to get its key and allowed package names. Then:
   gateway refuses requests that carry one. OkHttp and the OpenTelemetry Java exporters
   send none.
 - **Set `service.version`** to the app's `versionName`, the release you upload
-  [R8 mappings](/fusescope-docs/frontend/r8-mappings/) for.
+  [R8 mappings](/frontend/r8-mappings/) for.
 
 ```kotlin title="OpenTelemetry Java exporters"
 val resource = Resource.getDefault().toBuilder()
@@ -157,12 +157,12 @@ lists: `session.id` (OpenTelemetry Android sets it), spans named `view` with
 backend. Send `exception.stacktrace` as Java prints it (`Throwable.printStackTrace()`
 output): FuseScope parses it, retraces it with the R8 mapping of `service.version`, and
 groups it as described in
-[Grouping Android errors](/fusescope-docs/frontend/errors/#grouping-android-errors). The
+[Grouping Android errors](/frontend/errors/#grouping-android-errors). The
 [Android SDK's README](https://github.com/fuseone-io/fusescope-sdk-android#data) lists
 every attribute `io.fuseone.fusescope:android` sends.
 
 ## Related
 
-- [Set up a web application](/fusescope-docs/frontend/set-up-web/#troubleshoot-rejected-requests):
+- [Set up a web application](/frontend/set-up-web/#troubleshoot-rejected-requests):
   rejected requests.
-- [OTLP endpoints](/fusescope-docs/sending-data/otlp/): sending backend telemetry.
+- [OTLP endpoints](/sending-data/otlp/): sending backend telemetry.

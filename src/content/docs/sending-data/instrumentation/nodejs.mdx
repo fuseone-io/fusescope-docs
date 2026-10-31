@@ -12,7 +12,7 @@ Fastify, Koa, NestJS, `http`, `fetch`, database drivers, Redis, Kafka and
 without code changes.
 
 **Use this page when** you run a Node.js service (JavaScript or TypeScript) and want it in
-FuseScope. For browser apps, see [Real User Monitoring](/fusescope-docs/frontend/real-user-monitoring/).
+FuseScope. For browser apps, see [Real User Monitoring](/frontend/real-user-monitoring/).
 
 | Signal | Status | What is sent |
 |---|---|---|
@@ -24,7 +24,7 @@ FuseScope. For browser apps, see [Real User Monitoring](/fusescope-docs/frontend
 
 - Node.js on an active or maintenance LTS release. Current package versions require
   Node.js 22.15 or later.
-- A FuseScope collector you can reach on port 4317 or 4318. See [OTLP](/fusescope-docs/sending-data/otlp/).
+- A FuseScope collector you can reach on port 4317 or 4318. See [OTLP](/sending-data/otlp/).
 
 ## Install and run
 
@@ -98,7 +98,7 @@ OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
 ```
 
 Behind the chart ingress, use `https://otlp.example.com`. See
-[from outside the cluster](/fusescope-docs/sending-data/otlp/#from-outside-the-cluster).
+[from outside the cluster](/sending-data/otlp/#from-outside-the-cluster).
 
   </TabItem>
   <TabItem label="Through a local collector">
@@ -108,9 +108,9 @@ OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
 OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
 ```
 
-Run the collector with [Docker](/fusescope-docs/sending-data/collector-docker/), on a
-[VM](/fusescope-docs/sending-data/collector-vm/) or in
-[Kubernetes](/fusescope-docs/sending-data/kubernetes/).
+Run the collector with [Docker](/sending-data/collector-docker/), on a
+[VM](/sending-data/collector-vm/) or in
+[Kubernetes](/sending-data/kubernetes/).
 
   </TabItem>
 </Tabs>
@@ -190,9 +190,9 @@ by default:
 ## Check that data arrives
 
 1. Send a few requests to the service.
-2. Open [Services](/fusescope-docs/apm/services/). The service appears under its
+2. Open [Services](/apm/services/). The service appears under its
    `OTEL_SERVICE_NAME` within a minute.
-3. Open the [Traces explorer](/fusescope-docs/explore/traces/) and filter by
+3. Open the [Traces explorer](/explore/traces/) and filter by
    `service.name`.
 
 Nothing arrives? Run with `OTEL_LOG_LEVEL=debug` to see export errors, and check the
@@ -200,7 +200,7 @@ endpoint and protocol match (4318 with `http/protobuf`, 4317 with `grpc`).
 
 ## Related
 
-- [Instrument applications](/fusescope-docs/sending-data/instrumentation/)
-- [AI observability for Node.js](/fusescope-docs/analyze/ai-observability-nodejs/)
-- [OTLP](/fusescope-docs/sending-data/otlp/)
+- [Instrument applications](/sending-data/instrumentation/)
+- [AI observability for Node.js](/analyze/ai-observability-nodejs/)
+- [OTLP](/sending-data/otlp/)
 - [JavaScript zero-code instrumentation](https://opentelemetry.io/docs/zero-code/js/)

@@ -11,7 +11,7 @@ change and deploy. It works with any framework that uses a bundler, such as Reac
 Vite, Vue, Angular or Next.js.
 
 If you don't know what RUM records yet, start with
-[Real User Monitoring](/fusescope-docs/frontend/real-user-monitoring/).
+[Real User Monitoring](/frontend/real-user-monitoring/).
 
 ## The steps at a glance
 
@@ -48,13 +48,13 @@ filled for a shop at `https://shop.example.com` whose API is at
 ### 1. Application
 
 1. **Name**: sent as `service.name`, so it is also how the app appears in
-   [Services](/fusescope-docs/apm/services/) and the explorers. Use lowercase letters,
+   [Services](/apm/services/) and the explorers. Use lowercase letters,
    digits and dashes, such as `web-shop`.
 2. **Environment**: sent as `deployment.environment.name`, such as `production` or
    `staging`. Create one application per environment, so each has its own key, origins
    and numbers.
 3. **Platform**: **Web**. For an Android app, see
-   [Set up an Android application](/fusescope-docs/frontend/set-up-android/); iOS is
+   [Set up an Android application](/frontend/set-up-android/); iOS is
    coming soon.
 
 ### 2. Origins and tracing
@@ -132,14 +132,14 @@ origins, within its rate limit. It can't read anything.
 <Aside type="tip">
   Lost the key? You can't read it again, but you can make a new one: open the
   application's **Settings**, then **Public key**, and
-  [rotate it](/fusescope-docs/frontend/keys/#rotate-a-key). The old key keeps working
+  [rotate it](/frontend/keys/#rotate-a-key). The old key keeps working
   for an overlap window while you deploy the new one.
 </Aside>
 
 ## Install the SDK
 
 For React Router views and caught rendering errors, also follow
-[Set up React RUM](/fusescope-docs/frontend/set-up-react/).
+[Set up React RUM](/frontend/set-up-react/).
 
 Install [`@fusescope/browser`](https://www.npmjs.com/package/@fusescope/browser) from
 npm, with the `next` tag, which has the current beta, `0.2.0-beta.1`:
@@ -186,7 +186,7 @@ init({
   ```
 - Options left at the SDK's defaults are omitted, so the snippet only shows what this
   application changes. All options are in the
-  [SDK reference](/fusescope-docs/frontend/sdk-reference/).
+  [SDK reference](/frontend/sdk-reference/).
 
 The SDK is published as ESM for bundlers.
 
@@ -264,7 +264,7 @@ Add `traceparent` (and `tracestate`, if you use it) to the API's
 </Tabs>
 
 The backend must also be instrumented with OpenTelemetry and send its traces to
-FuseScope; see [Instrument applications](/fusescope-docs/sending-data/instrumentation/).
+FuseScope; see [Instrument applications](/sending-data/instrumentation/).
 OpenTelemetry instrumentations read `traceparent` and continue the browser's trace.
 
 <Aside type="caution">
@@ -287,14 +287,14 @@ reads **Waiting for first data…** until the gateway accepts the first request,
 4. When you come back later, the snippet shows the key masked, such as
    `rum_pub_…sqdu`: replace it with your key.
 5. A reminder for apps that already use the OpenTelemetry web SDK; see
-   [Use another OpenTelemetry client](/fusescope-docs/frontend/opentelemetry-clients/).
+   [Use another OpenTelemetry client](/frontend/opentelemetry-clients/).
 6. **Receiving data**, with when the first data arrived and what arrived in the last
    5 minutes: **Sessions**, **Views**, **Errors** and **Web Vitals**.
 7. **The SDK seen** and whether this server supports its version: **Supported**,
    **Outdated** (data is still accepted), or **Other client** for any other OpenTelemetry
-   SDK. See [Compatibility](/fusescope-docs/frontend/sdk-reference/#compatibility).
+   SDK. See [Compatibility](/frontend/sdk-reference/#compatibility).
 8. **Open shop-demo** opens the application's
-   [overview](/fusescope-docs/frontend/applications/#the-overview).
+   [overview](/frontend/applications/#the-overview).
 
 The first session shows up within seconds. Some Web Vitals, such as CLS and INP, are
 only final when the user hides or leaves the page, so switch tabs or close the page to
@@ -309,7 +309,7 @@ many were rejected in the last 5 minutes, such as
 | Message | Cause | Fix |
 |---|---|---|
 | **origin … is not allowed** | The page's origin is not in **Allowed origins**. The browser shows a CORS error and the gateway answers `403`. | Click **Add origin** on the line, then save. Check the scheme and port: `http://localhost:5173` and `http://localhost:3000` are different origins. |
-| **the key is not valid for this application** | The key was revoked, or its rotation overlap ended. The gateway answers `401`. | Deploy the current key; see [Keys](/fusescope-docs/frontend/keys/). |
+| **the key is not valid for this application** | The key was revoked, or its rotation overlap ended. The gateway answers `401`. | Deploy the current key; see [Keys](/frontend/keys/). |
 | **with an unknown key from …** | The key matches no key FuseScope issued, such as a typo or a key from another application or workspace, and the page's origin is in **Allowed origins**. The gateway answers `401`. | Check the `publicKey` in your snippet against the last four characters on the **Public key** tab. |
 | **rate limited** | More than 20 requests per second from one browser (bursts of 60), or 500 per second for the whole key (bursts of 1,000). The gateway answers `429`. | Usually a loop or a misbehaving page. Behind a proxy, check [the client IP setting](#self-hosted-fusescope): otherwise all users share one limit. |
 | **payload too large** | A request body over 4 MiB, before or after gzip. The gateway answers `413`. | The SDK sends small batches; this comes from a custom client. Send smaller batches. |
@@ -338,7 +338,7 @@ Other things to check when nothing arrives:
 
 Your production bundle is minified, so a JavaScript error's stack trace reads
 `kS · app.4GMSW5AF.js:2:11056`. Upload the source maps of each release and the
-[Errors](/fusescope-docs/frontend/errors/) tab shows `applyCoupon · src/cart/pricing.js:13:11`
+[Errors](/frontend/errors/) tab shows `applyCoupon · src/cart/pricing.js:13:11`
 instead. In short:
 
 1. Build with hidden source maps (Vite `build.sourcemap: 'hidden'`, webpack
@@ -354,7 +354,7 @@ instead. In short:
    ```
 
 The application's **Source maps** tab has these commands filled in. See
-[Source maps](/fusescope-docs/frontend/source-maps/) for the details.
+[Source maps](/frontend/source-maps/) for the details.
 
 ## Self-hosted FuseScope
 
@@ -364,7 +364,7 @@ The RUM gateway runs inside the FuseScope backend, on its HTTP port (8080), unde
 - **Expose `/rum/` publicly.** The `endpoint` in the snippet must reach the backend's
   `/rum/v1/traces` and `/rum/v1/logs` from the internet. The Helm chart's default
   ingress path `/` already does; if you route only some paths, add `/rum`. See
-  [Expose FuseScope](/fusescope-docs/install/helm/#expose-fusescope).
+  [Expose FuseScope](/install/helm/#expose-fusescope).
 - **Let the gateway answer CORS.** Your ingress or proxy must pass `OPTIONS` requests
   and the `Origin` header through and must not add CORS headers of its own. With
   ingress-nginx, don't set `enable-cors` on this ingress, and raise
@@ -381,14 +381,14 @@ The RUM gateway runs inside the FuseScope backend, on its HTTP port (8080), unde
   `http://otel-collector:4318`.
 
 The gateway's settings are under `rum` in the
-[configuration file](/fusescope-docs/configuration/config-file/), such as
+[configuration file](/configuration/config-file/), such as
 `rum.max_body_size` and `rum.ratelimit.client.rate`. `rum.enabled: false` turns the
-gateway off. See [Install with Helm](/fusescope-docs/install/helm/) for the chart.
+gateway off. See [Install with Helm](/install/helm/) for the chart.
 
 ## Related
 
-- [Applications and Overview](/fusescope-docs/frontend/applications/): read what
+- [Applications and Overview](/frontend/applications/): read what
   arrives.
-- [Source maps](/fusescope-docs/frontend/source-maps/): original stack traces.
-- [Keys](/fusescope-docs/frontend/keys/): rotate or revoke the public key.
-- [SDK reference](/fusescope-docs/frontend/sdk-reference/): every `init()` option.
+- [Source maps](/frontend/source-maps/): original stack traces.
+- [Keys](/frontend/keys/): rotate or revoke the public key.
+- [SDK reference](/frontend/sdk-reference/): every `init()` option.

@@ -6,9 +6,9 @@ description: Build queries over traces, logs and metrics with filters, aggregati
 import { Aside, Tabs, TabItem } from "@astrojs/starlight/components";
 
 The query builder is the same in the explorers, dashboard panels and alert rules. A
-[query](/fusescope-docs/reference/glossary/#query) picks a data source, filters it, and
+[query](/reference/glossary/#query) picks a data source, filters it, and
 optionally aggregates the result. For SQL or PromQL, see
-[ClickHouse SQL and PromQL](/fusescope-docs/querying/clickhouse-promql/).
+[ClickHouse SQL and PromQL](/querying/clickhouse-promql/).
 
 **Use this page when** you build a chart, a table or an alert and need more than a
 filter: counting, percentiles, splitting by an attribute, or combining queries.
@@ -39,7 +39,7 @@ options to read the values in ms or s.
 | Part | What it does |
 |---|---|
 | Data source | Traces, logs or metrics. On metrics, pick the metric name. |
-| Search filter | A [filter expression](/fusescope-docs/querying/search-syntax/) such as `service.name = 'frontend' AND http.status_code >= 500` |
+| Search filter | A [filter expression](/querying/search-syntax/) such as `service.name = 'frontend' AND http.status_code >= 500` |
 | Aggregation | What to compute, such as `count()` or `p99(duration_nano)` |
 | **every** | The time bucket, in seconds, for time series |
 | **Group By** | Split the result into one series or row per attribute value |
@@ -73,7 +73,7 @@ count() as requests, p99(duration_nano) as p99_latency
 | `rate_sum`, `rate_avg`, `rate_min`, `rate_max` | The aggregate of a key, per second |
 
 Except for the `rate_*` functions, each has an `If` form that takes a condition as its
-last argument, written in the [search syntax](/fusescope-docs/querying/search-syntax/):
+last argument, written in the [search syntax](/querying/search-syntax/):
 
 ```text
 countIf(has_error = true) as errors, avgIf(duration_nano, http.method = 'GET')
@@ -97,8 +97,8 @@ SERIES**), optionally **by** some labels. The options depend on the metric type.
 In the Metrics explorer the same two steps are labelled **Over time** (*within each
 series*) and **Across series** (*combine into groups*), inside the card's
 **Aggregation** section; see
-[Aggregation](/fusescope-docs/explore/metrics/#aggregation). See
-[Metric basics](/fusescope-docs/explore/metrics/#metric-basics) for metric types and
+[Aggregation](/explore/metrics/#aggregation). See
+[Metric basics](/explore/metrics/#metric-basics) for metric types and
 temporality.
 
 </TabItem>
@@ -149,7 +149,7 @@ a menu to clone or delete it.
 <Aside>
   The Metrics explorer lays queries out as cards in a side panel, with **Add query**
   and **Add formula** at its foot and one card open at a time; see
-  [Chart a metric](/fusescope-docs/explore/metrics/#chart-a-metric). The options are
+  [Chart a metric](/explore/metrics/#chart-a-metric). The options are
   the same. Dashboard panels, alert rules and the Logs and Traces explorers keep the
   stacked layout described here.
 </Aside>

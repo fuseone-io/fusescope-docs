@@ -5,7 +5,7 @@ description: Query FuseScope's ClickHouse tables directly, or metrics with PromQ
 
 import { Aside, Tabs, TabItem } from "@astrojs/starlight/components";
 
-When the [query builder](/fusescope-docs/querying/query-builder/) can't express a query,
+When the [query builder](/querying/query-builder/) can't express a query,
 write it in ClickHouse SQL or PromQL. Both are available in dashboard panels and alert
 rules, on the **ClickHouse Query** and **PromQL** tabs next to **Query Builder**.
 
@@ -17,7 +17,7 @@ Most charts and alerts don't need it.
 |---|---|---|
 | Data | Traces, logs and metrics | Metrics |
 | Dashboard panels | Time Series, Area Chart, Bar Chart, Number, Heatmap, Table, Pie Chart | Time Series, Area Chart, Bar Chart, Number, Heatmap |
-| [Alert rules](/fusescope-docs/alerts/alert-rules/) | Metric, trace, log and exception alerts | Metric alerts |
+| [Alert rules](/alerts/alert-rules/) | Metric, trace, log and exception alerts | Metric alerts |
 
 List panels only take query builder queries. Both editors have a **Legend Format**
 field, written as in the query builder: `{{service.name}}`.
@@ -36,7 +36,7 @@ the query:
 | `start_datetime`, `end_datetime` | `toDateTime(<seconds>)` |
 
 Write a variable as `$start_timestamp`, `{{start_timestamp}}`, `[[start_timestamp]]` or
-`{{.start_timestamp}}`. [Dashboard variables](/fusescope-docs/dashboards/variables/) use
+`{{.start_timestamp}}`. [Dashboard variables](/dashboards/variables/) use
 the same forms.
 
 <Aside type="caution">
@@ -118,7 +118,7 @@ In `distributed_time_series_v4`, `unix_milli` is rounded down to the hour. Sampl
 
 Restrict every query to the time range on both `timestamp` and `ts_bucket_start`, and
 filter resources through the resource table: ClickHouse then reads only the matching
-parts. Rows older than the [retention period](/fusescope-docs/administration/retention/)
+parts. Rows older than the [retention period](/administration/retention/)
 are gone.
 
 ## Examples

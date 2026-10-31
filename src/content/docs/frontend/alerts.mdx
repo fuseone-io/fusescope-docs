@@ -6,7 +6,7 @@ description: Alert on Real User Monitoring data with three templates in the aler
 import { Aside, Steps } from "@astrojs/starlight/components";
 
 RUM data is stored as ordinary logs, so frontend alerts are ordinary
-[logs-based alert rules](/fusescope-docs/alerts/alert-rules/). Three **templates** fill
+[logs-based alert rules](/alerts/alert-rules/). Three **templates** fill
 the query, the condition and the name for you; you only pick a notification channel and
 save. Creating and editing rules needs the **Admin** or **Editor** role.
 
@@ -25,7 +25,7 @@ Every template is filtered to one application with `fusescope.rum.application.id
 the values freely before saving: the threshold, the route, or **Group By**
 `service.version` to get one alert per release. With the default evaluation window,
 **Last 5 minutes**, **JS errors above 10** means more than 10 errors in 5 minutes. See
-[Conditions](/fusescope-docs/alerts/alert-rules/#conditions) for what **ALL THE TIME**,
+[Conditions](/alerts/alert-rules/#conditions) for what **ALL THE TIME**,
 **AT LEAST ONCE** and **IN TOTAL** mean.
 
 ## Start from a template
@@ -47,7 +47,7 @@ RUM applications, a **Start from a frontend template** panel sits above the quer
 
 Then set the notification channel in **Notification settings** and click **Save Alert
 Rule**. The rule then behaves like any other; see
-[Alert rules](/fusescope-docs/alerts/alert-rules/).
+[Alert rules](/alerts/alert-rules/).
 
 ## Start from the RUM screens
 
@@ -59,9 +59,9 @@ The RUM screens open the same editor with the template already applied:
 
   ![The Create alert menu of the overview: Start from a template, LCP p75 above 2.5 s, Session error rate above 5% and JS errors above 10, each with one line on what it measures.](../../../assets/frontend/frontend-create-alert-menu.png)
 
-- **Create alert** in a [route's detail](/fusescope-docs/frontend/views/#route-detail)
+- **Create alert** in a [route's detail](/frontend/views/#route-detail)
   starts **LCP p75 above 2.5 s** filtered to that route.
-- **Alert on this error** in an [error's detail](/fusescope-docs/frontend/errors/#error-detail)
+- **Alert on this error** in an [error's detail](/frontend/errors/#error-detail)
   starts **JS errors above 10** filtered to that exception type and message.
 
 <Aside>
@@ -88,6 +88,6 @@ The RUM screens open the same editor with the template already applied:
 
 ## Related
 
-- [Alert rules](/fusescope-docs/alerts/alert-rules/)
-- [Notification channels](/fusescope-docs/alerts/notification-channels/)
-- [Views](/fusescope-docs/frontend/views/)
+- [Alert rules](/alerts/alert-rules/)
+- [Notification channels](/alerts/notification-channels/)
+- [Views](/frontend/views/)

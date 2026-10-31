@@ -17,8 +17,8 @@ can only forward syslog, in FuseScope.
 <Steps>
 
 1. Run a collector with the `syslog` receiver, on each host or on one host that
-   receives from many. See [Collector in Docker](/fusescope-docs/sending-data/collector-docker/)
-   or [Collector on a VM](/fusescope-docs/sending-data/collector-vm/).
+   receives from many. See [Collector in Docker](/sending-data/collector-docker/)
+   or [Collector on a VM](/sending-data/collector-vm/).
 2. Point rsyslog, syslog-ng or the device at the collector's port.
 3. The collector exports the logs to FuseScope over OTLP.
 
@@ -94,7 +94,7 @@ RFC 3164 timestamps have no time zone; `location` says which one the senders use
 </Tabs>
 
 Replace `fusescope-collector.example.com` with your FuseScope collector address. See
-[OTLP endpoints](/fusescope-docs/sending-data/otlp/#from-outside-the-cluster).
+[OTLP endpoints](/sending-data/otlp/#from-outside-the-cluster).
 
 To receive both formats, add two receivers, such as `syslog/tcp` and `syslog/udp`, and
 list both in the pipeline.
@@ -223,7 +223,7 @@ docker run -d --name otelcol \
 <Steps>
 
 1. Send a test message from a host that forwards: `logger -t fusescope-test "hello FuseScope"`.
-2. Open the [Logs explorer](/fusescope-docs/explore/logs/) and filter by
+2. Open the [Logs explorer](/explore/logs/) and filter by
    `service.name = fusescope-test`.
 3. If nothing arrives, check that the port is open between the sender and the
    collector, and look in the collector's logs for parse errors: a `protocol` or
@@ -233,9 +233,9 @@ docker run -d --name otelcol \
 
 ## Related
 
-- [Collector in Docker](/fusescope-docs/sending-data/collector-docker/) and
-  [Collector on a VM](/fusescope-docs/sending-data/collector-vm/): install the agent.
-- [Log pipelines](/fusescope-docs/sending-data/log-pipelines/): parse the syslog
+- [Collector in Docker](/sending-data/collector-docker/) and
+  [Collector on a VM](/sending-data/collector-vm/): install the agent.
+- [Log pipelines](/sending-data/log-pipelines/): parse the syslog
   `message` into fields in FuseScope.
-- [Logs from files](/fusescope-docs/sending-data/logs-files/): read log files instead.
-- [Logs explorer](/fusescope-docs/explore/logs/): search the logs.
+- [Logs from files](/sending-data/logs-files/): read log files instead.
+- [Logs explorer](/explore/logs/): search the logs.

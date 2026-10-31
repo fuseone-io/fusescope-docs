@@ -32,7 +32,7 @@ It ships as ESM for bundlers, and works in evergreen browsers with ES2020 and `f
 Starts collection. Call it once, as early as possible in your app's entry point; a
 second call is ignored with a warning. The **Install** tab of the application's settings
 generates the call for you; see
-[Set up a web application](/fusescope-docs/frontend/set-up-web/#install-the-sdk).
+[Set up a web application](/frontend/set-up-web/#install-the-sdk).
 
 ```ts
 import { init } from '@fusescope/browser';
@@ -55,7 +55,7 @@ init({
 | `endpoint` | required | FuseScope's base URL. Data goes to `<endpoint>/rum/v1/traces` and `<endpoint>/rum/v1/logs`. |
 | `service` | `applicationId` | `service.name`. The snippet sets it to the application's name. |
 | `environment` | none | `deployment.environment.name`, such as `production`. |
-| `version` | none | `service.version`, your app's release. Fills the **Release** filter, and **must equal the `--release` of your [source map](/fusescope-docs/frontend/source-maps/) upload**. |
+| `version` | none | `service.version`, your app's release. Fills the **Release** filter, and **must equal the `--release` of your [source map](/frontend/source-maps/) upload**. |
 | `sessionSampleRate` | `1` | Share of sessions recorded, from 0 to 1. Unsampled sessions send nothing and no `traceparent`. |
 | `propagateTraceHeaderCorsUrls` | `[]` | Cross-origin API URLs that get `traceparent`. A string matches URLs that start with it at a `/`, `?` or `#` boundary, so an origin works; a `RegExp` is tested against the full URL. Same-origin requests always get it. |
 | `requireConsent` | `false` | Collect nothing until `setConsent(true)`. |
@@ -111,7 +111,7 @@ anonymous until you call it.
 By default `user.id` is the **SHA-256 of the id, in hexadecimal**, computed in the browser
 with WebCrypto, so FuseScope never stores who the user is. To find someone's sessions,
 hash their id the same way and paste it in the
-[Sessions](/fusescope-docs/frontend/sessions/#the-session-list) user search:
+[Sessions](/frontend/sessions/#the-session-list) user search:
 
 ```bash
 printf '%s' 'customer-42' | sha256sum
@@ -130,7 +130,7 @@ With `privacy.hashUserId: false`, the raw id is sent instead.
 ## What the SDK sends
 
 Besides the attributes listed in
-[Use another OpenTelemetry client](/fusescope-docs/frontend/opentelemetry-clients/#attributes-the-screens-need):
+[Use another OpenTelemetry client](/frontend/opentelemetry-clients/#attributes-the-screens-need):
 
 | Attribute | On | Meaning |
 |---|---|---|
@@ -138,19 +138,19 @@ Besides the attributes listed in
 | `fusescope.rum.view.loading_type` | `view` spans | `initial_load` for the view the page was loaded on, `route_change` for every other view. |
 | `fusescope.rum.view.navigation_type` | `view` spans | `load`, `push`, `replace`, `pop`, `manual`, or `restore` when a hidden page is shown again and its view restarts. |
 | duration of the `view` span | `view` spans | The **time on view**: the view ends at the next navigation, when the page is hidden, or on `shutdown()`. |
-| `fusescope.rum.action.target` | click events | What was clicked, as a short selector; see [What a click records](/fusescope-docs/frontend/sessions/#what-a-click-records). |
+| `fusescope.rum.action.target` | click events | What was clicked, as a short selector; see [What a click records](/frontend/sessions/#what-a-click-records). |
 | `user.id` | every span and log record, after `setUser()` | The user's id, hashed by default. |
 
 ## What changed in 0.2.0
 
 | Change | What to do |
 |---|---|
-| Views carry `fusescope.rum.view.loading_type` and `navigation_type`. The [Views](/fusescope-docs/frontend/views/) tab splits page loads from route changes with them. | Nothing; views from 0.1 SDKs are shown apart, marked `*`. |
+| Views carry `fusescope.rum.view.loading_type` and `navigation_type`. The [Views](/frontend/views/) tab splits page loads from route changes with them. | Nothing; views from 0.1 SDKs are shown apart, marked `*`. |
 | A view lasts until the next navigation or until the page is hidden: its duration is the time on view. | Nothing. |
 | `setUser()` sends the hash in `user.id`. **`user.hash` is no longer sent.** | Update dashboards, alerts and saved queries that read `user.hash` to read `user.id`. |
 | A session that replaces an expired one carries `session.previous_id`. | Nothing. |
 | Clicks carry `fusescope.rum.action.target`. | Add `data-fusescope-action` to elements you want named. |
-| `version` is documented as the release your source maps are uploaded for, sent as `service.version`. | Pass the same value to `--release`; see [Source maps](/fusescope-docs/frontend/source-maps/). |
+| `version` is documented as the release your source maps are uploaded for, sent as `service.version`. | Pass the same value to `--release`; see [Source maps](/frontend/source-maps/). |
 
 To upgrade, install `@fusescope/browser@next` and redeploy; the `init()` options are
 unchanged.
@@ -171,6 +171,6 @@ Pre-releases count as their version: `0.2.0-beta.0` is supported.
 
 ## Related
 
-- [Use another OpenTelemetry client](/fusescope-docs/frontend/opentelemetry-clients/)
-- [Source maps](/fusescope-docs/frontend/source-maps/)
-- [Real User Monitoring](/fusescope-docs/frontend/real-user-monitoring/)
+- [Use another OpenTelemetry client](/frontend/opentelemetry-clients/)
+- [Source maps](/frontend/source-maps/)
+- [Real User Monitoring](/frontend/real-user-monitoring/)

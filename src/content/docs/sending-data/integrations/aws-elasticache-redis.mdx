@@ -17,12 +17,12 @@ Connecting it adds the **AWS ElastiCache Redis** dashboard. In the app the integ
 is called **AWS ElastiCache (redis)**.
 
 **Use this page when** your Redis runs on Amazon ElastiCache. For Redis you run
-yourself, see [Redis](/fusescope-docs/sending-data/integrations/redis/).
+yourself, see [Redis](/sending-data/integrations/redis/).
 
 ## Prerequisites
 
 - **An `otelcol-contrib` collector**, v0.88.0 or newer, where you can add config files
-  and environment variables. See [Integrations](/fusescope-docs/sending-data/integrations/#how-it-works).
+  and environment variables. See [Integrations](/sending-data/integrations/#how-it-works).
 - **Java 11 or newer** for the CloudWatch exporter, or Docker to run its
   [image](https://github.com/prometheus/cloudwatch_exporter#docker-images) instead.
 - **AWS credentials** for the exporter and the collector. Both use the standard AWS SDK
@@ -155,7 +155,7 @@ yourself, see [Redis](/fusescope-docs/sending-data/integrations/redis/).
    | `OTLP_DESTINATION_ENDPOINT` | `fusescope-collector.example.com:4317` | FuseScope collector, OTLP gRPC. |
 
 3. **Run the collector** with `--config elasticache-metrics.yaml`, as shown in
-   [Run the collector](/fusescope-docs/sending-data/integrations/#run-the-collector).
+   [Run the collector](/sending-data/integrations/#run-the-collector).
 
 </Steps>
 
@@ -209,7 +209,7 @@ service:
 Set `region`, replace the group name with the one you chose for log delivery, and set
 `OTLP_DESTINATION_ENDPOINT`. Run the collector with `--config elasticache-logs.yaml`.
 ElastiCache can deliver logs as JSON; to turn the fields into attributes, add a
-[log pipeline](/fusescope-docs/sending-data/log-pipelines/) that matches
+[log pipeline](/sending-data/log-pipelines/) that matches
 `source = elasticache_redis`.
 
 Set `insecure: false` in the exporter when the FuseScope endpoint uses TLS.
@@ -278,13 +278,13 @@ CloudWatch metrics are named `aws_elasticache_<metric>_<statistic>` and carry th
 
 The `redis` receiver adds `redis_*` metrics, such as `redis_commands`,
 `redis_keyspace_hits` and `redis_memory_used`. The
-[Redis](/fusescope-docs/sending-data/integrations/redis/#metrics) page lists the main
+[Redis](/sending-data/integrations/redis/#metrics) page lists the main
 ones.
 
 ## Related
 
-- [Integrations](/fusescope-docs/sending-data/integrations/)
-- [Redis](/fusescope-docs/sending-data/integrations/redis/)
-- [Log pipelines](/fusescope-docs/sending-data/log-pipelines/)
+- [Integrations](/sending-data/integrations/)
+- [Redis](/sending-data/integrations/redis/)
+- [Log pipelines](/sending-data/log-pipelines/)
 - [CloudWatch exporter](https://github.com/prometheus/cloudwatch_exporter)
 - [`awscloudwatch` receiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/awscloudwatchreceiver)

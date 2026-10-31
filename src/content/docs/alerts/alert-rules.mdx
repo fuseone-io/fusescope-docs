@@ -5,16 +5,16 @@ description: Get told about problems instead of watching for them. The Alerts pa
 
 import { Aside, Steps } from "@astrojs/starlight/components";
 
-An [alert rule](/fusescope-docs/reference/glossary/#alert-rule) runs a query on a
+An [alert rule](/reference/glossary/#alert-rule) runs a query on a
 schedule, compares the result with one or more thresholds and sends a notification
 when a condition holds. Rules live on the **Alerts** page, under **Respond** in the
 sidebar. Creating, editing and deleting rules needs the Editor or Admin
-[role](/fusescope-docs/administration/users-and-roles/#roles); viewers can read them.
+[role](/administration/users-and-roles/#roles); viewers can read them.
 
 **Use this page when** you want to be told about a problem instead of watching for it,
 for example when a service's error rate goes above 5%, or when you open a rule someone
 else wrote and want to know what it does. For a step-by-step first rule with Slack,
-see [Set up your first alert](/fusescope-docs/guides/first-alert/).
+see [Set up your first alert](/guides/first-alert/).
 
 ## Alerts in plain words
 
@@ -26,11 +26,11 @@ see [Set up your first alert](/fusescope-docs/guides/first-alert/).
   last 5 minutes.
 - When the condition holds, the rule **fires**: it creates an **alert** and sends a
   **notification** to one or more
-  [notification channels](/fusescope-docs/alerts/notification-channels/), such as Slack
+  [notification channels](/alerts/notification-channels/), such as Slack
   or email. When the condition stops holding, the alert **resolves**.
 - **Labels** are `key: value` pairs on a rule and its alerts, such as `team: payments`.
   They decide how alerts are grouped and, with
-  [routing policies](/fusescope-docs/alerts/routing-and-downtime/#routing-policies),
+  [routing policies](/alerts/routing-and-downtime/#routing-policies),
   where they are sent.
 
 ## The Alerts page
@@ -42,9 +42,9 @@ Click **Alerts** in the sidebar (`/alerts`). It has four tabs:
 1. **Triggered Alerts**: the alerts firing now. See [Triggered alerts](#triggered-alerts).
 2. **Alert Rules**: every rule, the default tab. See [The rule list](#the-rule-list).
 3. **Notification Channels**: where alerts are sent. See
-   [Notification channels](/fusescope-docs/alerts/notification-channels/).
+   [Notification channels](/alerts/notification-channels/).
 4. **Configuration**: **Planned Downtime** and **Routing Policies**. See
-   [Routing and planned downtime](/fusescope-docs/alerts/routing-and-downtime/).
+   [Routing and planned downtime](/alerts/routing-and-downtime/).
 5. **New Alert** creates a rule. The button follows the tab: on Configuration it
    becomes **New downtime** or **New routing policy**, on Notification Channels
    **New Alert Channel**.
@@ -106,9 +106,9 @@ a **New Alert Rule** button instead of the table.
 </Aside>
 
 You can also start a rule from elsewhere: **Create alert** on a
-[service chart](/fusescope-docs/apm/services/#the-charts), or from the explorers and
+[service chart](/apm/services/#the-charts), or from the explorers and
 dashboard panels, opens the editor with the query already filled in. For browser data,
-see [Frontend alerts](/fusescope-docs/frontend/alerts/): a log-based rule offers
+see [Frontend alerts](/frontend/alerts/): a log-based rule offers
 templates for LCP, session error rate and JavaScript errors.
 
 ## The rule editor
@@ -138,7 +138,7 @@ it shows the demo rule `redis-manual error rate above 5%`:
 10. **Data source**: **Metrics**, **Logs**, **Traces** or **Exceptions**.
 11. **Query Builder** or **ClickHouse Query** (and **PromQL** for metrics). The query
     builder works as in the explorers; see
-    [Query builder](/fusescope-docs/querying/query-builder/).
+    [Query builder](/querying/query-builder/).
 12. **Run Query** draws the preview.
 13. **Queries and formulas**. Each query (**A**, **B**…) gives one series per group;
     **Add Formula** combines them, such as `B / A * 100` for an error percentage.
@@ -196,7 +196,7 @@ it shows the demo rule `redis-manual error rate above 5%`:
 8. **Add Threshold** adds `warning`, then `info`. All thresholds share the operator
    and match type.
 9. **Use Routing Policies for dynamic routing**: send alerts by their labels with
-   [routing policies](/fusescope-docs/alerts/routing-and-downtime/#routing-policies)
+   [routing policies](/alerts/routing-and-downtime/#routing-policies)
    instead of per-threshold channels. The **send to** pickers disappear when it is on;
    **View Routing Policies** opens the policies. Each threshold needs a channel unless
    this is on.
@@ -323,7 +323,7 @@ A rule that never fired reads `None Triggered.` and
    group. Expand a group to see its alerts.
 4. **Firing**: the alert is active and notifications go out.
 5. **Suppressed**: the alert is active, but a
-   [planned downtime](/fusescope-docs/alerts/routing-and-downtime/#planned-downtime)
+   [planned downtime](/alerts/routing-and-downtime/#planned-downtime)
    silences its notifications.
 6. **Firing since**: when it started.
 7. **Labels**: the first label and a `+N` chip; hover it for the rest.
@@ -362,7 +362,7 @@ demo.
 3. **Look at the preview.** The chart shows **A** at around 300 spans per step and
    **B** far lower, with the `critical` line at 5. F1, the error percentage of the
    cache, is about 18.5%, as on the
-   [service page](/fusescope-docs/apm/services/#example-what-does-driver-depend-on-and-is-it-healthy):
+   [service page](/apm/services/#example-what-does-driver-depend-on-and-is-it-healthy):
    well above the line, all the time.
 
 4. **Read the conditions.** *F1 is ABOVE the threshold AT LEAST ONCE during the Last
@@ -381,9 +381,9 @@ you what a rule will do before you switch it on, without sending anything.
 
 ## Related
 
-- [Set up your first alert](/fusescope-docs/guides/first-alert/): a rule and a Slack
+- [Set up your first alert](/guides/first-alert/): a rule and a Slack
   channel, step by step.
-- [Notification channels](/fusescope-docs/alerts/notification-channels/): where
+- [Notification channels](/alerts/notification-channels/): where
   alerts are sent.
-- [Routing and planned downtime](/fusescope-docs/alerts/routing-and-downtime/): route
+- [Routing and planned downtime](/alerts/routing-and-downtime/): route
   by label, silence during maintenance.

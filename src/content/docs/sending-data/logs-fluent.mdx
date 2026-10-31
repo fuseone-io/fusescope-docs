@@ -21,8 +21,8 @@ without replacing them.
 ### Configure the collector
 
 Run an OpenTelemetry Collector (the `otelcol-contrib` distribution) with the
-`fluentforward` receiver. See [Collector in Docker](/fusescope-docs/sending-data/collector-docker/)
-or [Collector on a VM](/fusescope-docs/sending-data/collector-vm/) to install it.
+`fluentforward` receiver. See [Collector in Docker](/sending-data/collector-docker/)
+or [Collector on a VM](/sending-data/collector-vm/) to install it.
 
 ```yaml title="config.yaml"
 receivers:
@@ -45,7 +45,7 @@ service:
 ```
 
 Replace `fusescope-collector.example.com` with your FuseScope collector address. See
-[OTLP endpoints](/fusescope-docs/sending-data/otlp/#from-outside-the-cluster).
+[OTLP endpoints](/sending-data/otlp/#from-outside-the-cluster).
 
 The receiver turns each Fluent record into a log:
 
@@ -226,7 +226,7 @@ in the [Fluent Bit OpenTelemetry output docs](https://docs.fluentbit.io/manual/p
 
 Fluent records often carry the app's own line as one text field. Parse it in Fluent Bit
 with a parser filter, in the collector with operators, or in FuseScope with a
-[log pipeline](/fusescope-docs/sending-data/log-pipelines/), which you build and
+[log pipeline](/sending-data/log-pipelines/), which you build and
 preview in the UI. A pipeline is the simplest place for JSON, regex or severity
 parsing, since it doesn't need a redeploy.
 
@@ -235,7 +235,7 @@ parsing, since it doesn't need a redeploy.
 <Steps>
 
 1. Write a log Fluent Bit or Fluentd picks up, such as a line in a tailed file.
-2. Open the [Logs explorer](/fusescope-docs/explore/logs/) and filter by
+2. Open the [Logs explorer](/explore/logs/) and filter by
    `service.name`, or by `fluent.tag` if you didn't set a service name.
 3. If nothing arrives, check Fluent Bit's or Fluentd's own output for connection
    errors, then the collector's logs for decode errors.
@@ -244,10 +244,10 @@ parsing, since it doesn't need a redeploy.
 
 ## Related
 
-- [Logs from files](/fusescope-docs/sending-data/logs-files/): read log files with the
+- [Logs from files](/sending-data/logs-files/): read log files with the
   collector instead.
-- [Kubernetes logs](/fusescope-docs/sending-data/logs-kubernetes/): pod logs with the
+- [Kubernetes logs](/sending-data/logs-kubernetes/): pod logs with the
   `k8s-infra` chart.
-- [OTLP endpoints](/fusescope-docs/sending-data/otlp/): addresses and ports.
-- [Log pipelines](/fusescope-docs/sending-data/log-pipelines/): parse logs in FuseScope.
-- [Logs explorer](/fusescope-docs/explore/logs/): search the logs.
+- [OTLP endpoints](/sending-data/otlp/): addresses and ports.
+- [Log pipelines](/sending-data/log-pipelines/): parse logs in FuseScope.
+- [Logs explorer](/explore/logs/): search the logs.

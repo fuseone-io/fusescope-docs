@@ -27,8 +27,8 @@ and forward over OTLP.
 ## The prometheus receiver
 
 The receiver takes a Prometheus `scrape_configs` list under `config`. Add it to a
-collector from [Collector on a VM](/fusescope-docs/sending-data/collector-vm/) or
-[Collector on Docker](/fusescope-docs/sending-data/collector-docker/):
+collector from [Collector on a VM](/sending-data/collector-vm/) or
+[Collector on Docker](/sending-data/collector-docker/):
 
 ```yaml title="config.yaml"
 receivers:
@@ -118,7 +118,7 @@ If you install the `k8s-infra` chart, you don't need to write this: use its pres
 
 ## On Kubernetes
 
-The `k8s-infra` chart ([Kubernetes](/fusescope-docs/sending-data/kubernetes/)) has a
+The `k8s-infra` chart ([Kubernetes](/sending-data/kubernetes/)) has a
 preset that scrapes every pod carrying an opt-in annotation. It runs in the
 `otel-deployment` collector, a single replica, so each pod is scraped once.
 
@@ -158,7 +158,7 @@ preset that scrapes every pod carrying an opt-in annotation. It runs in the
 | `signoz.io/port` | Yes | The port of the metrics endpoint, as a string. |
 | `signoz.io/path` | No | The endpoint path. Default `/metrics`. |
 
-The `signoz.io/` prefix is an [internal name](/fusescope-docs/configuration/config-file/#internal-names)
+The `signoz.io/` prefix is an [internal name](/configuration/config-file/#internal-names)
 kept from SigNoz. Change it with `presets.prometheus.annotationsPrefix`, for example to
 `prometheus.io` if your pods already carry those annotations.
 
@@ -183,7 +183,7 @@ Metrics from the annotation job carry `job_name: signoz-scraper` and these label
 
 ## Find the metrics in FuseScope
 
-Open [Metrics](/fusescope-docs/explore/metrics/) and search for the metric name, such
+Open [Metrics](/explore/metrics/) and search for the metric name, such
 as `http_requests_total` or `process_resident_memory_bytes`. Prometheus labels become
 attributes you can filter and group by. Depending on the collector version, the
 receiver may drop type and unit suffixes such as `_total`; search by the start of the
@@ -196,7 +196,7 @@ sum(rate(http_requests_total[5m])) by ("service.name")
 ```
 
 Names and labels with dots must be quoted; see
-[PromQL](/fusescope-docs/querying/clickhouse-promql/#promql).
+[PromQL](/querying/clickhouse-promql/#promql).
 
 <Aside type="caution" title="Watch the number of series">
   Every distinct label combination is a new series. Labels such as user IDs, request
@@ -215,8 +215,8 @@ Names and labels with dots must be quoted; see
 
 ## Related
 
-- [Kubernetes](/fusescope-docs/sending-data/kubernetes/)
-- [Collector on a VM](/fusescope-docs/sending-data/collector-vm/)
-- [Collector on Docker](/fusescope-docs/sending-data/collector-docker/)
-- [Metrics explorer](/fusescope-docs/explore/metrics/)
-- [ClickHouse SQL and PromQL](/fusescope-docs/querying/clickhouse-promql/)
+- [Kubernetes](/sending-data/kubernetes/)
+- [Collector on a VM](/sending-data/collector-vm/)
+- [Collector on Docker](/sending-data/collector-docker/)
+- [Metrics explorer](/explore/metrics/)
+- [ClickHouse SQL and PromQL](/querying/clickhouse-promql/)

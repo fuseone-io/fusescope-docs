@@ -5,17 +5,17 @@ description: Find, create and read dashboards. The list, the toolbar, variables,
 
 import { Aside, Steps } from "@astrojs/starlight/components";
 
-A [dashboard](/fusescope-docs/reference/glossary/#dashboard) is a page of
-[panels](/fusescope-docs/reference/glossary/#panel) you arrange yourself: charts, tables,
+A [dashboard](/reference/glossary/#dashboard) is a page of
+[panels](/reference/glossary/#panel) you arrange yourself: charts, tables,
 numbers and notes over traces, logs and metrics. Panels can be grouped into
-[sections](/fusescope-docs/reference/glossary/#section), and
-[variables](/fusescope-docs/reference/glossary/#dashboard-variable) at the top let one
+[sections](/reference/glossary/#section), and
+[variables](/reference/glossary/#dashboard-variable) at the top let one
 dashboard show any service, environment or host.
 
 **Use this page when** you want the same charts in front of you every day, want to
 share them with your team, or have opened a dashboard someone else built and want to
 know what each control does. To build one step by step, see
-[Build your first dashboard](/fusescope-docs/guides/first-dashboard/).
+[Build your first dashboard](/guides/first-dashboard/).
 
 ## The dashboards list
 
@@ -138,11 +138,11 @@ Click **New dashboard**. The dialog has three tabs.
   `key:value` pairs such as `team:payments`; press Enter after each one. The new,
   [empty dashboard](#a-new-empty-dashboard) opens.
 - **From a template**: FuseScope ships no built-in templates. **Browse dashboard
-  templates** opens [Dashboard JSON](/fusescope-docs/reference/dashboard-json/), which
+  templates** opens [Dashboard JSON](/reference/dashboard-json/), which
   explains how to import a dashboard someone shared as a file.
 - **Import JSON**: paste a dashboard JSON, or click **Upload JSON file**, then
   **Import and Next**. See
-  [Import a dashboard](/fusescope-docs/reference/dashboard-json/#import-a-dashboard).
+  [Import a dashboard](/reference/dashboard-json/#import-a-dashboard).
 
 ## Read a dashboard
 
@@ -159,7 +159,7 @@ Click **New dashboard**. The dialog has three tabs.
 6. **JSON** opens the dashboard as JSON. See
    [Export and edit as JSON](#export-and-edit-as-json).
 7. **New Panel** opens the panel type picker. See
-   [Add a panel](/fusescope-docs/dashboards/panel-editor/#add-a-panel).
+   [Add a panel](/dashboards/panel-editor/#add-a-panel).
 8. **Time range** for every panel. See [Time range and refresh](#time-range-and-refresh).
 9. **Zoom out**, **refresh** and, in the arrow next to it, **auto-refresh**.
 10. **Share** copies a link to the dashboard. See [Share](#share).
@@ -189,7 +189,7 @@ selects. Hover a name for the variable's description and for the variables it
 **Depends on** or is **Used by**.
 
 What the control looks like depends on the
-[variable type](/fusescope-docs/dashboards/variables/#variable-types):
+[variable type](/dashboards/variables/#variable-types):
 
 | Type | The control | In the demo |
 |---|---|---|
@@ -202,7 +202,7 @@ What the control looks like depends on the
   per value. Hover a value and click **Only** to select just that one. A multi-select
   applies when its list closes; a single value applies as soon as you pick it.
 - **ALL** selects every value. For a dynamic variable it also includes values that
-  appear later; see [The ALL option](/fusescope-docs/dashboards/variables/#the-all-option).
+  appear later; see [The ALL option](/dashboards/variables/#the-all-option).
 - **Textbox** applies when you press Enter or leave the field. Empty it to go back to
   the default value.
 - **+N more** appears when the variables don't fit on one line; hover it to see what
@@ -211,9 +211,9 @@ What the control looks like depends on the
 - **A spinner** in a pill means its values are loading. **A red pill** with a warning
   icon means they couldn't be loaded; hover the icon for the reason and click
   **Retry**. See
-  [Loading and errors](/fusescope-docs/dashboards/variables/#loading-and-errors).
+  [Loading and errors](/dashboards/variables/#loading-and-errors).
 - **Add variable** opens the dashboard settings on **Variables**, ready to add one. See
-  [Dashboard variables](/fusescope-docs/dashboards/variables/).
+  [Dashboard variables](/dashboards/variables/).
 
 ![The variables bar of the HotROD service health dashboard with the $service list open: ALL unticked, payment ticked, and the Only button on the hovered redis-manual row.](../../../assets/dashboards/dashboard-variables.png)
 
@@ -268,10 +268,10 @@ matching data, and **Breakout by ..** splits the series by another attribute.
 | Item | Does |
 |---|---|
 | **View** | Opens the panel full size. See [View a panel full size](#view-a-panel-full-size) |
-| **Edit panel** | Opens the [panel editor](/fusescope-docs/dashboards/panel-editor/) |
+| **Edit panel** | Opens the [panel editor](/dashboards/panel-editor/) |
 | **Clone** | Copies the panel |
 | **Download** | **Download as PNG** or **Download as SVG**; Table panels also **Download as CSV** |
-| **Create Alerts** | Starts an [alert rule](/fusescope-docs/alerts/alert-rules/) from the panel's query, on panel types that support alerts |
+| **Create Alerts** | Starts an [alert rule](/alerts/alert-rules/) from the panel's query, on panel types that support alerts |
 | **Move to section** | Moves the panel to another section, or to the top level, **Dashboard (root)** |
 | **Delete panel** | Removes the panel |
 
@@ -291,7 +291,7 @@ Here you can try things without changing the dashboard: switch the panel type, c
 the query and click **Run Query**, or pick a different time range just for this window.
 **Reset Query** goes back to the saved query. To keep your changes, click
 **Switch to Edit Mode**, which opens the
-[panel editor](/fusescope-docs/dashboards/panel-editor/) with them. Close the window, or
+[panel editor](/dashboards/panel-editor/) with them. Close the window, or
 press Esc, to go back.
 
 ## Example: filter a dashboard by service
@@ -333,10 +333,10 @@ To go back, open the list and tick **ALL**.
 
 Click **New Panel** in the toolbar, or **Add panel** in a section's menu. The
 **New panel** picker opens on the right: pick a panel type, choose where it goes and
-click **Add to …**. The [panel editor](/fusescope-docs/dashboards/panel-editor/) opens,
+click **Add to …**. The [panel editor](/dashboards/panel-editor/) opens,
 where you write the query, set the title and options, and click **Save changes**.
 
-[Add a panel](/fusescope-docs/dashboards/panel-editor/#add-a-panel) describes the
+[Add a panel](/dashboards/panel-editor/#add-a-panel) describes the
 picker, including what the data chips on each type mean. Explorers can also send their
 query to a dashboard with **Add to dashboard**.
 
@@ -364,14 +364,14 @@ A dashboard with no panels shows **Welcome to your new dashboard** and two steps
 
 List panels take query builder queries on logs or traces; pick their columns with
 **Add column**. The options each type has are listed in
-[Panel settings](/fusescope-docs/dashboards/panel-editor/#panel-settings).
+[Panel settings](/dashboards/panel-editor/#panel-settings).
 
 ## Lock a dashboard
 
 A locked dashboard can't be changed or deleted until it is unlocked. Use
 **Actions** › **Lock dashboard**, or **Lock Dashboard** in the list's row menu. Only
 the dashboard's creator or an
-[Admin](/fusescope-docs/administration/users-and-roles/#roles) can lock or unlock it.
+[Admin](/administration/users-and-roles/#roles) can lock or unlock it.
 
 On a locked dashboard:
 
@@ -396,7 +396,7 @@ page. Its subtitle is the dashboard's name. It has two tabs: **Overview** and
    outside the panel or Esc closes it.
 2. **Overview**: what the dashboard is called and how it looks.
 3. **Variables**, with how many the dashboard has. See
-   [Dashboard variables](/fusescope-docs/dashboards/variables/#manage-variables).
+   [Dashboard variables](/dashboards/variables/#manage-variables).
 4. **Icon**: the picture shown next to the title and in the dashboards list.
 5. **Dashboard Name**: the title at the top of the page.
 6. **Description**: shown under the title. Use it to say what the dashboard is for.
@@ -450,7 +450,7 @@ from [Dashboard settings](#dashboard-settings).
 2. **Format** tidies the indentation, for example after you paste JSON in.
 3. **Copy** puts the JSON on the clipboard.
 4. **Download** saves it as a `.json` file, to keep it or
-   [import it](/fusescope-docs/reference/dashboard-json/#import-a-dashboard)
+   [import it](/reference/dashboard-json/#import-a-dashboard)
    elsewhere.
 5. **Reset** throws your edits away and shows the saved dashboard again. It is greyed
    out while there is nothing to reset.
@@ -468,14 +468,14 @@ its `image`. Its ID, owner and timestamps are left out and can't be changed here
 locked dashboard, or without permission to edit, you can read, copy and download the
 JSON but not change it: **Format**, **Reset** and **Apply changes** are greyed out.
 The format is described in
-[Dashboard JSON](/fusescope-docs/reference/dashboard-json/).
+[Dashboard JSON](/reference/dashboard-json/).
 
 ## Related
 
-- [Build your first dashboard](/fusescope-docs/guides/first-dashboard/): a step-by-step
+- [Build your first dashboard](/guides/first-dashboard/): a step-by-step
   guide.
-- [Panel editor](/fusescope-docs/dashboards/panel-editor/): build and change panels.
-- [Dashboard variables](/fusescope-docs/dashboards/variables/): create the variables
+- [Panel editor](/dashboards/panel-editor/): build and change panels.
+- [Dashboard variables](/dashboards/variables/): create the variables
   the bar shows.
-- [Query builder](/fusescope-docs/querying/query-builder/): aggregations, group by and
+- [Query builder](/querying/query-builder/): aggregations, group by and
   formulas for panel queries.

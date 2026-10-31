@@ -5,26 +5,26 @@ description: Short definitions of the observability and FuseScope terms used in 
 
 One-line definitions of the terms used in FuseScope and in these pages, in
 alphabetical order. For longer explanations with examples, see
-[Core concepts](/fusescope-docs/start/concepts/).
+[Core concepts](/start/concepts/).
 
 ## Aggregation
 
 A calculation over many spans, logs or data points that returns a number, such as
 `count()`, `avg(duration_nano)` or `p99(duration_nano)`. See
-[Query builder](/fusescope-docs/querying/query-builder/#aggregations).
+[Query builder](/querying/query-builder/#aggregations).
 
 ## Alert rule
 
 A query FuseScope runs on a schedule, with a threshold. When the result crosses the
 threshold, an alert fires and a notification is sent. See
-[Alert rules](/fusescope-docs/alerts/alert-rules/).
+[Alert rules](/alerts/alert-rules/).
 
 ## Apdex
 
 A score from 0 to 1 for how satisfied users are with a service's response times,
 based on a target time *T*: requests within *T* count fully, within 4 × *T* half, and
-slower or failed ones not at all. See [Core concepts](/fusescope-docs/start/concepts/#apdex)
-and [Apdex threshold](/fusescope-docs/apm/services/#apdex-threshold).
+slower or failed ones not at all. See [Core concepts](/start/concepts/#apdex)
+and [Apdex threshold](/apm/services/#apdex-threshold).
 
 ## Attribute
 
@@ -35,13 +35,13 @@ Used to filter and group data.
 
 An email domain, such as `example.com`, tied to a single sign-on provider. Users with an
 email in that domain sign in through the provider. See
-[Single sign-on](/fusescope-docs/configuration/sso/).
+[Single sign-on](/configuration/sso/).
 
 ## Breadcrumbs
 
 In Real User Monitoring, the views, clicks and requests of a session in the 2 minutes
 before a JavaScript error, so you can see what the user did just before it. See
-[Error detail](/fusescope-docs/frontend/errors/#error-detail).
+[Error detail](/frontend/errors/#error-detail).
 
 ## Cardinality
 
@@ -52,7 +52,7 @@ produces very many series.
 ## Celery worker
 
 A process that runs Celery tasks, Python jobs queued by your code to run in the
-background. See [Celery](/fusescope-docs/analyze/messaging-queues/#celery).
+background. See [Celery](/analyze/messaging-queues/#celery).
 
 ## ClickHouse
 
@@ -64,36 +64,36 @@ The OpenTelemetry Collector: a program that receives telemetry from your applica
 processes it and writes it to ClickHouse. FuseScope ships its own build. Next to your
 applications you can run the upstream `otelcol-contrib` build as an agent, with
 [receivers](#receiver) and [exporters](#exporter) of its own. See
-[Architecture](/fusescope-docs/reference/architecture/) and
-[Collector on Docker](/fusescope-docs/sending-data/collector-docker/).
+[Architecture](/reference/architecture/) and
+[Collector on Docker](/sending-data/collector-docker/).
 
 ## Consumer lag
 
 How many messages a Kafka consumer group still has to read in a partition. Lag that
 keeps growing means the consumers can't keep up. See
-[Messaging Queues](/fusescope-docs/analyze/messaging-queues/#queues-in-plain-words).
+[Messaging Queues](/analyze/messaging-queues/#queues-in-plain-words).
 
 ## Counter
 
 A [Sum](#sum) metric that only goes up, such as requests served. Queried with a
-[rate](#rate). See [Metric basics](/fusescope-docs/explore/metrics/#metric-basics).
+[rate](#rate). See [Metric basics](/explore/metrics/#metric-basics).
 
 ## Dashboard
 
 A page of panels (charts, tables, numbers) you arrange yourself. See
-[Dashboards](/fusescope-docs/dashboards/dashboards/).
+[Dashboards](/dashboards/dashboards/).
 
 ## Dashboard variable
 
 A control at the top of a dashboard, such as a list of services, whose value the
 panel queries use as `$name`. Changing it changes what every panel that uses it shows.
-See [Dashboard variables](/fusescope-docs/dashboards/variables/).
+See [Dashboard variables](/dashboards/variables/).
 
 ## Data source catalog
 
 The **Get Started** page, organised by goal, that lists the languages, log sources,
 infrastructure and integrations you can send data from, each with its setup page. See
-[Data source catalog](/fusescope-docs/sending-data/data-source-catalog/).
+[Data source catalog](/sending-data/data-source-catalog/).
 
 ## Downstream
 
@@ -107,7 +107,7 @@ How long a span took, from start to end. Stored in nanoseconds as `duration_nano
 ## Endpoint
 
 One kind of request or call a service handles, shown as a row of the
-[Endpoints](/fusescope-docs/apm/services/#endpoints) tab: an
+[Endpoints](/apm/services/#endpoints) tab: an
 [operation](#operation), or an `http.route` or `rpc.method` value.
 
 ## Entrypoint span
@@ -119,7 +119,7 @@ latency and error rate are computed from these spans.
 
 In Real User Monitoring, all the JavaScript errors with the same
 [fingerprint](#fingerprint): one bug, however many times and in however many browsers it
-happened. See [Errors](/fusescope-docs/frontend/errors/).
+happened. See [Errors](/frontend/errors/).
 
 ## Error rate
 
@@ -128,12 +128,12 @@ The share of requests that failed, as a percentage.
 ## Evaluation window
 
 How much recent data an alert rule looks at each time it runs, such as the last 5
-minutes. See [Evaluation window and frequency](/fusescope-docs/alerts/alert-rules/#evaluation-window-and-frequency).
+minutes. See [Evaluation window and frequency](/alerts/alert-rules/#evaluation-window-and-frequency).
 
 ## Exception
 
 An error your code raised, recorded on a span as an `exception` event with its type,
-message and stack trace. See [Exceptions](/fusescope-docs/apm/exceptions/).
+message and stack trace. See [Exceptions](/apm/exceptions/).
 
 ## Exponential histogram
 
@@ -144,40 +144,40 @@ range of values without bucket settings.
 
 A collector component that sends data on, such as `otlp` (gRPC) or `otlphttp` to
 FuseScope, or `debug` to the collector's own output. See
-[OTLP](/fusescope-docs/sending-data/otlp/#from-another-collector).
+[OTLP](/sending-data/otlp/#from-another-collector).
 
 ## External domain
 
 A host your services call over HTTP, such as `api.stripe.com` or `10.0.4.11`, taken
 from the URL of their client spans. It doesn't need to send telemetry itself. See
-[External APIs](/fusescope-docs/analyze/external-apis/).
+[External APIs](/analyze/external-apis/).
 
 ## Filter
 
 A condition that selects which data a query uses, such as
-`service.name = 'driver'`. See [Search syntax](/fusescope-docs/querying/search-syntax/).
+`service.name = 'driver'`. See [Search syntax](/querying/search-syntax/).
 
 ## Fingerprint
 
 A short id that groups JavaScript errors, computed from the exception type, the message
 with its numbers, ids and URLs removed, and the file and function of the top stack frame.
-See [How errors are grouped](/fusescope-docs/frontend/errors/#how-errors-are-grouped).
+See [How errors are grouped](/frontend/errors/#how-errors-are-grouped).
 
 ## Flame graph
 
 A picture of a trace where time runs left to right and each span sits under the span
-that called it. See [Trace details](/fusescope-docs/explore/trace-details/#flame-graph).
+that called it. See [Trace details](/explore/trace-details/#flame-graph).
 
 ## Gauge
 
 A metric type for a current value that goes up and down, such as memory in use. See
-[Metric types](/fusescope-docs/explore/metrics/#metric-types-and-temporality).
+[Metric types](/explore/metrics/#metric-types-and-temporality).
 
 ## GenAI semantic conventions
 
 The OpenTelemetry attribute names for LLM, tool and agent calls, such as
 `gen_ai.request.model` and `gen_ai.usage.input_tokens`. AI Observability reads them. See
-[AI Observability for Python](/fusescope-docs/analyze/ai-observability-python/).
+[AI Observability for Python](/analyze/ai-observability-python/).
 
 ## Group by
 
@@ -189,7 +189,7 @@ line per `service.name`.
 A change FuseScope flags on a service because it crossed a rule: an error rate of 50%
 or more, or the error rate, p99 latency or request rate at least doubling against the
 previous period. On the service page, also a downstream dependency that fails half
-its calls. See [Highlight badges](/fusescope-docs/apm/services/#highlight-badges).
+its calls. See [Highlight badges](/apm/services/#highlight-badges).
 
 ## Histogram
 
@@ -200,26 +200,26 @@ compute percentiles.
 
 A setting that turns sign-in off: every request acts as the root user, an admin. For
 trusted local or demo instances only. See
-[Impersonation mode](/fusescope-docs/configuration/impersonation-mode/).
+[Impersonation mode](/configuration/impersonation-mode/).
 
 ## Inferred dependency
 
 Something your services call that sends no traces itself, such as a managed database,
 a queue or a third-party API. FuseScope draws it on the
-[Service Map](/fusescope-docs/apm/service-map/#how-the-map-is-built) from the callers'
+[Service Map](/apm/service-map/#how-the-map-is-built) from the callers'
 client spans (`db.system`, `messaging.system`, `peer.service` or `server.address`),
 with a dashed outline.
 
 ## Instrumentation
 
 The code or agent that makes an application produce traces, logs and metrics. See
-[Instrument applications](/fusescope-docs/sending-data/instrumentation/).
+[Instrument applications](/sending-data/instrumentation/).
 
 ## Integration
 
 A ready-made setup for one product, such as PostgreSQL or Redis: a collector
 configuration, dashboards and a connection check. See
-[Integrations](/fusescope-docs/sending-data/integrations/).
+[Integrations](/sending-data/integrations/).
 
 ## Latency
 
@@ -229,7 +229,7 @@ How long a request takes to get a response.
 
 The pieces of text a language model reads (input tokens) and writes (output tokens),
 roughly three quarters of a word each. Providers charge per million tokens. See
-[AI Observability](/fusescope-docs/analyze/ai-observability/#llm-calls-in-plain-words).
+[AI Observability](/analyze/ai-observability/#llm-calls-in-plain-words).
 
 ## Log
 
@@ -239,13 +239,13 @@ A timestamped record a program writes, with a body (the message) and a severity.
 
 A filter and a list of processors that change logs before they are stored, such as
 parsing JSON or setting the severity. See
-[Log pipelines](/fusescope-docs/sending-data/log-pipelines/).
+[Log pipelines](/sending-data/log-pipelines/).
 
 ## Meter signal
 
 A count of what the workspace ingested: log records, spans and metric data points,
 and the size of logs and spans, written once per hour as `signoz.meter.*` metrics.
-See [Cost Meter](/fusescope-docs/analyze/cost-meter/).
+See [Cost Meter](/analyze/cost-meter/).
 
 ## Metric
 
@@ -259,18 +259,18 @@ Said of a counter that only goes up, such as total requests served.
 
 A log entry that spans several lines, such as a Java stack trace. A collector joins
 the lines into one record with a pattern that matches the first line. See
-[Logs from files](/fusescope-docs/sending-data/logs-files/).
+[Logs from files](/sending-data/logs-files/).
 
 ## Node and pod
 
 In Kubernetes, a **node** is a machine of the cluster and a **pod** is one or more
 containers scheduled together on a node. See
-[Infrastructure](/fusescope-docs/observe/infrastructure/#infrastructure-in-plain-words).
+[Infrastructure](/observe/infrastructure/#infrastructure-in-plain-words).
 
 ## Notification channel
 
 A destination for alert notifications: Slack, email, PagerDuty, a webhook and others.
-See [Notification channels](/fusescope-docs/alerts/notification-channels/).
+See [Notification channels](/alerts/notification-channels/).
 
 ## OpenTelemetry
 
@@ -285,60 +285,60 @@ same name in one service are the same operation.
 ## OTLP
 
 The OpenTelemetry protocol, used to send telemetry over gRPC (port 4317) or HTTP
-(port 4318). See [OTLP](/fusescope-docs/sending-data/otlp/).
+(port 4318). See [OTLP](/sending-data/otlp/).
 
 ## Page load
 
 In Real User Monitoring, the [view](#view) a browser loaded the page on: the first view of
 a visit, or a reload. Only page loads have Web Vitals. The other views of a single-page
 app are [route changes](#route-change). See
-[Page loads and route changes](/fusescope-docs/frontend/views/#page-loads-and-route-changes).
+[Page loads and route changes](/frontend/views/#page-loads-and-route-changes).
 
 ## Panel
 
 One chart, table, number, list or note on a dashboard, with its own query and title.
-See [Dashboards](/fusescope-docs/dashboards/dashboards/#panels).
+See [Dashboards](/dashboards/dashboards/#panels).
 
 ## Panel editor
 
 The full-screen page where you build a panel: its queries on the left, a preview in
 the middle and its settings on the right. See
-[Panel editor](/fusescope-docs/dashboards/panel-editor/).
+[Panel editor](/dashboards/panel-editor/).
 
 ## Panel type
 
 How a panel draws its data, such as Time Series, Bar Chart, Table or Text. Each type
 accepts some kinds of data and queries. See
-[Panel types](/fusescope-docs/dashboards/dashboards/#panel-types).
+[Panel types](/dashboards/dashboards/#panel-types).
 
 ## Partition
 
 One of the ordered parts a Kafka topic is split into, numbered from `0`, so several
 consumers can read the topic in parallel. See
-[Messaging Queues](/fusescope-docs/analyze/messaging-queues/#queues-in-plain-words).
+[Messaging Queues](/analyze/messaging-queues/#queues-in-plain-words).
 
 ## Percentile
 
 The value below which a given share of measurements fall. **P50** is the median;
 **P95** and **P99** show the slowest 5% and 1% of requests. See
-[Core concepts](/fusescope-docs/start/concepts/#latency-and-percentiles-p50-p95-p99).
+[Core concepts](/start/concepts/#latency-and-percentiles-p50-p95-p99).
 
 ## Planned downtime
 
 A maintenance window during which alert notifications are held back. Rules still run
-and record alerts. See [Planned downtime](/fusescope-docs/alerts/routing-and-downtime/#planned-downtime).
+and record alerts. See [Planned downtime](/alerts/routing-and-downtime/#planned-downtime).
 
 ## Processor
 
 One step of a log pipeline, such as a JSON parser or a Severity Parser. A pipeline
 runs its processors in order. See
-[Log pipelines](/fusescope-docs/sending-data/log-pipelines/#processors).
+[Log pipelines](/sending-data/log-pipelines/#processors).
 
 ## Public key (RUM)
 
 A write-only key, starting with `rum_pub_`, that a web app sends with its Real User
 Monitoring data. It is safe to ship in a JavaScript bundle: it can only send data for its
-application, from its allowed origins. See [RUM keys](/fusescope-docs/frontend/keys/).
+application, from its allowed origins. See [RUM keys](/frontend/keys/).
 
 ## Query
 
@@ -348,13 +348,13 @@ aggregation and group by.
 ## Rate
 
 How fast a [counter](#counter) grows, per second, such as 35 requests per second. See
-[Why counters are queried with a rate](/fusescope-docs/explore/metrics/#why-counters-are-queried-with-a-rate).
+[Why counters are queried with a rate](/explore/metrics/#why-counters-are-queried-with-a-rate).
 
 ## Real User Monitoring (RUM)
 
 Measuring what real users experience in their browser: page loads, Web Vitals,
 JavaScript errors and the requests each page makes, linked to backend traces. See
-[Real User Monitoring](/fusescope-docs/frontend/real-user-monitoring/).
+[Real User Monitoring](/frontend/real-user-monitoring/).
 
 ## Receiver
 
@@ -365,19 +365,19 @@ A collector component that gets data in, by listening (`otlp`, `syslog`,
 ## RED metrics
 
 Rate, errors and duration: how many requests a service handles, how many fail and how
-long they take. See [Services](/fusescope-docs/apm/services/#rate-errors-and-duration).
+long they take. See [Services](/apm/services/#rate-errors-and-duration).
 
 ## Release
 
 The version of your app that sent the data, the `version` passed to the RUM SDK's
 `init()` and stored as `service.version`. RUM screens filter by it, and source maps are
-uploaded per release. See [Source maps](/fusescope-docs/frontend/source-maps/).
+uploaded per release. See [Source maps](/frontend/source-maps/).
 
 ## Requests and limits
 
 The CPU and memory Kubernetes reserves for a container (**request**) and the most it
 may use (**limit**). Over its memory limit a container is killed; over its CPU limit
-it is slowed down. See [Infrastructure](/fusescope-docs/observe/infrastructure/#kubernetes).
+it is slowed down. See [Infrastructure](/observe/infrastructure/#kubernetes).
 
 ## Resource attribute
 
@@ -387,7 +387,7 @@ An attribute that describes what sent the data, such as `service.name` or
 ## Root cause
 
 The service where a failure starts, as opposed to the services that fail because they
-call it. The [Service Map](/fusescope-docs/apm/service-map/#root-cause) names a
+call it. The [Service Map](/apm/service-map/#root-cause) names a
 *likely* root cause: the deepest service with 5% errors or more whose callees are all
 healthy.
 
@@ -400,41 +400,41 @@ whole request.
 
 In Real User Monitoring, a [view](#view) reached by navigating inside a single-page app,
 without reloading the page. Route changes have no Web Vitals but count time on view,
-errors and requests. See [Views](/fusescope-docs/frontend/views/#page-loads-and-route-changes).
+errors and requests. See [Views](/frontend/views/#page-loads-and-route-changes).
 
 ## Route template
 
 A page path with its variable parts replaced by names, such as `/product/:id` for
 `/product/1234`. RUM groups views and vitals by route template. See
-[Real User Monitoring](/fusescope-docs/frontend/real-user-monitoring/#what-you-get).
+[Real User Monitoring](/frontend/real-user-monitoring/#what-you-get).
 
 ## Routing policy
 
 A rule that sends every alert whose labels match an expression, such as
 `service.name == "payment"`, to chosen notification channels. See
-[Routing policies](/fusescope-docs/alerts/routing-and-downtime/#routing-policies).
+[Routing policies](/alerts/routing-and-downtime/#routing-policies).
 
 ## SAML
 
 Security Assertion Markup Language 2.0, an older single sign-on standard: the identity
 provider sends FuseScope a signed assertion with the user's email. See
-[SAML 2.0](/fusescope-docs/configuration/sso/#saml-20).
+[SAML 2.0](/configuration/sso/#saml-20).
 
 ## Sample
 
 One value of a metric at one moment, also called a data point. The Metrics explorer
 counts them per metric. See
-[Samples and time series](/fusescope-docs/explore/metrics/#samples-and-time-series).
+[Samples and time series](/explore/metrics/#samples-and-time-series).
 
 ## Scraper
 
 A part of the `hostmetrics` receiver that reads one kind of host metric, such as
-`cpu`, `memory` or `filesystem`. See [Hosts](/fusescope-docs/sending-data/hosts/).
+`cpu`, `memory` or `filesystem`. See [Hosts](/sending-data/hosts/).
 
 ## Section
 
 A titled group of panels on a dashboard. Sections can be folded, reordered and
-cloned. See [Sections](/fusescope-docs/dashboards/dashboards/#sections).
+cloned. See [Sections](/dashboards/dashboards/#sections).
 
 ## Service
 
@@ -445,26 +445,26 @@ One program that sends telemetry, named by its `service.name` resource attribute
 In Real User Monitoring, one user's visit to a web app, shared by all its tabs. It ends
 after 15 minutes without activity or after 4 hours; the next session carries its id as
 `session.previous_id`. Every RUM span and event carries its `session.id`. See
-[Sessions](/fusescope-docs/frontend/sessions/).
+[Sessions](/frontend/sessions/).
 
 ## Severity
 
 How serious a log is, stored as `severity_number` (1 to 24) and `severity_text`.
 FuseScope shows it as one of TRACE, DEBUG, INFO, WARN, ERROR, FATAL or UNKNOWN. See
-[Severity levels](/fusescope-docs/explore/logs/#severity-levels).
+[Severity levels](/explore/logs/#severity-levels).
 
 ## Single sign-on
 
 Signing in to FuseScope with a company account from an identity provider, over OpenID
 Connect, Google Workspace or SAML, instead of a FuseScope password. See
-[Single sign-on](/fusescope-docs/configuration/sso/).
+[Single sign-on](/configuration/sso/).
 
 ## Source map
 
 A file your bundler writes next to each minified JavaScript bundle, mapping its positions
 back to your original files, functions and lines. Uploaded to FuseScope, it turns
 browser stack traces back into your code. See
-[Source maps](/fusescope-docs/frontend/source-maps/).
+[Source maps](/frontend/source-maps/).
 
 ## Span
 
@@ -479,7 +479,7 @@ Something that happened at one moment during a span, such as an exception.
 
 The list of function calls that were running when an exception was raised, innermost
 first. It shows which line failed and how the program got there. See
-[Read a stack trace](/fusescope-docs/apm/exceptions/#read-a-stack-trace).
+[Read a stack trace](/apm/exceptions/#read-a-stack-trace).
 
 ## Sum
 
@@ -495,19 +495,19 @@ Prometheus clients.
 
 Translating a minified stack trace back to the original source with a
 [source map](#source-map). FuseScope does it when you read an error, so maps uploaded
-later also fix past errors. See [Source maps](/fusescope-docs/frontend/source-maps/).
+later also fix past errors. See [Source maps](/frontend/source-maps/).
 
 ## Temporality
 
 How a counter reports its value. **Cumulative**: the total since the program started.
 **Delta**: the change since the last report. See
-[Metric types and temporality](/fusescope-docs/explore/metrics/#metric-types-and-temporality).
+[Metric types and temporality](/explore/metrics/#metric-types-and-temporality).
 
 ## Threshold
 
 The value an alert rule compares its query with, such as `5` for a 5% error rate.
 A rule can have several, named `critical`, `warning` and `info`. See
-[Thresholds and severity](/fusescope-docs/alerts/alert-rules/#thresholds-and-severity).
+[Thresholds and severity](/alerts/alert-rules/#thresholds-and-severity).
 
 ## Throughput
 
@@ -518,7 +518,7 @@ second (req/s).
 
 In Real User Monitoring, how long a user stayed on a [view](#view): from when it opened
 until the next navigation or until the tab was hidden. The Views tab shows the median.
-See [Views](/fusescope-docs/frontend/views/).
+See [Views](/frontend/views/).
 
 ## Time range
 
@@ -527,7 +527,7 @@ The period a page or query covers, such as the last 30 minutes.
 ## Time series
 
 The values of one metric for one combination of label values, over time. See
-[Samples and time series](/fusescope-docs/explore/metrics/#samples-and-time-series).
+[Samples and time series](/explore/metrics/#samples-and-time-series).
 
 ## Trace
 
@@ -542,34 +542,34 @@ too, which links them to the trace.
 ## TTFT
 
 Time to first token: how long a streaming LLM call takes before the first words of
-the answer arrive. See [AI Observability](/fusescope-docs/analyze/ai-observability/#overview).
+the answer arrive. See [AI Observability](/analyze/ai-observability/#overview).
 
 ## Upstream and downstream
 
 Directions of calls between services. **Upstream** services call this one;
 **downstream** ones are called by it. In HotROD, `frontend` is upstream of `driver`,
 and `redis-manual` is downstream of it. See
-[Dependencies](/fusescope-docs/apm/services/#dependencies).
+[Dependencies](/apm/services/#dependencies).
 
 ## View
 
 In Real User Monitoring, one page or route a user saw, either a [page load](#page-load)
 or a [route change](#route-change). Each view is a span named `view`, whose duration is
-the [time on view](#time-on-view). See [Views](/fusescope-docs/frontend/views/).
+the [time on view](#time-on-view). See [Views](/frontend/views/).
 
 ## Waterfall
 
 A trace drawn as a tree of spans, one row each, with a bar for when each span ran. See
-[Trace details](/fusescope-docs/explore/trace-details/#waterfall).
+[Trace details](/explore/trace-details/#waterfall).
 
 ## Web Vitals
 
 Google's measures of page experience: LCP (loading), INP (responsiveness) and CLS
 (visual stability), each rated good, needs improvement or poor. See
-[Web Vitals in plain words](/fusescope-docs/frontend/real-user-monitoring/#web-vitals-in-plain-words).
+[Web Vitals in plain words](/frontend/real-user-monitoring/#web-vitals-in-plain-words).
 
 ## Zero-code instrumentation
 
 An agent or launcher that instruments common frameworks and libraries without
 changing your code, such as the OpenTelemetry Java agent or `opentelemetry-instrument`
-for Python. See [Instrument applications](/fusescope-docs/sending-data/instrumentation/).
+for Python. See [Instrument applications](/sending-data/instrumentation/).

@@ -16,7 +16,7 @@ sharded.
 
 - **MongoDB 4.4 or newer.** Check with `db.version()`.
 - **An `otelcol-contrib` collector**, v0.88.0 or newer, where you can add config files
-  and environment variables. See [Integrations](/fusescope-docs/sending-data/integrations/#how-it-works).
+  and environment variables. See [Integrations](/sending-data/integrations/#how-it-works).
 - **For metrics:** a least-privilege user with the `clusterMonitor` role, and network
   access from the collector to MongoDB.
 - **For logs:** the collector can read the MongoDB log file. The `systemLog.path`
@@ -182,7 +182,7 @@ service:
 </Tabs>
 
 Run the collector with `--config mongodb-metrics.yaml --config mongodb-logs.yaml`, as
-shown in [Run the collector](/fusescope-docs/sending-data/integrations/#run-the-collector).
+shown in [Run the collector](/sending-data/integrations/#run-the-collector).
 Set `insecure: false` in the exporter when the FuseScope endpoint uses TLS.
 
 <Aside type="note" title="Collector on another host">
@@ -213,7 +213,7 @@ Set `insecure: false` in the exporter when the FuseScope endpoint uses TLS.
 - Network IO
 
 No log pipelines and no alert rules. Parsing happens in the collector config; see
-[Log pipelines](/fusescope-docs/sending-data/log-pipelines/) for more.
+[Log pipelines](/sending-data/log-pipelines/) for more.
 
 ## Data collected
 
@@ -266,6 +266,6 @@ The fields of each entry's `attr` object are flattened into attributes as well.
 
 ## Related
 
-- [Integrations](/fusescope-docs/sending-data/integrations/)
-- [Log pipelines](/fusescope-docs/sending-data/log-pipelines/)
+- [Integrations](/sending-data/integrations/)
+- [Log pipelines](/sending-data/log-pipelines/)
 - [`mongodb` receiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/mongodbreceiver)

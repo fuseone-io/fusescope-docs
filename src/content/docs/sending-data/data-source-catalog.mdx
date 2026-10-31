@@ -18,75 +18,75 @@ The data source catalog is the **Get Started** page, at `/get-started`. The old 
 
 It is organised by **goal**: you pick what you want to see in FuseScope, then the
 technology you use, and the entry opens the FuseScope setup page for it. Every entry
-ends up sending OpenTelemetry data over [OTLP](/fusescope-docs/sending-data/otlp/) to
+ends up sending OpenTelemetry data over [OTLP](/sending-data/otlp/) to
 your own FuseScope collector, with no ingestion key.
 
 ## Monitor an application
 
-Traces, metrics and logs from your services, for [Services](/fusescope-docs/apm/services/)
-and the [Traces explorer](/fusescope-docs/explore/traces/). Start with
-[Instrument applications](/fusescope-docs/sending-data/instrumentation/).
+Traces, metrics and logs from your services, for [Services](/apm/services/)
+and the [Traces explorer](/explore/traces/). Start with
+[Instrument applications](/sending-data/instrumentation/).
 
 | Entry | Setup page |
 |---|---|
-| Java | [Java](/fusescope-docs/sending-data/instrumentation/java/) |
-| .NET | [.NET](/fusescope-docs/sending-data/instrumentation/dotnet/) |
-| Node.js | [Node.js](/fusescope-docs/sending-data/instrumentation/nodejs/) |
-| Python | [Python](/fusescope-docs/sending-data/instrumentation/python/) |
-| Go | [Go](/fusescope-docs/sending-data/instrumentation/go/) |
-| Ruby | [Ruby](/fusescope-docs/sending-data/instrumentation/ruby/) |
-| PHP | [PHP](/fusescope-docs/sending-data/instrumentation/php/) |
-| Web application (RUM) | [Set up a web application](/fusescope-docs/frontend/set-up-web/) |
+| Java | [Java](/sending-data/instrumentation/java/) |
+| .NET | [.NET](/sending-data/instrumentation/dotnet/) |
+| Node.js | [Node.js](/sending-data/instrumentation/nodejs/) |
+| Python | [Python](/sending-data/instrumentation/python/) |
+| Go | [Go](/sending-data/instrumentation/go/) |
+| Ruby | [Ruby](/sending-data/instrumentation/ruby/) |
+| PHP | [PHP](/sending-data/instrumentation/php/) |
+| Web application (RUM) | [Set up a web application](/frontend/set-up-web/) |
 
 ## Monitor AI and LLM calls
 
 Model, tokens, cost and latency of LLM calls, for
-[AI Observability](/fusescope-docs/analyze/ai-observability/).
+[AI Observability](/analyze/ai-observability/).
 
 | Entry | Setup page |
 |---|---|
-| Python (OpenAI, Anthropic, LangChain, …) | [AI Observability for Python](/fusescope-docs/analyze/ai-observability-python/) |
-| Node.js (OpenAI, Anthropic, LangChain, …) | [AI Observability for Node.js](/fusescope-docs/analyze/ai-observability-nodejs/) |
+| Python (OpenAI, Anthropic, LangChain, …) | [AI Observability for Python](/analyze/ai-observability-python/) |
+| Node.js (OpenAI, Anthropic, LangChain, …) | [AI Observability for Node.js](/analyze/ai-observability-nodejs/) |
 
 ## Collect logs
 
-Logs for the [Logs explorer](/fusescope-docs/explore/logs/). Parse them afterwards with
-[log pipelines](/fusescope-docs/sending-data/log-pipelines/).
+Logs for the [Logs explorer](/explore/logs/). Parse them afterwards with
+[log pipelines](/sending-data/log-pipelines/).
 
 | Entry | Setup page |
 |---|---|
-| Application logs (SDK) | [Instrument applications › Logs](/fusescope-docs/sending-data/instrumentation/#logs) |
-| Log files | [Logs from files](/fusescope-docs/sending-data/logs-files/) |
-| Kubernetes pods | [Kubernetes logs](/fusescope-docs/sending-data/logs-kubernetes/) |
-| Syslog | [Syslog](/fusescope-docs/sending-data/logs-syslog/) |
-| Fluent Bit, Fluentd | [Fluent Bit and Fluentd](/fusescope-docs/sending-data/logs-fluent/) |
+| Application logs (SDK) | [Instrument applications › Logs](/sending-data/instrumentation/#logs) |
+| Log files | [Logs from files](/sending-data/logs-files/) |
+| Kubernetes pods | [Kubernetes logs](/sending-data/logs-kubernetes/) |
+| Syslog | [Syslog](/sending-data/logs-syslog/) |
+| Fluent Bit, Fluentd | [Fluent Bit and Fluentd](/sending-data/logs-fluent/) |
 
 ## Monitor infrastructure
 
-Hosts, clusters and metrics, for [Infrastructure](/fusescope-docs/observe/infrastructure/)
-and the [Metrics explorer](/fusescope-docs/explore/metrics/).
+Hosts, clusters and metrics, for [Infrastructure](/observe/infrastructure/)
+and the [Metrics explorer](/explore/metrics/).
 
 | Entry | Setup page |
 |---|---|
-| Kubernetes | [Kubernetes](/fusescope-docs/sending-data/kubernetes/) |
-| Hosts (Linux VM, bare metal, Docker host) | [Hosts](/fusescope-docs/sending-data/hosts/) |
-| Prometheus metrics | [Prometheus metrics](/fusescope-docs/sending-data/prometheus/) |
+| Kubernetes | [Kubernetes](/sending-data/kubernetes/) |
+| Hosts (Linux VM, bare metal, Docker host) | [Hosts](/sending-data/hosts/) |
+| Prometheus metrics | [Prometheus metrics](/sending-data/prometheus/) |
 
 ## Monitor a database or service
 
-[Integrations](/fusescope-docs/sending-data/integrations/) come with a collector
+[Integrations](/sending-data/integrations/) come with a collector
 configuration and ready-made dashboards.
 
 | Entry | Setup page |
 |---|---|
-| ClickHouse | [ClickHouse](/fusescope-docs/sending-data/integrations/clickhouse/) |
-| MongoDB | [MongoDB](/fusescope-docs/sending-data/integrations/mongodb/) |
-| Nginx | [Nginx](/fusescope-docs/sending-data/integrations/nginx/) |
-| PostgreSQL | [PostgreSQL](/fusescope-docs/sending-data/integrations/postgresql/) |
-| Redis | [Redis](/fusescope-docs/sending-data/integrations/redis/) |
-| AWS RDS MySQL | [AWS RDS MySQL](/fusescope-docs/sending-data/integrations/aws-rds-mysql/) |
-| AWS RDS PostgreSQL | [AWS RDS PostgreSQL](/fusescope-docs/sending-data/integrations/aws-rds-postgresql/) |
-| AWS ElastiCache Redis | [AWS ElastiCache Redis](/fusescope-docs/sending-data/integrations/aws-elasticache-redis/) |
+| ClickHouse | [ClickHouse](/sending-data/integrations/clickhouse/) |
+| MongoDB | [MongoDB](/sending-data/integrations/mongodb/) |
+| Nginx | [Nginx](/sending-data/integrations/nginx/) |
+| PostgreSQL | [PostgreSQL](/sending-data/integrations/postgresql/) |
+| Redis | [Redis](/sending-data/integrations/redis/) |
+| AWS RDS MySQL | [AWS RDS MySQL](/sending-data/integrations/aws-rds-mysql/) |
+| AWS RDS PostgreSQL | [AWS RDS PostgreSQL](/sending-data/integrations/aws-rds-postgresql/) |
+| AWS ElastiCache Redis | [AWS ElastiCache Redis](/sending-data/integrations/aws-elasticache-redis/) |
 
 For anything else, such as Kafka or MySQL on your own servers, add its receiver from the
 [collector-contrib receivers](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver)
@@ -99,9 +99,9 @@ reaches FuseScope.
 
 | Entry | Setup page |
 |---|---|
-| Docker | [Collector on Docker](/fusescope-docs/sending-data/collector-docker/) |
-| Linux VM (systemd) | [Collector on a VM](/fusescope-docs/sending-data/collector-vm/) |
-| An existing OpenTelemetry Collector | [OTLP › From another collector](/fusescope-docs/sending-data/otlp/#from-another-collector) |
+| Docker | [Collector on Docker](/sending-data/collector-docker/) |
+| Linux VM (systemd) | [Collector on a VM](/sending-data/collector-vm/) |
+| An existing OpenTelemetry Collector | [OTLP › From another collector](/sending-data/otlp/#from-another-collector) |
 
 <Aside>
   Nothing in **Get Started** is required: FuseScope shows data as soon as it reaches the
@@ -111,5 +111,5 @@ reaches FuseScope.
 ## Check that data arrives
 
 Within a minute of sending, look for the service under **Services**, or for the data in
-the [Traces](/fusescope-docs/explore/traces/), [Logs](/fusescope-docs/explore/logs/) or
-[Metrics](/fusescope-docs/explore/metrics/) explorers.
+the [Traces](/explore/traces/), [Logs](/explore/logs/) or
+[Metrics](/explore/metrics/) explorers.

@@ -5,13 +5,13 @@ description: Learn metric types, browse the metrics FuseScope receives, read the
 
 import { Aside, Steps } from "@astrojs/starlight/components";
 
-The Metrics explorer lists the [metrics](/fusescope-docs/reference/glossary/#metric)
+The Metrics explorer lists the [metrics](/reference/glossary/#metric)
 FuseScope receives, explains each one, and charts them.
 
 **Use this page when** you want to know which metrics exist and what they measure, or
 to chart one before putting it on a dashboard or in an alert. For the latency and
 errors of your services you don't need metrics at all:
-[Services](/fusescope-docs/apm/services/) computes them from traces.
+[Services](/apm/services/) computes them from traces.
 
 ## Open the Metrics page
 
@@ -32,7 +32,7 @@ If you are new to metrics, read this section first. The rest of the page assumes
 
 A metric is a number with a name, measured again and again over time, such as
 `http.server.request.count` or `system.memory.usage`. Each measurement is a
-[sample](/fusescope-docs/reference/glossary/#sample): one value at one moment.
+[sample](/reference/glossary/#sample): one value at one moment.
 
 ### Metric types and temporality
 
@@ -41,17 +41,17 @@ Summary shows it as a coloured badge.
 
 | Type | What it holds | Example | Usual query |
 |---|---|---|---|
-| [**Sum**](/fusescope-docs/reference/glossary/#sum) | A total. A *counter* when it only goes up. | Requests served | **Rate**, then **Sum** |
-| [**Gauge**](/fusescope-docs/reference/glossary/#gauge) | The value right now; it goes up and down. | Memory in use, queue length | **Avg** or **Max**, then **Avg** or **Sum** |
-| [**Histogram**](/fusescope-docs/reference/glossary/#histogram) | How many values fell in each range (bucket). | Request durations | **P50** to **P99** |
-| [**Exp. Histogram**](/fusescope-docs/reference/glossary/#exponential-histogram) | A histogram whose buckets grow exponentially, so it needs no bucket setup. | Request durations | **P50** to **P99** |
-| [**Summary**](/fusescope-docs/reference/glossary/#summary-metric-type) | Percentiles the application computed itself. | Older Prometheus clients | As a gauge |
+| [**Sum**](/reference/glossary/#sum) | A total. A *counter* when it only goes up. | Requests served | **Rate**, then **Sum** |
+| [**Gauge**](/reference/glossary/#gauge) | The value right now; it goes up and down. | Memory in use, queue length | **Avg** or **Max**, then **Avg** or **Sum** |
+| [**Histogram**](/reference/glossary/#histogram) | How many values fell in each range (bucket). | Request durations | **P50** to **P99** |
+| [**Exp. Histogram**](/reference/glossary/#exponential-histogram) | A histogram whose buckets grow exponentially, so it needs no bucket setup. | Request durations | **P50** to **P99** |
+| [**Summary**](/reference/glossary/#summary-metric-type) | Percentiles the application computed itself. | Older Prometheus clients | As a gauge |
 
-A Sum is [monotonic](/fusescope-docs/reference/glossary/#monotonic) when it can only
+A Sum is [monotonic](/reference/glossary/#monotonic) when it can only
 grow, like requests served. A non-monotonic Sum, such as items in a cart, can also
 shrink, and is queried like a gauge.
 
-[Temporality](/fusescope-docs/reference/glossary/#temporality) says how a counter
+[Temporality](/reference/glossary/#temporality) says how a counter
 reports its value. Picture a page-view counter on a web server:
 
 - **Cumulative**: every report gives the total since the server started: 100, then
@@ -65,8 +65,8 @@ rates correctly for both. You see it in the [metric details](#metric-details).
 ### Samples and time series
 
 A metric is rarely one line. Every combination of its
-[attribute](/fusescope-docs/reference/glossary/#attribute) values is a separate
-[time series](/fusescope-docs/reference/glossary/#time-series). A request counter with
+[attribute](/reference/glossary/#attribute) values is a separate
+[time series](/reference/glossary/#time-series). A request counter with
 `service.name` (5 services) and `http.route` (10 routes) can have up to 50 time series,
 each with its own samples.
 
@@ -75,7 +75,7 @@ The Summary shows both numbers for every metric:
 - **Samples**: how many values arrived in the time range. More series or a shorter
   reporting interval means more samples.
 - **Time series**: how many separate series the metric has, its
-  [cardinality](/fusescope-docs/reference/glossary/#cardinality). An attribute with
+  [cardinality](/reference/glossary/#cardinality). An attribute with
   many values, such as a user or request ID, multiplies it quickly, which makes
   storage and queries more expensive.
 
@@ -83,7 +83,7 @@ The Summary shows both numbers for every metric:
 
 A counter only grows, so its raw value says little: "4,182,051 requests since the pod
 started" changes every time the pod restarts. What you want to know is how fast it
-grows. [Rate](/fusescope-docs/reference/glossary/#rate) turns the counter into
+grows. [Rate](/reference/glossary/#rate) turns the counter into
 *per second*: "35 requests per second". **Increase** gives the growth per interval
 instead, such as 2,100 requests per minute.
 
@@ -198,7 +198,7 @@ on the right.
    its result, and a menu (**…**) to clone or delete it.
 3. **Metric**. Type part of a name and pick the metric; its type appears in the field.
    The ⓘ icon next to it opens the [metric details](#metric-details).
-4. **Where**: a [filter](/fusescope-docs/querying/search-syntax/) that keeps only some
+4. **Where**: a [filter](/querying/search-syntax/) that keeps only some
    series, such as `status.code = 'STATUS_CODE_ERROR'`.
 5. **Aggregation**: how the series become lines. See [Aggregation](#aggregation).
 6. **Functions** and **Result**: optional steps. See
@@ -243,7 +243,7 @@ each. The summary next to the title reads them in order, such as
    each interval. **Rate** for counters, **Avg**, **Max** or **Latest** for gauges.
    **every** sets the interval in seconds; leave it empty (**Auto**) and FuseScope
    picks one from the time range. See
-   [Time step](/fusescope-docs/querying/query-builder/#time-step).
+   [Time step](/querying/query-builder/#time-step).
 2. **Across series**, *combine into groups*: how to merge the series into lines.
    **Sum**, **Avg**, **Min** or **Max**, and **by** the keys to keep apart. With
    `service.name` you get one line per service; with no key, one line for everything
@@ -251,18 +251,18 @@ each. The summary next to the title reads them in order, such as
 
 Histograms skip the first step: pick a percentile, such as **P95**, and the keys. The
 options for each type are listed in
-[Aggregations](/fusescope-docs/querying/query-builder/#aggregations).
+[Aggregations](/querying/query-builder/#aggregations).
 
 ### Functions and Result
 
 - **Functions** change the finished lines, *applied in order, top to bottom*: for
   example **EWMA 5** to smooth a noisy line, or **Time Shift** to compare with an
   earlier period. Up to three per query. See
-  [Functions](/fusescope-docs/querying/query-builder/#functions).
+  [Functions](/querying/query-builder/#functions).
 - **Result** has **Having**, to keep only groups whose value matches, such as
   `value > 5`; **Order by**; **Limit**, to keep the first *n* lines; and **Legend**,
   to name the lines, such as `{{service.name}}`. Its summary reads **Defaults** while
-  none is set. See [Legend format](/fusescope-docs/querying/query-builder/#legend-format).
+  none is set. See [Legend format](/querying/query-builder/#legend-format).
 
 ### Formulas
 
@@ -276,7 +276,7 @@ A formula needs its queries to be grouped by the same keys, so that each line of
 meets the matching line of `A`. Hide the queries a formula uses with their eye icon
 and the chart shows only the formula's lines: the hidden queries still run. The
 operators and functions a formula accepts are listed in
-[Several queries and formulas](/fusescope-docs/querying/query-builder/#several-queries-and-formulas).
+[Several queries and formulas](/querying/query-builder/#several-queries-and-formulas).
 
 ### Run a query
 
@@ -373,7 +373,7 @@ because every call of the payment demo service fails; `redis-manual error %` at 
 
 This query is saved in the demo as the view **HotROD error rate**. To be told when the
 rate climbs, click **Create an Alert** and set a threshold on **F1**; see
-[Set up your first alert](/fusescope-docs/guides/first-alert/), which builds the same
+[Set up your first alert](/guides/first-alert/), which builds the same
 percentage from traces.
 
 ## Inspect
@@ -413,10 +413,10 @@ The bar at the bottom of the Explorer acts on the current query:
   selector, with an × to clear it.
 - **Save this view** saves the queries under a name, to come back to later or share
   with the team.
-- **Create an Alert** opens a new [alert rule](/fusescope-docs/alerts/alert-rules/) with
+- **Create an Alert** opens a new [alert rule](/alerts/alert-rules/) with
   the query filled in.
 - **Add to Dashboard** adds the chart as a panel to a new or existing
-  [dashboard](/fusescope-docs/dashboards/dashboards/).
+  [dashboard](/dashboards/dashboards/).
 
 The **Views** tab lists the saved metric views, with who created each one and when.
 **Search for views...** filters them. In **Actions**, the pencil edits a view's name and
@@ -428,9 +428,9 @@ colour, the compass opens it in the Explorer and the bin deletes it.
 
 When no metric has arrived and no search is set, the Summary explains what will
 appear and where to start, instead of an empty table. **Sending metrics to FuseScope**
-opens [OTLP](/fusescope-docs/sending-data/otlp/), and **Other guides** links to
-[Instrument applications](/fusescope-docs/sending-data/instrumentation/),
-[Kubernetes](/fusescope-docs/sending-data/kubernetes/) and this page.
+opens [OTLP](/sending-data/otlp/), and **Other guides** links to
+[Instrument applications](/sending-data/instrumentation/),
+[Kubernetes](/sending-data/kubernetes/) and this page.
 
 ![The Summary with no metrics yet: 0 metrics received in the last 30 minutes, No metrics yet, Sending metrics to FuseScope, and Other guides for Instrument applications, Kubernetes and the Metrics explorer guide.](../../../assets/metrics/metrics-empty-state.png)
 
@@ -439,14 +439,14 @@ or collector exports metrics to FuseScope's OTLP endpoint.
 
 <Aside>
   PromQL and ClickHouse SQL over metrics are written in dashboard panels and alert
-  rules; see [ClickHouse SQL and PromQL](/fusescope-docs/querying/clickhouse-promql/).
+  rules; see [ClickHouse SQL and PromQL](/querying/clickhouse-promql/).
 </Aside>
 
 ## Related
 
-- [Query builder](/fusescope-docs/querying/query-builder/): every aggregation, function
+- [Query builder](/querying/query-builder/): every aggregation, function
   and formula option.
-- [Build your first dashboard](/fusescope-docs/guides/first-dashboard/) and
-  [Set up your first alert](/fusescope-docs/guides/first-alert/): put a query to work.
-- [Core concepts](/fusescope-docs/start/concepts/#metrics-and-metric-types): metrics
+- [Build your first dashboard](/guides/first-dashboard/) and
+  [Set up your first alert](/guides/first-alert/): put a query to work.
+- [Core concepts](/start/concepts/#metrics-and-metric-types): metrics
   next to traces and logs.

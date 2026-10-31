@@ -21,8 +21,8 @@ example uses the HotROD demo app, where the `redis-manual` service fails with
    is 5% or more. In the demo, `payment` fails on every call (a synthetic test
    service) and `redis-manual` on about 18.5%. This guide follows `redis-manual`.
 
-   The [error rate](/fusescope-docs/reference/glossary/#error-rate) counts
-   [spans](/fusescope-docs/reference/glossary/#span) whose status is error, so one
+   The [error rate](/reference/glossary/#error-rate) counts
+   [spans](/reference/glossary/#span) whose status is error, so one
    failed call in five gives 20%.
 
 2. **Check whether it is new.** Click `redis-manual`. On the **Overview**, the
@@ -40,13 +40,13 @@ example uses the HotROD demo app, where the `redis-manual` service fails with
 
    If **With exception** is `0`, the code sets an error status without recording an
    exception: rely on the status message and the span attributes. See
-   [Errors](/fusescope-docs/apm/services/#errors).
+   [Errors](/apm/services/#errors).
 
 4. **Open one failed request.** Click **View traces** on the `GetDriver` row. The
    Traces explorer opens on those failed spans. Click a row: the trace opens. Turn on
    **Highlight errors** at the top of the trace to see which spans failed, and where
    they sit in the request. See
-   [Find spans in a trace](/fusescope-docs/explore/trace-details/#find-spans-in-a-trace).
+   [Find spans in a trace](/explore/trace-details/#find-spans-in-a-trace).
 
 5. **Read the error.** Click the failed span. In **Span details**, the **Events** tab
    lists the exception the code recorded, with its type and message, and its stack
@@ -75,7 +75,7 @@ whole time range.
 <Aside>
   A service can look healthy while the services it calls fail. If the service that
   returns the error to the user shows few errors of its own, open its
-  [Dependencies](/fusescope-docs/apm/services/#dependencies) tab: failing callees are
+  [Dependencies](/apm/services/#dependencies) tab: failing callees are
   outlined in amber or red, and one that fails half its calls also raises a highlight
   on the Overview.
 </Aside>
@@ -83,13 +83,13 @@ whole time range.
 ## Next steps
 
 - Read the logs written during the failed request: see
-  [See the logs for one request](/fusescope-docs/guides/logs-for-a-request/).
-- Get notified next time: see [Set up your first alert](/fusescope-docs/guides/first-alert/).
+  [See the logs for one request](/guides/logs-for-a-request/).
+- Get notified next time: see [Set up your first alert](/guides/first-alert/).
 
 ## Related
 
-- [Search syntax](/fusescope-docs/querying/search-syntax/): more filters.
-- [Query builder](/fusescope-docs/querying/query-builder/#group-by-having-order-by-and-limit):
+- [Search syntax](/querying/search-syntax/): more filters.
+- [Query builder](/querying/query-builder/#group-by-having-order-by-and-limit):
   group by, order by and limit.
-- [Errors tab](/fusescope-docs/apm/services/#errors) and [Exceptions](/fusescope-docs/apm/services/#exceptions).
-- [Trace details](/fusescope-docs/explore/trace-details/): span details, events and logs.
+- [Errors tab](/apm/services/#errors) and [Exceptions](/apm/services/#exceptions).
+- [Trace details](/explore/trace-details/): span details, events and logs.

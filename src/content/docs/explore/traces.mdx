@@ -5,13 +5,13 @@ description: Search spans and traces, open a trace, build funnels and save views
 
 import { Aside, Steps } from "@astrojs/starlight/components";
 
-The Traces explorer searches every [span](/fusescope-docs/reference/glossary/#span)
-your services send, and opens the [trace](/fusescope-docs/reference/glossary/#trace)
+The Traces explorer searches every [span](/reference/glossary/#span)
+your services send, and opens the [trace](/reference/glossary/#trace)
 each one belongs to.
 
 **Use this page when** you need to find specific requests: the slowest ones, the failed
 ones, or the ones that touched a given route, customer or host. To see a service's
-overall health first, start from [Services](/fusescope-docs/apm/services/).
+overall health first, start from [Services](/apm/services/).
 
 Open **Traces** in the sidebar (`/traces-explorer`). The page has three tabs:
 **Explorer**, **Funnels** and **Views**.
@@ -21,14 +21,14 @@ Open **Traces** in the sidebar (`/traces-explorer`). The page has three tabs:
 ## Search spans
 
 Write a filter in the search box with the
-[search syntax](/fusescope-docs/querying/search-syntax/), pick a time range in the top
+[search syntax](/querying/search-syntax/), pick a time range in the top
 bar and click **Run Query**. The scope selector next to the search box limits the query:
 
 | Scope | Searches | Use it to |
 |---|---|---|
 | **All Spans** | Every span | Find any operation, such as one database query |
-| **Root Spans** | Only the first span of each trace, the one with no parent ([root span](/fusescope-docs/reference/glossary/#root-span)) | Look at whole requests as the user saw them |
-| **Entrypoint Spans** | The first span of a request in each service ([entrypoint span](/fusescope-docs/reference/glossary/#entrypoint-span)) | Look at the requests each service received |
+| **Root Spans** | Only the first span of each trace, the one with no parent ([root span](/reference/glossary/#root-span)) | Look at whole requests as the user saw them |
+| **Entrypoint Spans** | The first span of a request in each service ([entrypoint span](/reference/glossary/#entrypoint-span)) | Look at the requests each service received |
 
 ![The scope selector next to the search box, open on All Spans, Root Spans and Entrypoint Spans.](../../../assets/traces/traces-scope-selector.png)
 
@@ -60,7 +60,7 @@ The toolbar switches between four views of the same query:
 | **Table** | The query's aggregation as a table, one row per group |
 
 **Time series** and **Table** use the query's aggregation and group by; see
-[Query builder](/fusescope-docs/querying/query-builder/). In List, **Order by**
+[Query builder](/querying/query-builder/). In List, **Order by**
 sorts the spans, and **Columns and options** opens the **Edit columns** sheet to add,
 remove and reorder columns with any attribute.
 
@@ -68,7 +68,7 @@ remove and reorder columns with any attribute.
 
 ![Time series view: the query's aggregation, every and add-ons (Group By, Having, Order By, Limit, Legend format) above a chart of span count over time.](../../../assets/traces/traces-explorer-time-series.png)
 
-Click a row to open its trace; see [Trace details](/fusescope-docs/explore/trace-details/).
+Click a row to open its trace; see [Trace details](/explore/trace-details/).
 
 ## Example: the slowest requests of a service
 
@@ -85,7 +85,7 @@ Click a row to open its trace; see [Trace details](/fusescope-docs/explore/trace
 </Steps>
 
 The full walkthrough is in
-[Investigate a slow endpoint](/fusescope-docs/guides/slow-endpoint/).
+[Investigate a slow endpoint](/guides/slow-endpoint/).
 
 ## Export, alert, add to dashboard
 
@@ -93,7 +93,7 @@ Above the results:
 
 - **Download** exports the List or Traces view as `csv` or `jsonl`, up to 10k, 30k or 50k
   rows. **Table** and **Time series** results export the same way.
-- **Create an alert** starts an [alert rule](/fusescope-docs/alerts/alert-rules/) from the current query.
+- **Create an alert** starts an [alert rule](/alerts/alert-rules/) from the current query.
 - **Add to dashboard** adds the query as a panel to a new or existing dashboard.
 
 Both need a query that has run.
@@ -103,22 +103,22 @@ Both need a query that has run.
 Click a row to open its trace at `/trace/<trace-id>`: a header with the request's
 service, duration and status, a flame graph, a waterfall and the details of each span.
 How to read it, with a worked example, is in
-[Trace details](/fusescope-docs/explore/trace-details/).
+[Trace details](/explore/trace-details/).
 
 ### Span details
 
 Click a span in a trace to see its attributes, events, logs and host metrics. See
-[Span details](/fusescope-docs/explore/trace-details/#span-details).
+[Span details](/explore/trace-details/#span-details).
 
 ## Funnels
 
 A funnel follows requests through an ordered set of steps. Each step is a service and a
 span name, with optional filters. In the **Funnels** tab, click **New funnel**,
 name it and add steps; spans can also be added from a trace with
-[**Add to Trace Funnel**](/fusescope-docs/explore/trace-details/#next-steps-from-a-span).
+[**Add to Trace Funnel**](/explore/trace-details/#next-steps-from-a-span).
 The results show the **Overall Funnel Metrics**, the traces that pass every step, and
 the **Slowest 5 traces** and **Traces with errors**. Editing funnels needs the Editor or
-Admin [role](/fusescope-docs/administration/users-and-roles/#roles).
+Admin [role](/administration/users-and-roles/#roles).
 
 ![Funnels tab: the list of funnels with search, sort and New funnel.](../../../assets/traces/traces-funnels.png)
 
@@ -134,4 +134,4 @@ starts over. The **Views** tab lists the saved views, to open, edit or delete th
 ![Views tab: saved views with their colour, creator and creation time, and actions to edit, open or delete.](../../../assets/traces/traces-saved-views.png)
 
 Saving, editing and deleting views needs the Editor or Admin
-[role](/fusescope-docs/administration/users-and-roles/#roles).
+[role](/administration/users-and-roles/#roles).

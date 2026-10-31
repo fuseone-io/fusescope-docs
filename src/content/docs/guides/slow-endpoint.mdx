@@ -9,7 +9,7 @@ import { Aside, Steps } from "@astrojs/starlight/components";
 and you need to find where the time goes.
 
 You will start from the service, find its slowest operation, open the slowest requests
-and read their [traces](/fusescope-docs/reference/glossary/#trace). The example uses the
+and read their [traces](/reference/glossary/#trace). The example uses the
 HotROD demo app, where the `frontend` service answers `/dispatch` in about 700 ms.
 
 ## Steps
@@ -19,7 +19,7 @@ HotROD demo app, where the `frontend` service answers `/dispatch` in about 700 m
 1. **Find the slow service.** Open **Services** in the sidebar. A service whose p99
    latency doubled against the previous period has an amber **p99 ↑2×** badge and sits
    at the top. Otherwise, click the **p99 latency** column header to sort the slowest
-   first. [P99](/fusescope-docs/reference/glossary/#percentile) is the time 99 in 100
+   first. [P99](/reference/glossary/#percentile) is the time 99 in 100
    requests stay under, so it shows the slow tail that averages hide.
 
    In the demo, `frontend` has the highest p99, about 780 ms.
@@ -43,14 +43,14 @@ HotROD demo app, where the `frontend` service answers `/dispatch` in about 700 m
    opens with a filter for that service and operation, in the same time range.
 
 5. **Sort by duration.** Next to the results, set **Order by** to
-   `duration_nano (desc)`. The slowest [spans](/fusescope-docs/reference/glossary/#span)
+   `duration_nano (desc)`. The slowest [spans](/reference/glossary/#span)
    are now at the top.
 
    ![Traces explorer filtered on frontend /dispatch and ordered by duration_nano (desc): the slowest span took 849 ms.](../../../assets/traces/traces-explorer-sorted-by-duration.png)
 
 6. **Open the slowest trace.** Click the first row. The trace opens with a
    **Flame graph** and a **Waterfall**; see
-   [Trace details](/fusescope-docs/explore/trace-details/) for how to read them.
+   [Trace details](/explore/trace-details/) for how to read them.
 
 7. **Find the longest span.** In the **Waterfall**, each span is a bar on a time axis,
    indented under the span that called it. Look for the widest bar that has no wide
@@ -67,25 +67,25 @@ You know which service and which call make the request slow. In the demo, most o
 
 ## If you don't find it
 
-- **No slow spans in the list?** Widen the [time range](/fusescope-docs/reference/glossary/#time-range)
+- **No slow spans in the list?** Widen the [time range](/reference/glossary/#time-range)
   in the top bar. Slow requests may be rare.
 - **The trace stops at one service?** The next service is not instrumented, or does
   not pass the trace context on. See
-  [Instrument applications](/fusescope-docs/sending-data/instrumentation/).
+  [Instrument applications](/sending-data/instrumentation/).
 - **Only some requests are slow?** In step 5, add a filter on an attribute, such as
   `http.route` or `http.method`, to compare slow and fast ones. See
-  [Search syntax](/fusescope-docs/querying/search-syntax/).
+  [Search syntax](/querying/search-syntax/).
 
 <Aside type="tip">
   Save the filtered, sorted list with **Save this view** at the bottom of the explorer,
   so you can come back to it next time. See
-  [Saved views](/fusescope-docs/explore/traces/#saved-views).
+  [Saved views](/explore/traces/#saved-views).
 </Aside>
 
 ## Related
 
-- [Services](/fusescope-docs/apm/services/): every chart and column on the service page.
-- [Endpoints](/fusescope-docs/apm/services/#endpoints): grouping, entry points and % time spent.
-- [Traces explorer](/fusescope-docs/explore/traces/): views and ordering.
-- [Trace details](/fusescope-docs/explore/trace-details/): flame graph, waterfall, span details and a worked example.
-- [Set up your first alert](/fusescope-docs/guides/first-alert/): get notified next time.
+- [Services](/apm/services/): every chart and column on the service page.
+- [Endpoints](/apm/services/#endpoints): grouping, entry points and % time spent.
+- [Traces explorer](/explore/traces/): views and ordering.
+- [Trace details](/explore/trace-details/): flame graph, waterfall, span details and a worked example.
+- [Set up your first alert](/guides/first-alert/): get notified next time.

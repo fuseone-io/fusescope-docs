@@ -6,9 +6,9 @@ description: Which service calls which, how healthy each call is, and where erro
 import { Aside, Steps } from "@astrojs/starlight/components";
 
 **Service Map** (`/service-map`) draws your system as a graph: every
-[service](/fusescope-docs/reference/glossary/#service) is a node, and every caller and
+[service](/reference/glossary/#service) is a node, and every caller and
 callee pair is a line between two nodes. It is built from your
-[traces](/fusescope-docs/reference/glossary/#trace), so it shows how requests really
+[traces](/reference/glossary/#trace), so it shows how requests really
 flow, not how a diagram says they should.
 
 **Use this page when** you want to see how your services fit together, when several
@@ -34,7 +34,7 @@ dependencies**, from what the callers' client spans say about them:
 | `server.address` or `net.peer.name` | An external address, such as `api.example.com` or `1.2.3.4` |
 
 An inferred node is drawn with a **dashed** outline, and its numbers come only from
-its callers' spans. See [inferred dependency](/fusescope-docs/reference/glossary/#inferred-dependency).
+its callers' spans. See [inferred dependency](/reference/glossary/#inferred-dependency).
 
 The map is **layered**: entry points, the services nothing else calls, sit on the
 left, and each step to the right is one call deeper. Requests flow from left to right.
@@ -61,13 +61,13 @@ left, and each step to the right is one call deeper. Requests flow from left to 
 6. **Root-cause banner**: where errors most likely start. See
    [Root cause](#root-cause).
 7. **View error traces** opens the failing spans of the root-cause service in the
-   [Traces explorer](/fusescope-docs/explore/traces/).
+   [Traces explorer](/explore/traces/).
 8. **Find a service**: type part of a name to dim every node that doesn't match.
 9. **Color by**: **Health**, **Latency** or **Throughput**. See [Color by](#color-by).
 10. **Dependencies (db, cache, queue)**: turn it off to hide databases, caches, queues
     and inferred nodes, and see only your own services.
 11. **A service node**. Its icon is the
-    [service type](/fusescope-docs/apm/services/#service-types), the badge is the SDK
+    [service type](/apm/services/#service-types), the badge is the SDK
     language (`GO`, `JS`, `PY`…), and below the name are its rate and error rate.
 12. **An inferred node**, with a dashed outline: here `1.2.3.4`, an external address
     `payment` calls.
@@ -147,7 +147,7 @@ Some details of the rule:
   The rule is a starting point, not a verdict. It only uses error rates on the map.
   A service can fail because of something the map doesn't show, such as a bad deploy,
   a full disk or a slow query inside the service itself. Open its
-  [Errors](/fusescope-docs/apm/services/#errors) tab and its traces to confirm.
+  [Errors](/apm/services/#errors) tab and its traces to confirm.
 </Aside>
 
 ## The node panel
@@ -159,13 +159,13 @@ on the right.
 
 1. **Name, type and health**: `driver`, `RPC · go`, **Healthy**.
 2. **Traces** and **Logs** open the service's spans and logs in the explorers.
-3. **Service overview** opens its [service page](/fusescope-docs/apm/services/#service-details).
+3. **Service overview** opens its [service page](/apm/services/#service-details).
 4. **Throughput**, **Error rate**, **p99 latency** and **Apdex**, each with its change
    against the previous period and a sparkline.
 5. **Latency**: p50, p95 and p99 of the service's own server spans.
 6. **Callers**: the services that call it, with their rate, error rate and p99.
 7. **Calls**: what it calls, the same way. Red figures mark failing calls.
-8. **Top operations**: its busiest [operations](/fusescope-docs/reference/glossary/#operation).
+8. **Top operations**: its busiest [operations](/reference/glossary/#operation).
 9. **Resource attributes**: such as `deployment.environment`, `host.name` and the SDK.
 
 Click a caller or callee to move the panel to that node. An entry point says
@@ -179,7 +179,7 @@ An inferred node has a shorter panel, because FuseScope only sees it from outsid
 
 - A note says which attribute it was found by, such as `server.address`.
 - For an external address, **External APIs** opens the address on the
-  [External APIs](/fusescope-docs/analyze/external-apis/) page. For a database, cache or
+  [External APIs](/analyze/external-apis/) page. For a database, cache or
   queue, **Traces from &lt;caller&gt;** opens the caller's spans that reach it.
 - The tiles show **Throughput**, **Error rate**, **p99 latency** and **Callers**,
   measured on the callers' client spans.
@@ -235,7 +235,7 @@ The numbers are from the HotROD demo over the last 30 minutes.
 6. **Go to the traces.** Click **View error traces** in the banner to see `payment`'s
    failed spans. For the cache, click `redis-manual` and **Service overview**, then its
    **Errors** tab: the
-   [Services](/fusescope-docs/apm/services/#example-what-does-driver-depend-on-and-is-it-healthy)
+   [Services](/apm/services/#example-what-does-driver-depend-on-and-is-it-healthy)
    page follows that case.
 
 </Steps>
@@ -251,18 +251,18 @@ call in five, which `driver` absorbs.
 - **No lines between services.** The services don't pass trace context to each other,
   so their spans have no parent in the other service. Use the OpenTelemetry
   instrumentation for your HTTP or gRPC client and server; see
-  [Instrument applications](/fusescope-docs/sending-data/instrumentation/).
+  [Instrument applications](/sending-data/instrumentation/).
 - **A database or API you call is missing.** The client spans don't carry `db.system`,
   `peer.service` or `server.address`. Most client instrumentations set at least one;
   check the attributes of the client span in
-  [Trace details](/fusescope-docs/explore/trace-details/).
+  [Trace details](/explore/trace-details/).
 - **No services in this time range.** No spans arrived for the range and filters.
   Widen the range or clear a filter.
 
 ## Related
 
-- [Services](/fusescope-docs/apm/services/): one service at a time, with its
-  [Dependencies](/fusescope-docs/apm/services/#dependencies) tab.
-- [External APIs](/fusescope-docs/analyze/external-apis/): the external addresses your
+- [Services](/apm/services/): one service at a time, with its
+  [Dependencies](/apm/services/#dependencies) tab.
+- [External APIs](/analyze/external-apis/): the external addresses your
   services call.
-- [Find out why a service is failing](/fusescope-docs/guides/failing-service/).
+- [Find out why a service is failing](/guides/failing-service/).

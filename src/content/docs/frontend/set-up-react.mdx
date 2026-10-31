@@ -6,13 +6,13 @@ description: Name React Router views by route pattern and report React rendering
 import { Aside } from "@astrojs/starlight/components";
 
 `@fusescope/browser-react` connects a React application to the
-[browser SDK](/fusescope-docs/frontend/sdk-reference/). It names views from your
+[browser SDK](/frontend/sdk-reference/). It names views from your
 React Router configuration and reports caught rendering errors to
-[Errors](/fusescope-docs/frontend/errors/).
+[Errors](/frontend/errors/).
 
 ## Before you start
 
-[Create a web application](/fusescope-docs/frontend/set-up-web/#create-the-application)
+[Create a web application](/frontend/set-up-web/#create-the-application)
 and copy its public `rum_pub_…` key. Allow the origin your React application runs on.
 Use React 18 or 19 and React Router 6.30.6+ or 7.18.5+ with `BrowserRouter` or
 `createBrowserRouter`. The browser SDK must be `0.2.0-beta.1` or later.
@@ -155,7 +155,7 @@ The adapter shares the browser SDK's sampling, privacy settings and consent. Wit
 required. Collection starts on the route the user is visiting when consent arrives.
 
 Route labels contain patterns, but URL attributes still contain paths. Continue to
-use [privacy settings](/fusescope-docs/frontend/set-up-web/#3-privacy) and the
+use [privacy settings](/frontend/set-up-web/#3-privacy) and the
 application's server-side PII policy. Do not place personal information in error
 messages or route definitions.
 
@@ -168,12 +168,12 @@ messages or route definitions.
    remains visible.
 4. In **Errors**, find `React RUM test render error`. Open it and check its source
    is **manual**, with the route `/debug/render-error` and a linked session.
-5. [Upload source maps](/fusescope-docs/frontend/source-maps/) for the same `version`
+5. [Upload source maps](/frontend/source-maps/) for the same `version`
    you pass to `init()` to see the original stack. Remove the test route afterwards.
 
 Use a sampled session, grant consent if required, and allow a few seconds for the
 browser SDK to export before refreshing FuseScope. Follow the general
-[web troubleshooting steps](/fusescope-docs/frontend/set-up-web/#troubleshoot-rejected-requests)
+[web troubleshooting steps](/frontend/set-up-web/#troubleshoot-rejected-requests)
 if no data arrives.
 
 The SDK repository also includes a runnable

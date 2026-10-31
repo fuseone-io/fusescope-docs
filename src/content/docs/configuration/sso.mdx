@@ -17,7 +17,7 @@ FuseScope signs users in through one of three protocols:
 
 An **auth domain** ties an email domain, such as `example.com`, to one provider. Users
 whose email is in that domain sign in through it. Creating auth domains needs the Admin
-[role](/fusescope-docs/administration/users-and-roles/#roles).
+[role](/administration/users-and-roles/#roles).
 
 Auth domains are created in the UI or declared in the
 [configuration file](#declare-domains-in-the-configuration-file).
@@ -186,7 +186,7 @@ URL** and the **signing certificate**.
   FuseScope.
 - An assertion outside its validity window is rejected.
 - Each assertion is accepted once. With several backend replicas, use the `redis`
-  [cache](/fusescope-docs/configuration/config-file/#main-sections) so replays are
+  [cache](/configuration/config-file/#main-sections) so replays are
   caught across replicas.
 - The email must belong to the auth domain.
 
@@ -283,5 +283,5 @@ changing or deleting one through the API returns `403` with the error code
 
 <Aside>
   With the Helm chart, put this block under `signoz.config` and provide the secrets
-  through `signoz.env`. See [Install with Helm](/fusescope-docs/install/helm/#configuration-file).
+  through `signoz.env`. See [Install with Helm](/install/helm/#configuration-file).
 </Aside>

@@ -16,19 +16,19 @@ a built-in integration, or want to know how integrations work in the app.
 
 | Integration | Metrics | Logs | Dashboards |
 |---|---|---|---|
-| [ClickHouse](/fusescope-docs/sending-data/integrations/clickhouse/) | Server Prometheus endpoint | Server log file | Clickhouse Overview |
-| [MongoDB](/fusescope-docs/sending-data/integrations/mongodb/) | `mongodb` receiver | Server log file | Mongo overview |
-| [Nginx](/fusescope-docs/sending-data/integrations/nginx/) | None | Access and error log files | None |
-| [PostgreSQL](/fusescope-docs/sending-data/integrations/postgresql/) | `postgresql` receiver | Server log file | Postgres overview |
-| [Redis](/fusescope-docs/sending-data/integrations/redis/) | `redis` receiver | Server log file | Redis overview |
-| [AWS RDS for MySQL](/fusescope-docs/sending-data/integrations/aws-rds-mysql/) | CloudWatch and `mysql` receiver | CloudWatch Logs | AWS RDS MySQL, MySQL |
-| [AWS RDS for PostgreSQL](/fusescope-docs/sending-data/integrations/aws-rds-postgresql/) | CloudWatch and `postgresql` receiver | CloudWatch Logs | AWS RDS Postgres, Postgres overview |
-| [AWS ElastiCache for Redis](/fusescope-docs/sending-data/integrations/aws-elasticache-redis/) | CloudWatch and `redis` receiver | CloudWatch Logs | AWS ElastiCache Redis |
+| [ClickHouse](/sending-data/integrations/clickhouse/) | Server Prometheus endpoint | Server log file | Clickhouse Overview |
+| [MongoDB](/sending-data/integrations/mongodb/) | `mongodb` receiver | Server log file | Mongo overview |
+| [Nginx](/sending-data/integrations/nginx/) | None | Access and error log files | None |
+| [PostgreSQL](/sending-data/integrations/postgresql/) | `postgresql` receiver | Server log file | Postgres overview |
+| [Redis](/sending-data/integrations/redis/) | `redis` receiver | Server log file | Redis overview |
+| [AWS RDS for MySQL](/sending-data/integrations/aws-rds-mysql/) | CloudWatch and `mysql` receiver | CloudWatch Logs | AWS RDS MySQL, MySQL |
+| [AWS RDS for PostgreSQL](/sending-data/integrations/aws-rds-postgresql/) | CloudWatch and `postgresql` receiver | CloudWatch Logs | AWS RDS Postgres, Postgres overview |
+| [AWS ElastiCache for Redis](/sending-data/integrations/aws-elasticache-redis/) | CloudWatch and `redis` receiver | CloudWatch Logs | AWS ElastiCache Redis |
 
 No integration ships log pipelines or alert rules. Log parsing happens in the collector
 config itself, with `filelog` operators. To parse further, or to parse the raw AWS logs,
-add a [log pipeline](/fusescope-docs/sending-data/log-pipelines/). To get alerted, create
-[alert rules](/fusescope-docs/alerts/alert-rules/) on the collected data.
+add a [log pipeline](/sending-data/log-pipelines/). To get alerted, create
+[alert rules](/alerts/alert-rules/) on the collected data.
 
 ## How it works
 
@@ -38,8 +38,8 @@ You run the collector. FuseScope does not reach into your systems.
 
 1. **Run a collector next to the service.** Use the upstream `otelcol-contrib`
    distribution, version v0.88.0 or newer; the examples use 0.139.0. See
-   [Collector in Docker](/fusescope-docs/sending-data/collector-docker/) or
-   [Collector on a VM](/fusescope-docs/sending-data/collector-vm/).
+   [Collector in Docker](/sending-data/collector-docker/) or
+   [Collector on a VM](/sending-data/collector-vm/).
 2. **Add the integration's config files.** Each integration page has one file for
    metrics and one for logs. They export to FuseScope over OTLP gRPC.
 3. **Connect the integration in FuseScope.** This adds its dashboards and turns on the
@@ -65,7 +65,7 @@ You run the collector. FuseScope does not reach into your systems.
 </Steps>
 
 **I have already configured** installs the integration. Its dashboards appear in
-[Dashboards](/fusescope-docs/dashboards/dashboards/), and the header button becomes
+[Dashboards](/dashboards/dashboards/), and the header button becomes
 **Test Connection**. A badge shows the status:
 
 | Status | Meaning |
@@ -102,7 +102,7 @@ Set `OTLP_DESTINATION_ENDPOINT` to the FuseScope collector's gRPC address, port 
 | Where the collector runs | Value |
 |---|---|
 | Same Kubernetes cluster | `fusescope-otel-collector.fusescope.svc.cluster.local:4317` |
-| Outside the cluster | `fusescope-collector.example.com:4317`, see [From outside the cluster](/fusescope-docs/sending-data/otlp/#from-outside-the-cluster) |
+| Outside the cluster | `fusescope-collector.example.com:4317`, see [From outside the cluster](/sending-data/otlp/#from-outside-the-cluster) |
 
 `insecure: true` sends plain text. Set it to `false` when the endpoint uses TLS.
 Self-hosted FuseScope needs no ingestion key or token header.
@@ -164,15 +164,15 @@ The integrations cover a handful of common services. The
 [collector-contrib](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver)
 distribution has receivers for many more, such as Kafka, RabbitMQ, Elasticsearch,
 Apache and IIS. Configure the receiver, export with the exporter above, and build a
-[dashboard](/fusescope-docs/dashboards/dashboards/) on the metrics. Services that expose
+[dashboard](/dashboards/dashboards/) on the metrics. Services that expose
 Prometheus metrics work with the
-[Prometheus receiver](/fusescope-docs/sending-data/prometheus/). For log files, see
-[Log files](/fusescope-docs/sending-data/logs-files/).
+[Prometheus receiver](/sending-data/prometheus/). For log files, see
+[Log files](/sending-data/logs-files/).
 
 ## Related
 
-- [OTLP](/fusescope-docs/sending-data/otlp/)
-- [Collector in Docker](/fusescope-docs/sending-data/collector-docker/)
-- [Collector on a VM](/fusescope-docs/sending-data/collector-vm/)
-- [Log pipelines](/fusescope-docs/sending-data/log-pipelines/)
-- [Dashboards](/fusescope-docs/dashboards/dashboards/)
+- [OTLP](/sending-data/otlp/)
+- [Collector in Docker](/sending-data/collector-docker/)
+- [Collector on a VM](/sending-data/collector-vm/)
+- [Log pipelines](/sending-data/log-pipelines/)
+- [Dashboards](/dashboards/dashboards/)

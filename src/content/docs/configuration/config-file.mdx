@@ -18,7 +18,7 @@ fusescope server --config /etc/fusescope/config.yaml
 does not exist is an error.
 
 The container image runs `fusescope server`, so pass the flag as an argument. The Helm
-chart does it for you when [`signoz.config`](/fusescope-docs/install/helm/#configuration-file)
+chart does it for you when [`signoz.config`](/install/helm/#configuration-file)
 is set.
 
 Every key, with its default, is documented in
@@ -48,15 +48,15 @@ telemetrystore:
 |---|---|
 | `global` | `external_url` (public URL, its path is the base path of every route), `allowed_origins` (allowed login redirect origins), `ingestion_url` |
 | `apiserver` | Listen address (`0.0.0.0:8080`), request timeouts, optional TLS |
-| `sqlstore` | [Metadata store](/fusescope-docs/configuration/metadata-store/): SQLite or PostgreSQL |
+| `sqlstore` | [Metadata store](/configuration/metadata-store/): SQLite or PostgreSQL |
 | `telemetrystore` | ClickHouse `dsn`, `cluster` and query settings |
 | `cache` | `memory` or `redis` |
 | `alertmanager` | Alert routing defaults and `signoz.external_url` used in notification links |
 | `emailing` | SMTP server for invitation and password reset emails |
 | `tokenizer` | Session lifetime (`idle`, `max`) and token rotation |
 | `user` | Password reset and invites; `root` provisions a root user at startup |
-| `identn` | How requests are authenticated: session tokens, API key headers and [impersonation mode](/fusescope-docs/configuration/impersonation-mode/) |
-| `authdomain` | [Single sign-on](/fusescope-docs/configuration/sso/) domains managed from the file |
+| `identn` | How requests are authenticated: session tokens, API key headers and [impersonation mode](/configuration/impersonation-mode/) |
+| `authdomain` | [Single sign-on](/configuration/sso/) domains managed from the file |
 | `analytics`, `statsreporter` | Usage analytics; both disabled by default |
 
 ## Environment variables

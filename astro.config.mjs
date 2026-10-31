@@ -3,12 +3,11 @@ import starlight from "@astrojs/starlight";
 import { sidebar } from "./src/sidebar.mjs";
 import markdownExport from "./src/integrations/markdown-export.mjs";
 
-const site = "https://fuseone-io.github.io";
-const base = "/fusescope-docs";
+const site = "https://docs.fusescope.fuseone.io";
+const base = "";
 
 export default defineConfig({
   site,
-  base,
   integrations: [
     markdownExport({ site, base, sidebar }),
     starlight({

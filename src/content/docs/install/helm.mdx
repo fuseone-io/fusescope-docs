@@ -96,19 +96,19 @@ With the release named `fusescope`, the chart creates these services:
 | `global.storageClass` | `null` | Storage class for every PVC. `null` uses the cluster default. |
 | `clickhouse.persistence.size` | `20Gi` | ClickHouse data volume. |
 | `clickhouse.layout.shardsCount` / `replicasCount` | `1` / `1` | ClickHouse cluster layout. |
-| `clickhouse.coldStorage.enabled` | `false` | Keep data older than each signal's move period in S3, GCS or an S3-compatible bucket. Recommended for production installs that keep more than 7 days; see [cold storage](/fusescope-docs/administration/retention/#cold-storage). |
+| `clickhouse.coldStorage.enabled` | `false` | Keep data older than each signal's move period in S3, GCS or an S3-compatible bucket. Recommended for production installs that keep more than 7 days; see [cold storage](/administration/retention/#cold-storage). |
 | `clickhouse.enabled` | `true` | Set to `false` and fill `externalClickhouse.*` to use an existing ClickHouse. |
-| `postgresql.enabled` | `false` | Deploy PostgreSQL and use it as the [metadata store](/fusescope-docs/configuration/metadata-store/). |
+| `postgresql.enabled` | `false` | Deploy PostgreSQL and use it as the [metadata store](/configuration/metadata-store/). |
 | `signoz.replicaCount` | `1` | Backend replicas. Use more than one only with PostgreSQL. |
 | `signoz.persistence.size` | `1Gi` | Volume for the SQLite database. Not created when PostgreSQL is enabled. |
 | `signoz.env` | see chart | Environment variables of the backend. |
-| `signoz.config` | `{}` | Contents of the [configuration file](/fusescope-docs/configuration/config-file/). |
+| `signoz.config` | `{}` | Contents of the [configuration file](/configuration/config-file/). |
 | `signoz.ingress.*` | disabled | Ingress for the UI and API. |
 | `otelCollector.ingress.*` | disabled | Ingress for OTLP/HTTP ingestion. |
 | `otelCollector.replicaCount` | `1` | Collector replicas. |
 
 The `signoz.*` keys configure the FuseScope backend; they keep an
-[internal name](/fusescope-docs/configuration/config-file/#internal-names). The full list,
+[internal name](/configuration/config-file/#internal-names). The full list,
 with comments, is in the chart's
 [`values.yaml`](https://github.com/fuseone-io/fusescope-charts/blob/main/charts/fusescope/values.yaml).
 
@@ -129,7 +129,7 @@ signoz:
           key: my-key
 ```
 
-See [environment variables](/fusescope-docs/configuration/config-file/#environment-variables)
+See [environment variables](/configuration/config-file/#environment-variables)
 for the naming rules.
 
 ### Configuration file
@@ -188,11 +188,11 @@ signoz:
 
 `global.external_url` is the URL users reach FuseScope on. Set the Alertmanager external
 URL too so links in alert notifications point to it. To accept OTLP from outside the
-cluster, see [OTLP ingress](/fusescope-docs/sending-data/otlp/#from-outside-the-cluster).
+cluster, see [OTLP ingress](/sending-data/otlp/#from-outside-the-cluster).
 
-Browsers send [Real User Monitoring](/fusescope-docs/frontend/real-user-monitoring/) data
+Browsers send [Real User Monitoring](/frontend/real-user-monitoring/) data
 to `/rum/` on this same host, which the path `/` above already routes to the backend. See
-[Self-hosted FuseScope](/fusescope-docs/frontend/set-up-web/#self-hosted-fusescope) for
+[Self-hosted FuseScope](/frontend/set-up-web/#self-hosted-fusescope) for
 CORS, body size and the client IP behind an ingress.
 
 ## Upgrade and uninstall
@@ -212,7 +212,7 @@ helm -n fusescope uninstall fusescope
 ## Next step
 
 Send data from an application: see
-[Instrument applications](/fusescope-docs/sending-data/instrumentation/), and
-[Kubernetes](/fusescope-docs/sending-data/kubernetes/) to collect the cluster's own logs
+[Instrument applications](/sending-data/instrumentation/), and
+[Kubernetes](/sending-data/kubernetes/) to collect the cluster's own logs
 and metrics. Within a minute of the first requests, your service appears under
 **Services**.

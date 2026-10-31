@@ -1,5 +1,7 @@
 name: Docs
 
+# Checks that the site builds. Cloudflare Pages deploys it through its Git integration.
+
 on:
   pull_request:
   push:
@@ -29,22 +31,3 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - run: pnpm build
-
-      - uses: actions/upload-pages-artifact@v3
-        if: github.event_name != 'pull_request'
-        with:
-          path: dist
-
-  deploy:
-    if: github.event_name != 'pull_request'
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4

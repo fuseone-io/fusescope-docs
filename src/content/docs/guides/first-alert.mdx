@@ -8,14 +8,14 @@ import { Aside, Steps } from "@astrojs/starlight/components";
 **Use this guide when** you want FuseScope to tell you about a problem before your
 users do.
 
-You will create a Slack [notification channel](/fusescope-docs/reference/glossary/#notification-channel),
-then an [alert rule](/fusescope-docs/reference/glossary/#alert-rule) that fires when
+You will create a Slack [notification channel](/reference/glossary/#notification-channel),
+then an [alert rule](/reference/glossary/#alert-rule) that fires when
 more than 5% of a service's requests fail. The example watches the `redis-manual`
 service of the HotROD demo app.
 
 **You need:**
 
-- the Admin [role](/fusescope-docs/administration/users-and-roles/#roles) to create
+- the Admin [role](/administration/users-and-roles/#roles) to create
   the channel, and Editor or Admin to create the rule;
 - a Slack incoming webhook URL, which a Slack workspace admin creates in Slack's app
   settings. It looks like `https://hooks.slack.com/services/T000/B000/XXXX`.
@@ -87,7 +87,7 @@ follows.
 <Aside type="tip">
   **AT LEAST ONCE** fires on a single bad data point. For a noisy service, use
   **ON AVERAGE** or **ALL THE TIME** so a short spike doesn't wake anyone up. See
-  [Conditions](/fusescope-docs/alerts/alert-rules/#conditions).
+  [Conditions](/alerts/alert-rules/#conditions).
 </Aside>
 
 ## If it doesn't work
@@ -95,15 +95,15 @@ follows.
 - **No Slack message from Test?** Check the webhook URL and that the Slack app may post
   to the channel.
 - **Links in messages point to `localhost`?** Set the Alertmanager external URL; see
-  [Templates](/fusescope-docs/alerts/notification-channels/#templates).
+  [Templates](/alerts/notification-channels/#templates).
 - **Too many messages?** Use **Repeat notifications** and **Group alerts by** in
   Notification settings, or silence the rule during maintenance with
-  [planned downtime](/fusescope-docs/alerts/routing-and-downtime/#planned-downtime).
+  [planned downtime](/alerts/routing-and-downtime/#planned-downtime).
 
 ## Related
 
-- [Alert rules](/fusescope-docs/alerts/alert-rules/): every option of the rule editor.
-- [Notification channels](/fusescope-docs/alerts/notification-channels/): all channel
+- [Alert rules](/alerts/alert-rules/): every option of the rule editor.
+- [Notification channels](/alerts/notification-channels/): all channel
   types.
-- [Find out why a service is failing](/fusescope-docs/guides/failing-service/): what to
+- [Find out why a service is failing](/guides/failing-service/): what to
   do when the alert fires.

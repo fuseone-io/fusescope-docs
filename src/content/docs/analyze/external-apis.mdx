@@ -19,7 +19,7 @@ you are asked "how many calls do we make to X?".
 - An **external domain** is a host your services call over HTTP, such as
   `api.stripe.com`, `telemetrygen-server` or `10.0.4.11`. FuseScope takes it from the
   URL of each outgoing call. See
-  [external domain](/fusescope-docs/reference/glossary/#external-domain).
+  [external domain](/reference/glossary/#external-domain).
 - An **endpoint** is one path on that domain, such as `/v1/charges`, without the host
   or port.
 - The numbers come from your services' **client spans**, the spans an HTTP client
@@ -87,7 +87,7 @@ Click a domain to open it (`/api-monitoring/domains/<domain>`).
 13. **Rate over time** and **Latency over time**.
 14. **Dependent services**: the services that call this domain, with their share of
     the calls, p99 latency, error rate and rate. Click one to open its
-    [service page](/fusescope-docs/apm/services/).
+    [service page](/apm/services/).
 
 ### Endpoints
 
@@ -114,7 +114,7 @@ Click a domain to open it (`/api-monitoring/domains/<domain>`).
 
 The ten most frequent failures, by **Endpoint**, **Status code** and
 **Status message**, with their **Count**. Click a row to open the matching spans in
-the [Traces explorer](/fusescope-docs/explore/traces/).
+the [Traces explorer](/explore/traces/).
 
 1. **Status Message Exists** is on by default, and then only errors that carry a
    status message are listed. Many HTTP clients record a `500` without a message;
@@ -137,18 +137,18 @@ in this order:
    the requests your service *receives*. Outgoing calls need the instrumentation for
    your HTTP client library, such as `requests` in Python, `net/http` in Go or OkHttp
    in Java. Zero-code agents include most of them; see
-   [Instrument applications](/fusescope-docs/sending-data/instrumentation/).
+   [Instrument applications](/sending-data/instrumentation/).
 3. **Check the attributes.** Open a trace with an outgoing call in
-   [Trace details](/fusescope-docs/explore/trace-details/) and look at the client
+   [Trace details](/explore/trace-details/) and look at the client
    span: it must have kind `Client` and an attribute `url.full` or `http.url` with the
    full URL. Spans that only have `server.address` show on the
-   [Service Map](/fusescope-docs/apm/service-map/) but not here.
+   [Service Map](/apm/service-map/) but not here.
 
 </Steps>
 
 ## Example: why does payment fail?
 
-The [Services](/fusescope-docs/apm/services/#example-why-is-payment-failing) page found
+The [Services](/apm/services/#example-why-is-payment-failing) page found
 that `payment` fails every request and that its outgoing calls fail too. Here is the
 other side. The numbers are from the HotROD demo over the last day.
 
@@ -182,7 +182,7 @@ call from `payment` with a server error, `500`. The problem is on the API's side
 
 ## Related
 
-- [Services](/fusescope-docs/apm/services/#external): the **External** tab of a
+- [Services](/apm/services/#external): the **External** tab of a
   service charts its calls by address.
-- [Service Map](/fusescope-docs/apm/service-map/): external addresses as dashed nodes.
-- [Trace details](/fusescope-docs/explore/trace-details/): one call in its request.
+- [Service Map](/apm/service-map/): external addresses as dashed nodes.
+- [Trace details](/explore/trace-details/): one call in its request.

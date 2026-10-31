@@ -5,13 +5,13 @@ description: Search, filter and tail logs, read one log in detail, and jump from
 
 import { Aside, Steps } from "@astrojs/starlight/components";
 
-The Logs explorer searches the [logs](/fusescope-docs/reference/glossary/#log) your
+The Logs explorer searches the [logs](/reference/glossary/#log) your
 services and hosts send, and streams new ones as they arrive.
 
 **Use this page when** you need the exact words behind a problem: an error message, a
 stack trace a program printed, or what happened just before a crash. If you already
 have the request's trace, you can open its logs from the trace instead; see
-[See the logs for one request](/fusescope-docs/guides/logs-for-a-request/).
+[See the logs for one request](/guides/logs-for-a-request/).
 
 ## Open the explorer
 
@@ -19,7 +19,7 @@ Click **Logs** in the sidebar (`/logs/logs-explorer`). The page has three tabs:
 
 - **Explorer**, described here;
 - **Pipelines**, which transform logs before they are stored; see
-  [Log pipelines](/fusescope-docs/sending-data/log-pipelines/);
+  [Log pipelines](/sending-data/log-pipelines/);
 - **Views**, the log searches you saved.
 
 ## Read the page
@@ -48,7 +48,7 @@ Click **Logs** in the sidebar (`/logs/logs-explorer`). The page has three tabs:
 
 ## Severity levels
 
-A log's [severity](/fusescope-docs/reference/glossary/#severity) says how serious it
+A log's [severity](/reference/glossary/#severity) says how serious it
 is. Programs spell it in many ways: one writes `Fatal`, another `FATAL`, a third
 `critical`. Listed as they are, these would be three separate rows in a filter and
 three colours in a chart, though they mean the same thing.
@@ -78,7 +78,7 @@ How a log gets its level:
   Grouping only changes what you see. The stored `severity_text` and
   `severity_number` are not modified, and the log details still show them as they
   arrived. To store one spelling for good, normalise the text when logs come in, with
-  a [Severity parser](/fusescope-docs/sending-data/log-pipelines/#severity-parser) in a
+  a [Severity parser](/sending-data/log-pipelines/#severity-parser) in a
   log pipeline.
 </Aside>
 
@@ -105,14 +105,14 @@ FuseScope writes the matching condition into the query bar for you. **Only** on
 ## Search logs
 
 Write a filter in the query bar with the
-[search syntax](/fusescope-docs/querying/search-syntax/), pick a time range and click
+[search syntax](/querying/search-syntax/), pick a time range and click
 **Run Query**. A quoted string on its own searches the log body:
 
 ```text
 "connection refused" AND service.name = 'checkout'
 ```
 
-The [filters](/fusescope-docs/reference/glossary/#filter) rail does the same without
+The [filters](/reference/glossary/#filter) rail does the same without
 typing. Under **Filters for**, each section is one attribute; expand it and tick
 values. By default the rail has Severity Text, Deployment Environment, Service Name,
 Host Name, K8s Cluster Name, K8s Deployment Name, K8s Namespace Name and K8s Pod
@@ -120,8 +120,8 @@ Name. The icons at the top refresh the counts, collapse the rail and open the
 settings, which add or remove quick filters for everyone in the organization.
 
 An attribute appears as a quick filter only when logs carry it as an
-[attribute](/fusescope-docs/reference/glossary/#attribute), not just as text inside the
-body. A [log pipeline](/fusescope-docs/sending-data/log-pipelines/) can parse it out.
+[attribute](/reference/glossary/#attribute), not just as text inside the
+body. A [log pipeline](/sending-data/log-pipelines/) can parse it out.
 
 ## Views
 
@@ -132,7 +132,7 @@ body. A [log pipeline](/fusescope-docs/sending-data/log-pipelines/) can parse it
 | **Table** | The query's aggregation as a table, one row per group |
 
 Aggregation and group by are described in
-[Query builder](/fusescope-docs/querying/query-builder/).
+[Query builder](/querying/query-builder/).
 
 ### List options
 
@@ -183,7 +183,7 @@ The top of the panel shows:
 
 - the severity level and the time the log was written;
 - **View trace**, when the log carries a `trace_id`. It opens the request's
-  [trace](/fusescope-docs/reference/glossary/#trace) in a new tab, with the log's span
+  [trace](/reference/glossary/#trace) in a new tab, with the log's span
   selected;
 - the **⋯** menu, with **Copy log** and **Copy link to log**;
 - the body, and the highlighted fields **SERVICE**, **SEVERITY**, **NAMESPACE**,
@@ -231,7 +231,7 @@ the time it was written. It needs host or Kubernetes attributes on the log, such
 <Aside>
   **View trace** and the trace ID link appear only when the log carries `trace_id`.
   OpenTelemetry SDKs and logging bridges add it when a log is written inside an active
-  span. See [Instrument applications](/fusescope-docs/sending-data/instrumentation/#logs).
+  span. See [Instrument applications](/sending-data/instrumentation/#logs).
 </Aside>
 
 ## Example: from an error log to its request
@@ -272,21 +272,21 @@ caused it.
 **Conclusion:** the frontend error is a Redis read that timed out inside a
 `/dispatch` request, which still answered. The payment errors are business errors
 (declined cards) and have no request to follow. The trace page is described in
-[Trace details](/fusescope-docs/explore/trace-details/).
+[Trace details](/explore/trace-details/).
 
 ## Alerts, dashboards and saved views
 
-As in the [Traces explorer](/fusescope-docs/explore/traces/#export-alert-add-to-dashboard),
-**Create an Alert** ([Alert rules](/fusescope-docs/alerts/alert-rules/)) and **Add to
+As in the [Traces explorer](/explore/traces/#export-alert-add-to-dashboard),
+**Create an Alert** ([Alert rules](/alerts/alert-rules/)) and **Add to
 Dashboard** reuse the current query. In the bottom bar, **Save this view** stores the
 current search under a name, and **Select a view** loads one. The **Views**
 tab lists every saved log view.
 
 ## Related
 
-- [See the logs for one request](/fusescope-docs/guides/logs-for-a-request/).
-- [Log pipelines](/fusescope-docs/sending-data/log-pipelines/): parse and normalise
+- [See the logs for one request](/guides/logs-for-a-request/).
+- [Log pipelines](/sending-data/log-pipelines/): parse and normalise
   logs before they are stored.
-- [Search syntax](/fusescope-docs/querying/search-syntax/).
-- [Core concepts](/fusescope-docs/start/concepts/#logs-body-and-severity): body and
+- [Search syntax](/querying/search-syntax/).
+- [Core concepts](/start/concepts/#logs-body-and-severity): body and
   severity.

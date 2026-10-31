@@ -25,14 +25,14 @@ language, or let it draft dashboards and alert rules.
 - "Create a dashboard with CPU and memory per host."
 - "How do I send Docker logs to FuseScope?"
 
-The assistant picks the [tools](/fusescope-docs/mcp/tools/) it needs: it searches logs
+The assistant picks the [tools](/mcp/tools/) it needs: it searches logs
 and traces, runs metric queries, reads alert state and history, and looks up these docs.
 
 ## How it works
 
 The server is a single binary, `fusescope-mcp-server`. It calls the same FuseScope API
 as the UI, authenticated with a
-[service account](/fusescope-docs/administration/service-accounts/) API key, so it can
+[service account](/administration/service-accounts/) API key, so it can
 do only what that key's role allows.
 
 | Transport | Runs | Use it when |
@@ -40,7 +40,7 @@ do only what that key's role allows.
 | **stdio** (default) | On your machine, started by the MCP client | One person, one FuseScope instance. |
 | **HTTP** | As a shared service, `/mcp` endpoint | A team shares one server; optional OAuth so each user signs in with their own key. |
 
-Setup for both is in [Set up the MCP server](/fusescope-docs/mcp/setup/).
+Setup for both is in [Set up the MCP server](/mcp/setup/).
 
 ## Read-only or read-write
 
@@ -66,7 +66,7 @@ actually do is decided by the role of the API key:
   example to your FuseScope.
 - Besides your FuseScope API, it fetches these docs (to answer how-to questions) and,
   when asked to import a dashboard template, the template file from GitHub. See
-  [Security](/fusescope-docs/mcp/setup/#security) to turn the docs refresh off.
+  [Security](/mcp/setup/#security) to turn the docs refresh off.
 - Telemetry the assistant reads is sent to the assistant's model provider like any
   other conversation content. Choose the role and the data accordingly.
 

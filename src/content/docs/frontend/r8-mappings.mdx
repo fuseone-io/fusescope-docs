@@ -12,8 +12,8 @@ nothing. R8 writes `mapping.txt` next to the build, under
 `at com.example.shop.cart.Pricing.applyCoupon(Pricing.kt:42)`.
 
 Upload the mapping of each release to FuseScope and the
-[Errors](/fusescope-docs/frontend/errors/) tab shows **Retraced** stack traces. It is the
-Android counterpart of [source maps](/fusescope-docs/frontend/source-maps/).
+[Errors](/frontend/errors/) tab shows **Retraced** stack traces. It is the
+Android counterpart of [source maps](/frontend/source-maps/).
 
 - **Mappings stay private.** They are stored on the FuseScope server; never ship them in
   the app.
@@ -21,7 +21,7 @@ Android counterpart of [source maps](/fusescope-docs/frontend/source-maps/).
   so uploading a mapping later also fixes errors you already received.
 - **Grouping uses the retraced frames.** Until a release's mapping is uploaded, its errors
   group on obfuscated names; see
-  [How errors are grouped](/fusescope-docs/frontend/errors/#how-errors-are-grouped).
+  [How errors are grouped](/frontend/errors/#how-errors-are-grouped).
 - **You need a service account key with the Editor role**, not the application's public
   key: the public key can only send data.
 
@@ -52,7 +52,7 @@ stack with the mapping whose map id matches it, else with the release's latest u
 
 1. **Create a key.** In *Settings → Service accounts*, create a service account with the
    **Editor** role, such as `ci-android`, and add a key to it. See
-   [Service accounts](/fusescope-docs/administration/service-accounts/). Keep the key in
+   [Service accounts](/administration/service-accounts/). Keep the key in
    your CI's secrets.
 
 2. **Apply the plugin** in the app module, from Maven Central (add `mavenCentral()` to
@@ -157,7 +157,7 @@ curl -X POST "$FUSESCOPE_URL/api/v1/rum/applications/01a16431-12ca-7064-bae9-6ac
 ## The R8 mappings tab
 
 Open an Android application's **Settings**, then **R8 mappings**. It is the
-[Source maps tab](/fusescope-docs/frontend/source-maps/#the-source-maps-tab) of a web
+[Source maps tab](/frontend/source-maps/#the-source-maps-tab) of a web
 application, adapted to Android. Any role can see it; **Admin** and **Editor** can
 upload, delete and change retention.
 
@@ -170,7 +170,7 @@ upload, delete and change retention.
   mappings.
 - **Retention**: the same settings as for source maps: delete mappings not used for
   30 days, 90 days (the default), 1 year or never, and always keep the 3 newest
-  releases. See [Retention](/fusescope-docs/frontend/source-maps/#retention).
+  releases. See [Retention](/frontend/source-maps/#retention).
 
 Mappings and source maps share one store, so the same API lists and deletes them:
 `GET` and `DELETE` on `/api/v1/rum/applications/{id}/sourcemaps`.
@@ -184,8 +184,8 @@ Mappings and source maps share one store, so the same API lists and deletes them
 | Mappings and source maps stored per application | 2 GB |
 
 Self-hosted, these are the `rum.sourcemaps` settings of the
-[configuration file](/fusescope-docs/configuration/config-file/); see
-[Source maps](/fusescope-docs/frontend/source-maps/#self-hosted-fusescope).
+[configuration file](/configuration/config-file/); see
+[Source maps](/frontend/source-maps/#self-hosted-fusescope).
 
 ## When a stack stays obfuscated
 
@@ -205,6 +205,6 @@ and a link to the **R8 mappings** settings.
 
 ## Related
 
-- [Set up an Android application](/fusescope-docs/frontend/set-up-android/)
-- [Errors](/fusescope-docs/frontend/errors/)
-- [Service accounts](/fusescope-docs/administration/service-accounts/)
+- [Set up an Android application](/frontend/set-up-android/)
+- [Errors](/frontend/errors/)
+- [Service accounts](/administration/service-accounts/)

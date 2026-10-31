@@ -7,7 +7,7 @@ import { Aside, Steps } from "@astrojs/starlight/components";
 
 The **Views** tab of an application (`/frontend/applications/<id>/views`) has one row per
 **route**: a page of your app named by its
-[route template](/fusescope-docs/reference/glossary/#route-template), such as
+[route template](/reference/glossary/#route-template), such as
 `/product/:id`. Click a route to open its detail.
 
 **Use it when** you want to know which pages are slow, which pages users spend time on,
@@ -31,7 +31,7 @@ loaded page. Route changes still count their time on view, errors and requests.
 The SDK sends the kind as `fusescope.rum.view.loading_type` (`initial_load` or
 `route_change`), from version 0.2.0. Views from older SDKs have no loading type: they are
 counted in neither column, marked with `*`, and a note above the table asks you to
-[update the SDK](/fusescope-docs/frontend/sdk-reference/).
+[update the SDK](/frontend/sdk-reference/).
 
 ## The routes table
 
@@ -46,7 +46,7 @@ counted in neither column, marked with `*`, and a note above the table asks you 
    changes, and no vitals.
 5. **LCP p75**, **INP p75** and **CLS p75**, each rated **Good**, **Needs work** or
    **Poor**. See
-   [Web Vitals in plain words](/fusescope-docs/frontend/real-user-monitoring/#web-vitals-in-plain-words).
+   [Web Vitals in plain words](/frontend/real-user-monitoring/#web-vitals-in-plain-words).
    The table is sorted by LCP p75, slowest first; click any heading to sort by it.
 6. **Split bar**: the share of page loads rated good (green), needs improvement (amber)
    and poor (red). A p75 can look fine while one load in five is poor; the bar shows it.
@@ -71,10 +71,10 @@ the link.
 1. **Route** and the attribute it comes from, `fusescope.rum.view.route`, with a few
    example paths, such as `/product/1234` for `/product/:id`.
 2. **Create alert** opens the alert editor with the template **LCP p75 above 2.5 s**,
-   filtered to this route. See [Frontend alerts](/fusescope-docs/frontend/alerts/).
+   filtered to this route. See [Frontend alerts](/frontend/alerts/).
 3. **Key numbers**: **Views**, **Page loads**, **Route changes**, the median **Time on
    view** and **Errors**. Click the error count to open the
-   [Errors](/fusescope-docs/frontend/errors/) tab filtered to this route.
+   [Errors](/frontend/errors/) tab filtered to this route.
 4. **Vitals over time**: switch between **LCP**, **INP** and **CLS**; each button shows
    the p75 of the range. The chart draws the p75 per step, such as **per 1 min**, with the
    **good** (green) and **poor** (red) thresholds as dashed lines. Under the chart, the
@@ -88,17 +88,17 @@ the link.
    HotROD demo; **—** means the call reached no instrumented backend, as for a
    third-party API.
 7. **Slowest trace** opens, in
-   [Trace details](/fusescope-docs/explore/trace-details/), the trace of the slowest
+   [Trace details](/explore/trace-details/), the trace of the slowest
    call: the browser's request and, under it, the backend spans it caused. Backend spans
    only appear for APIs that receive `traceparent`; see
-   [Allow traceparent](/fusescope-docs/frontend/set-up-web/#allow-traceparent-in-your-apis-cors).
+   [Allow traceparent](/frontend/set-up-web/#allow-traceparent-in-your-apis-cors).
 8. **Browsers and OS**: the share of page loads per browser and per operating system,
    with their LCP p75, to spot a browser that is slower than the rest.
 9. **Recent sessions on this route**: the latest sessions that saw it, with **This
    view**: whether it was a page load (with its LCP) or a route change. Click a session to
-   open its [timeline](/fusescope-docs/frontend/sessions/#the-session-timeline).
+   open its [timeline](/frontend/sessions/#the-session-timeline).
 10. **All sessions on** the route opens the
-    [Sessions](/fusescope-docs/frontend/sessions/) tab filtered to it.
+    [Sessions](/frontend/sessions/) tab filtered to it.
 
 ## Android screens
 
@@ -107,7 +107,7 @@ On an Android application, a view is a **screen**, and the same tab lists them:
 - **Route** is the screen's name. For Activities and Fragments it is the class name, or
   the name given with OpenTelemetry Android's `@RumScreenName` annotation. For Compose
   and Navigation screens it is the destination's route template, such as `orders/{id}`;
-  see [Compose screens](/fusescope-docs/frontend/set-up-android/#compose-screens). A
+  see [Compose screens](/frontend/set-up-android/#compose-screens). A
   screen named with `FuseScope.startView()` uses that name.
 - The screen is the last Activity or Fragment resumed, so a host Activity or a
   `NavHostFragment` gets no row of its own.
@@ -116,9 +116,9 @@ On an Android application, a view is a **screen**, and the same tab lists them:
   counts as a route change.
 - **Time on view** ends when the next screen starts or the app goes to the background.
 - **Slowest request** covers OkHttp requests made through
-  [`FuseScope.callFactory`](/fusescope-docs/frontend/set-up-android/#link-requests-to-backend-traces).
+  [`FuseScope.callFactory`](/frontend/set-up-android/#link-requests-to-backend-traces).
 - **LCP**, **INP** and **CLS** stay empty: they are browser measures. App start p75 is on
-  [the overview](/fusescope-docs/frontend/applications/#key-numbers).
+  [the overview](/frontend/applications/#key-numbers).
 - A route's detail shows **Devices and OS** instead of **Browsers and OS**: the share of
   views per device and per OS, without LCP.
 
@@ -150,6 +150,6 @@ On an Android application, a view is a **screen**, and the same tab lists them:
 
 ## Related
 
-- [Sessions](/fusescope-docs/frontend/sessions/)
-- [Errors](/fusescope-docs/frontend/errors/)
-- [Frontend alerts](/fusescope-docs/frontend/alerts/)
+- [Sessions](/frontend/sessions/)
+- [Errors](/frontend/errors/)
+- [Frontend alerts](/frontend/alerts/)

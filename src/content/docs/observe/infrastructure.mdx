@@ -26,12 +26,12 @@ how full your nodes are before adding more work to them.
   **limit** is the most it may use. A container over its memory limit is killed; one
   over its CPU limit is slowed down. **Request utilization** and **limit
   utilization** say how much of each a pod or container uses. See
-  [requests and limits](/fusescope-docs/reference/glossary/#requests-and-limits).
+  [requests and limits](/reference/glossary/#requests-and-limits).
 - **Restarts** count how often a container was restarted. A growing count, with a
   state such as `CrashLoopBackOff`, means the container keeps failing at start.
 
 These numbers are **metrics** sent by the collector, not by your applications. They
-need the [Kubernetes](/fusescope-docs/sending-data/kubernetes/) chart, or the
+need the [Kubernetes](/sending-data/kubernetes/) chart, or the
 `hostmetrics` receiver on a host outside Kubernetes.
 
 <Aside>
@@ -58,7 +58,7 @@ arriving.
 6. Each line names the metrics or attributes, in code font, and the collector
    component that produces them, in italics, such as `hostmetricsreceiver`.
 7. **Learn how to fix** opens the
-   [Kubernetes](/fusescope-docs/sending-data/kubernetes/#what-each-component-sends) page,
+   [Kubernetes](/sending-data/kubernetes/#what-each-component-sends) page,
    which explains each component.
 8. and 9. With no data, the tab says **No host metrics yet** (or
    **No Kubernetes metrics yet**), with a link to set it up.
@@ -150,7 +150,7 @@ Pods, nodes and other Kubernetes objects also have **Overview** and **Events**:
 failures and restarts, with their severity. It needs `presets.k8sEvents` in the
 chart; without it the tab explains how to turn it on.
 
-A service's [Infrastructure](/fusescope-docs/apm/services/#infrastructure) tab links to
+A service's [Infrastructure](/apm/services/#infrastructure) tab links to
 its hosts here with **Host**.
 
 ## Example: why does a pod keep restarting?
@@ -182,8 +182,8 @@ dies from lack of memory, a failing health check, or its own error.
 
 ## Related
 
-- [Kubernetes](/fusescope-docs/sending-data/kubernetes/): install the `k8s-infra`
+- [Kubernetes](/sending-data/kubernetes/): install the `k8s-infra`
   chart, and what each component sends.
-- [Services](/fusescope-docs/apm/services/#infrastructure): the hosts behind a
+- [Services](/apm/services/#infrastructure): the hosts behind a
   service.
-- [Logs explorer](/fusescope-docs/explore/logs/): search the same logs with filters.
+- [Logs explorer](/explore/logs/): search the same logs with filters.

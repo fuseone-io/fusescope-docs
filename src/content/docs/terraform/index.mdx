@@ -19,7 +19,7 @@ the provider, authenticate it and find the resource you need.
 - Terraform 1.4 or later, or OpenTofu 1.6 or later. Older Terraform versions show
   permanent drift on nested attributes that FuseScope fills in.
 - A FuseScope instance reachable from where Terraform runs.
-- A [service account](/fusescope-docs/administration/service-accounts/) API key whose
+- A [service account](/administration/service-accounts/) API key whose
   role can manage the resources you declare (see [Authenticate](#authenticate)).
 
 ## Install
@@ -71,7 +71,7 @@ The provider sends a FuseScope API key on every request. Create it on a service 
 
 1. In *Settings → Service Accounts*, create a service account, for example
    `terraform`.
-2. Give it a [role](/fusescope-docs/administration/users-and-roles/#roles) that covers
+2. Give it a [role](/administration/users-and-roles/#roles) that covers
    what you manage. **Editor** is enough for alert rules, dashboards, saved views and
    planned downtimes. Notification channels, routing policies, users, service accounts
    and single sign-on need **Admin**.
@@ -111,17 +111,17 @@ in the UI. The full attribute reference is on the
 
 | Area | Resource | What it manages |
 |---|---|---|
-| Alerting | [`fusescope_rule`](https://registry.terraform.io/providers/fuseone-io/fusescope/latest/docs/resources/rule) | [Alert rules](/fusescope-docs/alerts/alert-rules/): metrics, logs, traces, exceptions and PromQL |
-| | [`fusescope_notification_channel`](https://registry.terraform.io/providers/fuseone-io/fusescope/latest/docs/resources/notification_channel) | [Notification channels](/fusescope-docs/alerts/notification-channels/): Slack, PagerDuty, Opsgenie, Microsoft Teams, Google Chat, email, webhook and more |
-| | [`fusescope_route_policy`](https://registry.terraform.io/providers/fuseone-io/fusescope/latest/docs/resources/route_policy) | [Routing policies](/fusescope-docs/alerts/routing-and-downtime/#routing-policies) |
-| | [`fusescope_planned_maintenance`](https://registry.terraform.io/providers/fuseone-io/fusescope/latest/docs/resources/planned_maintenance) | [Planned downtime](/fusescope-docs/alerts/routing-and-downtime/#planned-downtime) |
-| Dashboards | [`fusescope_dashboard`](https://registry.terraform.io/providers/fuseone-io/fusescope/latest/docs/resources/dashboard) | [Dashboards](/fusescope-docs/dashboards/dashboards/) |
+| Alerting | [`fusescope_rule`](https://registry.terraform.io/providers/fuseone-io/fusescope/latest/docs/resources/rule) | [Alert rules](/alerts/alert-rules/): metrics, logs, traces, exceptions and PromQL |
+| | [`fusescope_notification_channel`](https://registry.terraform.io/providers/fuseone-io/fusescope/latest/docs/resources/notification_channel) | [Notification channels](/alerts/notification-channels/): Slack, PagerDuty, Opsgenie, Microsoft Teams, Google Chat, email, webhook and more |
+| | [`fusescope_route_policy`](https://registry.terraform.io/providers/fuseone-io/fusescope/latest/docs/resources/route_policy) | [Routing policies](/alerts/routing-and-downtime/#routing-policies) |
+| | [`fusescope_planned_maintenance`](https://registry.terraform.io/providers/fuseone-io/fusescope/latest/docs/resources/planned_maintenance) | [Planned downtime](/alerts/routing-and-downtime/#planned-downtime) |
+| Dashboards | [`fusescope_dashboard`](https://registry.terraform.io/providers/fuseone-io/fusescope/latest/docs/resources/dashboard) | [Dashboards](/dashboards/dashboards/) |
 | | [`fusescope_public_dashboard`](https://registry.terraform.io/providers/fuseone-io/fusescope/latest/docs/resources/public_dashboard) | Public sharing of a dashboard |
 | | [`fusescope_saved_view`](https://registry.terraform.io/providers/fuseone-io/fusescope/latest/docs/resources/saved_view) | Saved Explorer views for logs, traces and metrics |
-| Real User Monitoring | [`fusescope_rum_application`](https://registry.terraform.io/providers/fuseone-io/fusescope/latest/docs/resources/rum_application) | [RUM applications](/fusescope-docs/frontend/applications/) and their first public key |
-| Access | [`fusescope_user`](https://registry.terraform.io/providers/fuseone-io/fusescope/latest/docs/resources/user), [`fusescope_user_role`](https://registry.terraform.io/providers/fuseone-io/fusescope/latest/docs/resources/user_role) | [Users and role assignments](/fusescope-docs/administration/users-and-roles/) |
-| | [`fusescope_service_account`](https://registry.terraform.io/providers/fuseone-io/fusescope/latest/docs/resources/service_account), [`fusescope_service_account_role`](https://registry.terraform.io/providers/fuseone-io/fusescope/latest/docs/resources/service_account_role) | [Service accounts](/fusescope-docs/administration/service-accounts/) and their roles |
-| | [`fusescope_auth_domain`](https://registry.terraform.io/providers/fuseone-io/fusescope/latest/docs/resources/auth_domain) | [Single sign-on](/fusescope-docs/configuration/sso/) domains (OIDC, SAML) |
+| Real User Monitoring | [`fusescope_rum_application`](https://registry.terraform.io/providers/fuseone-io/fusescope/latest/docs/resources/rum_application) | [RUM applications](/frontend/applications/) and their first public key |
+| Access | [`fusescope_user`](https://registry.terraform.io/providers/fuseone-io/fusescope/latest/docs/resources/user), [`fusescope_user_role`](https://registry.terraform.io/providers/fuseone-io/fusescope/latest/docs/resources/user_role) | [Users and role assignments](/administration/users-and-roles/) |
+| | [`fusescope_service_account`](https://registry.terraform.io/providers/fuseone-io/fusescope/latest/docs/resources/service_account), [`fusescope_service_account_role`](https://registry.terraform.io/providers/fuseone-io/fusescope/latest/docs/resources/service_account_role) | [Service accounts](/administration/service-accounts/) and their roles |
+| | [`fusescope_auth_domain`](https://registry.terraform.io/providers/fuseone-io/fusescope/latest/docs/resources/auth_domain) | [Single sign-on](/configuration/sso/) domains (OIDC, SAML) |
 
 [`fusescope_role`](https://registry.terraform.io/providers/fuseone-io/fusescope/latest/docs/data-sources/role)
 is a data source only. Role assignments take the ID of a built-in role
@@ -156,11 +156,11 @@ The provider follows what the FuseScope backend accepts:
 
 ## Guides
 
-- [Alerts as code](/fusescope-docs/terraform/alerts-as-code/): channels, rules and
+- [Alerts as code](/terraform/alerts-as-code/): channels, rules and
   routing policies for one service.
-- [RUM applications](/fusescope-docs/terraform/rum-applications/): create an application
+- [RUM applications](/terraform/rum-applications/): create an application
   and feed its key to the browser SDK.
-- [Import existing resources](/fusescope-docs/terraform/import/): bring objects created
+- [Import existing resources](/terraform/import/): bring objects created
   in the UI under Terraform.
 
 The provider is open source under the Mozilla Public License 2.0:

@@ -11,13 +11,13 @@ The PostgreSQL integration collects database statistics with the collector's
 
 **Use this page when** you run PostgreSQL yourself, on a VM, in a container or in
 Kubernetes. For Amazon RDS, see
-[AWS RDS for PostgreSQL](/fusescope-docs/sending-data/integrations/aws-rds-postgresql/).
+[AWS RDS for PostgreSQL](/sending-data/integrations/aws-rds-postgresql/).
 
 ## Prerequisites
 
 - **PostgreSQL 9.6 or newer.** Check with `SELECT version();`.
 - **An `otelcol-contrib` collector**, v0.88.0 or newer, where you can add config files
-  and environment variables. See [Integrations](/fusescope-docs/sending-data/integrations/#how-it-works).
+  and environment variables. See [Integrations](/sending-data/integrations/#how-it-works).
 - **For metrics:** a monitoring user, and network access from the collector to the
   server port.
 - **For logs:** the collector can read the PostgreSQL log file. Find it with
@@ -168,7 +168,7 @@ service:
 </Tabs>
 
 Run the collector with `--config postgres-metrics.yaml --config postgres-logs.yaml`,
-as shown in [Run the collector](/fusescope-docs/sending-data/integrations/#run-the-collector).
+as shown in [Run the collector](/sending-data/integrations/#run-the-collector).
 Set `insecure: false` in the exporter when the FuseScope endpoint uses TLS.
 
 <Aside type="note" title="Collector on another host">
@@ -199,7 +199,7 @@ Set `insecure: false` in the exporter when the FuseScope endpoint uses TLS.
 - Locks by lock mode, Deadlocks count
 
 No log pipelines and no alert rules. Parsing happens in the collector config; see
-[Log pipelines](/fusescope-docs/sending-data/log-pipelines/) for more.
+[Log pipelines](/sending-data/log-pipelines/) for more.
 
 ## Data collected
 
@@ -247,8 +247,8 @@ No log pipelines and no alert rules. Parsing happens in the collector config; se
 
 ## Related
 
-- [Integrations](/fusescope-docs/sending-data/integrations/)
-- [AWS RDS for PostgreSQL](/fusescope-docs/sending-data/integrations/aws-rds-postgresql/)
-- [Log pipelines](/fusescope-docs/sending-data/log-pipelines/)
-- [Dashboards](/fusescope-docs/dashboards/dashboards/)
+- [Integrations](/sending-data/integrations/)
+- [AWS RDS for PostgreSQL](/sending-data/integrations/aws-rds-postgresql/)
+- [Log pipelines](/sending-data/log-pipelines/)
+- [Dashboards](/dashboards/dashboards/)
 - [`postgresql` receiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/postgresqlreceiver)

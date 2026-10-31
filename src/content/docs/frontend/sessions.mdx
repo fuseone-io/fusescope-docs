@@ -12,7 +12,7 @@ and did, in order, with every request linked to its backend trace.
 **Use it when** a user reports a problem and you want to see what happened to them, or
 when you want to see what visits with errors have in common.
 
-A [session](/fusescope-docs/reference/glossary/#session) ends after 15 minutes without a
+A [session](/reference/glossary/#session) ends after 15 minutes without a
 click, key press, scroll or touch, or after 4 hours. The next one carries the previous
 one's id as `session.previous_id`, so you can follow a long visit across sessions. No
 screen is recorded: there is no replay, and form inputs and page text are never captured.
@@ -26,13 +26,13 @@ list can be shared.
 
 1. **Browser**: **All**, or one browser such as **Chrome**, **Safari**, **Firefox** or
    **Edge**. Hidden on Android.
-2. **Route**: only sessions that saw this [route](/fusescope-docs/frontend/views/).
+2. **Route**: only sessions that saw this [route](/frontend/views/).
 3. **Duration**: **< 10 s**, **10 s – 1 min**, **≥ 1 min**, **≥ 5 min** or
    **≥ 15 min**. Very short sessions often mean users who left at once.
 4. **User**: sessions of one user, by their `user.id`. Press Enter to apply. Users are
-   only known when your app calls [`setUser()`](/fusescope-docs/frontend/sdk-reference/#setuser).
+   only known when your app calls [`setUser()`](/frontend/sdk-reference/#setuser).
    By default the SDK sends a SHA-256 hash of the id, so search for the hash, not the
-   raw id; see [User identity](/fusescope-docs/frontend/sdk-reference/#user-identity).
+   raw id; see [User identity](/frontend/sdk-reference/#user-identity).
 5. **Has error**: only sessions with at least one JavaScript error.
 6. **Count**: how many sessions match. The list shows 50 per page by default (20, 50 or
    100).
@@ -52,8 +52,8 @@ list can be shared.
    environment. With `setUser()`, a **user** tag shows the short `user.id`. A line
    **after** links to the previous session.
 2. **Copy link** copies the timeline's URL. **Logs of this session** and **Traces of
-   this session** open the [Logs](/fusescope-docs/explore/logs/) and
-   [Traces](/fusescope-docs/explore/traces/) explorers filtered to its `session.id`.
+   this session** open the [Logs](/explore/logs/) and
+   [Traces](/explore/traces/) explorers filtered to its `session.id`.
 3. **Key numbers**: when it **Started**, its **Duration**, **Views** (and how many were
    page loads), **Actions**, **Requests** (and how many failed) and **Errors**.
 4. **Views**: the session as a bar, one segment per view, labelled with its route. Ticks
@@ -68,12 +68,12 @@ list can be shared.
    their duration.
 8. **Request** events show the method and URL, the backend service that answered, the
    status and the duration. **View backend trace** opens the trace in
-   [Trace details](/fusescope-docs/explore/trace-details/): the browser's request and,
+   [Trace details](/explore/trace-details/): the browser's request and,
    under it, the backend spans it caused. **Trace** means the request reached no
    instrumented backend.
 9. **Error** events show the type and message and how they were raised (`onerror`,
    `unhandledrejection` or `manual`). **View error** opens the
-   [error group](/fusescope-docs/frontend/errors/#error-detail); **View in Logs** opens
+   [error group](/frontend/errors/#error-detail); **View in Logs** opens
    the event itself.
 
 The other events are **Click**, with the element that was clicked such as
@@ -86,7 +86,7 @@ says the timeline stops early; its logs and traces have the rest.
   Browsers report LCP late, often after the user has already moved to the next route.
   The timeline shows a vital when it was reported, so a page load's LCP can appear on
   the following route change, as `/product/:id` above. The
-  [Views](/fusescope-docs/frontend/views/) tab still counts it for the route the page was
+  [Views](/frontend/views/) tab still counts it for the route the page was
   loaded on.
 </Aside>
 
@@ -118,13 +118,13 @@ Sessions of an Android application differ in a few ways:
 - **Device · OS** replaces **Browser · OS**, such as **Google Pixel 8 · Android 14**,
   from the `device.*` and `os.*` resource attributes, since an app sends no user agent.
   The **Browser** filter is hidden.
-- **Views** are screens, named as in [Android screens](/fusescope-docs/frontend/views/#android-screens).
+- **Views** are screens, named as in [Android screens](/frontend/views/#android-screens).
 - **Actions** are the custom actions sent with `FuseScope.addAction()`; taps are not
   recorded.
 - **Requests** are OkHttp calls made through `FuseScope.callFactory`.
 - **Errors** are crashes, ANRs and handled errors, shown with their source (`crash`,
   `anr` or `manual`). A crash is usually the session's last event.
-- **User** works the same: [`FuseScope.setUser()`](/fusescope-docs/frontend/set-up-android/#identify-the-user)
+- **User** works the same: [`FuseScope.setUser()`](/frontend/set-up-android/#identify-the-user)
   sends the same SHA-256 hash as the browser SDK, so one user's web and Android
   sessions share a `user.id`.
 
@@ -149,6 +149,6 @@ Sessions of an Android application differ in a few ways:
 
 ## Related
 
-- [Views](/fusescope-docs/frontend/views/)
-- [Errors](/fusescope-docs/frontend/errors/)
-- [Browser SDK reference](/fusescope-docs/frontend/sdk-reference/)
+- [Views](/frontend/views/)
+- [Errors](/frontend/errors/)
+- [Browser SDK reference](/frontend/sdk-reference/)

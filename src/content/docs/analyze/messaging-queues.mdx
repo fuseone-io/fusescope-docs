@@ -22,15 +22,15 @@ and consume which topics.
   until they are read.
 - A Kafka topic is split into **partitions**, numbered `0`, `1`, `2`…, so several
   consumers can read it in parallel. Each partition keeps its messages in order. See
-  [partition](/fusescope-docs/reference/glossary/#partition).
+  [partition](/reference/glossary/#partition).
 - Consumers that share the work of a topic form a **consumer group**.
 - **Consumer lag** is how many messages a consumer group still has to read in a
   partition: the newest message's position (offset) minus the group's position. Lag
   that keeps growing means the consumers can't keep up. See
-  [consumer lag](/fusescope-docs/reference/glossary/#consumer-lag).
+  [consumer lag](/reference/glossary/#consumer-lag).
 - **Celery** is a Python task queue. Your code queues a **task**; **Celery workers**,
   separate processes, pick tasks up and run them. A task can succeed, fail, or be
-  retried. See [Celery worker](/fusescope-docs/reference/glossary/#celery-worker).
+  retried. See [Celery worker](/reference/glossary/#celery-worker).
 
 The views read two kinds of data: **spans** from your producers and consumers (the
 SDK records one per message sent or processed), and **metrics** from the brokers and
@@ -106,7 +106,7 @@ sent and each message processed, with the attributes above:
    Python, Node.js and .NET include instrumentations for the common Kafka clients,
    such as `kafka-clients` (Java), `confluent-kafka` and `kafka-python` (Python) and
    `kafkajs` (Node.js). For Go, wrap the client with an OpenTelemetry instrumentation
-   library. See [Instrument applications](/fusescope-docs/sending-data/instrumentation/).
+   library. See [Instrument applications](/sending-data/instrumentation/).
 
 2. **Set `service.instance.id`** on consumers, one value per process, such as the pod
    name, so the views can tell the consumers of a group apart:
@@ -118,7 +118,7 @@ sent and each message processed, with the attributes above:
 3. **Propagate the trace context through the message headers.** The instrumentations do
    this by default; it is what links a consumer span to the producer span of the same
    message, for [drop rate](#drop-rate) and for following a message in
-   [Trace details](/fusescope-docs/explore/trace-details/).
+   [Trace details](/explore/trace-details/).
 
 4. **Check.** Open the **Kafka configuration** panel and choose **Missing**. Attributes
    still listed there are not set by your instrumentation; older instrumentations may
@@ -149,7 +149,7 @@ The **Kafka** checks need metrics, which no application span carries:
   ```
 
   Run it in any collector that can reach the brokers, and send its data to FuseScope
-  as in [From another collector](/fusescope-docs/sending-data/otlp/#from-another-collector).
+  as in [From another collector](/sending-data/otlp/#from-another-collector).
 - `kafka.consumer.fetch_latency_avg` is a metric of the Kafka consumer client itself.
   The OpenTelemetry Java agent reports the Kafka client metrics under these names when
   it instruments `kafka-clients`; for other languages, export the client's metrics
@@ -239,7 +239,7 @@ list the tasks behind it.
    instrumentation for Python (`opentelemetry-instrumentation-celery`, included in
    `opentelemetry-bootstrap`). Its spans carry `celery.task_name`, `celery.state` and
    `celery.hostname`, which the task charts read. See
-   [Instrument applications](/fusescope-docs/sending-data/instrumentation/).
+   [Instrument applications](/sending-data/instrumentation/).
 
 2. **Collect Flower metrics** for **Active Tasks by worker** and **Workers online**.
    Run [Flower](https://flower.readthedocs.io/), Celery's monitoring tool, and scrape
@@ -294,9 +294,9 @@ backlog builds, and drop rate turns "late" into a number you can alert on.
 
 ## Related
 
-- [Instrument applications](/fusescope-docs/sending-data/instrumentation/): the SDKs
+- [Instrument applications](/sending-data/instrumentation/): the SDKs
   and agents.
-- [OTLP endpoints](/fusescope-docs/sending-data/otlp/#from-another-collector): send
+- [OTLP endpoints](/sending-data/otlp/#from-another-collector): send
   metrics from your own collector.
-- [Trace details](/fusescope-docs/explore/trace-details/): follow one message from
+- [Trace details](/explore/trace-details/): follow one message from
   producer to consumer.

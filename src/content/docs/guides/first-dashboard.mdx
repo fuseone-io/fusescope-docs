@@ -13,7 +13,7 @@ often it fails, and how slow it is. No metrics setup is needed.
 
 ![The finished HotROD overview dashboard: a Spans per service line chart, an Errors per service bar chart and a P99 latency by service table.](../../../assets/dashboards/dashboard-detail.png)
 
-You need the Editor or Admin [role](/fusescope-docs/administration/users-and-roles/#roles).
+You need the Editor or Admin [role](/administration/users-and-roles/#roles).
 
 ## Create the dashboard
 
@@ -32,16 +32,16 @@ You need the Editor or Admin [role](/fusescope-docs/administration/users-and-rol
 
 ## Panel 1: spans per service
 
-A [panel](/fusescope-docs/reference/glossary/#panel) is one chart on the dashboard.
+A [panel](/reference/glossary/#panel) is one chart on the dashboard.
 
 <Steps>
 
 1. Click **New Panel**. In the **New panel** picker, click **Time Series**, then
-   **Add panel**. The [panel editor](/fusescope-docs/dashboards/panel-editor/) opens:
+   **Add panel**. The [panel editor](/dashboards/panel-editor/) opens:
    the query on the left, a preview of the chart in the middle and the panel settings
    on the right.
 2. In the query card, change **Source** from **Metrics** to **Traces**. The
-   aggregation is `count()`: the number of [spans](/fusescope-docs/reference/glossary/#span).
+   aggregation is `count()`: the number of [spans](/reference/glossary/#span).
 3. Open **Result**, click **Group By** and pick `service.name`, to draw one line per
    service.
 4. In **Legend format**, enter `{{service.name}}`, so each line is labelled with its
@@ -91,12 +91,12 @@ A [panel](/fusescope-docs/reference/glossary/#panel) is one chart on the dashboa
 
 - Drag a panel by its header to move it, and drag its bottom-right corner to resize it.
   The layout is saved when you let go.
-- Change the [time range](/fusescope-docs/reference/glossary/#time-range) at the top of
+- Change the [time range](/reference/glossary/#time-range) at the top of
   the page; every panel follows it.
 - Click **Share** (the globe icon at the top right), then **Copy page link**. Anyone
   with access to FuseScope who opens it sees the same dashboard and time range.
 - To group panels later, use **Actions** › **New section**. See
-  [Sections](/fusescope-docs/dashboards/dashboards/#sections).
+  [Sections](/dashboards/dashboards/#sections).
 
 ## Expected result
 
@@ -107,20 +107,20 @@ view.
 <Aside type="tip">
   To show one service at a time, add a variable: click **Add variable** under the
   title, create a **Dynamic** variable on `service.name`, and use **Apply to panels**.
-  See [Dashboard variables](/fusescope-docs/dashboards/variables/) and the
-  [worked example](/fusescope-docs/dashboards/dashboards/#example-filter-a-dashboard-by-service).
+  See [Dashboard variables](/dashboards/variables/) and the
+  [worked example](/dashboards/dashboards/#example-filter-a-dashboard-by-service).
 </Aside>
 
 ## Next steps
 
 - Turn errors into a percentage with two queries and a formula `B / A * 100`: see
-  [Several queries and formulas](/fusescope-docs/querying/query-builder/#several-queries-and-formulas).
+  [Several queries and formulas](/querying/query-builder/#several-queries-and-formulas).
 - Get notified when a number crosses a line: see
-  [Set up your first alert](/fusescope-docs/guides/first-alert/).
+  [Set up your first alert](/guides/first-alert/).
 
 ## Related
 
-- [Dashboards](/fusescope-docs/dashboards/dashboards/): panel types, options, sections
+- [Dashboards](/dashboards/dashboards/): panel types, options, sections
   and JSON.
-- [Query builder](/fusescope-docs/querying/query-builder/): aggregations, group by and
+- [Query builder](/querying/query-builder/): aggregations, group by and
   formulas.

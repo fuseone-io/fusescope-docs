@@ -5,18 +5,18 @@ description: Send CPU, memory, disk, file system and network metrics from Linux 
 
 import { Aside, Tabs, TabItem } from "@astrojs/starlight/components";
 
-The **Hosts** tab of [Infrastructure](/fusescope-docs/observe/infrastructure/#hosts)
+The **Hosts** tab of [Infrastructure](/observe/infrastructure/#hosts)
 lists your machines with their CPU, memory, disk and load. That data comes from the
 OpenTelemetry Collector's `hostmetrics` receiver, running on each machine, plus the
 `resourcedetection` processor, which names the machine.
 
 **Use this page when** the Hosts tab says **No host metrics yet**, an
-[instrumentation check](/fusescope-docs/observe/infrastructure/#instrumentation-checks)
+[instrumentation check](/observe/infrastructure/#instrumentation-checks)
 reports missing host metrics or `host.name`, or you add a new server or VM.
 
 On Kubernetes you don't need this page: the `k8s-infra` chart already runs the
 receiver on every node. See
-[hostmetrics receiver](/fusescope-docs/sending-data/kubernetes/#hostmetrics-receiver).
+[hostmetrics receiver](/sending-data/kubernetes/#hostmetrics-receiver).
 
 ## What the Hosts tab needs
 
@@ -43,13 +43,13 @@ The host's details panel draws more charts from the same receiver:
 Process metrics are optional. FuseScope's processes check looks for
 `process.cpu.time` and `process.memory.usage` with the `process.pid` resource
 attribute, from the `process` scraper. The host panel has no processes view yet;
-chart them in [Metrics](/fusescope-docs/explore/metrics/).
+chart them in [Metrics](/explore/metrics/).
 
 ## The config
 
 Add this to the collector on the machine. It extends the base config from
-[Collector on a VM](/fusescope-docs/sending-data/collector-vm/) or
-[Collector on Docker](/fusescope-docs/sending-data/collector-docker/): keep your
+[Collector on a VM](/sending-data/collector-vm/) or
+[Collector on Docker](/sending-data/collector-docker/): keep your
 `otlp` receiver, exporter and other pipelines.
 
 ```yaml title="config.yaml"
@@ -157,7 +157,7 @@ with `names` to limit which processes are scraped.
 <Tabs syncKey="host-runtime">
 <TabItem label="VM / bare metal">
 
-Install `otelcol-contrib` as in [Collector on a VM](/fusescope-docs/sending-data/collector-vm/),
+Install `otelcol-contrib` as in [Collector on a VM](/sending-data/collector-vm/),
 add the config above to `/etc/otelcol-contrib/config.yaml`, then:
 
 ```bash
@@ -219,11 +219,11 @@ Without `--net host`, set `host.name` yourself:
 2. Open **Infrastructure › Hosts**. The host appears with **Active** status within a
    few collection intervals. Click **Recheck** on the instrumentation checks.
 3. If the host is missing but metrics arrive, search for `system.cpu.time` in
-   [Metrics](/fusescope-docs/explore/metrics/) and check that it has `host.name`.
+   [Metrics](/explore/metrics/) and check that it has `host.name`.
 
 ## Related
 
-- [Infrastructure](/fusescope-docs/observe/infrastructure/)
-- [Collector on a VM](/fusescope-docs/sending-data/collector-vm/)
-- [Collector on Docker](/fusescope-docs/sending-data/collector-docker/)
-- [Kubernetes](/fusescope-docs/sending-data/kubernetes/)
+- [Infrastructure](/observe/infrastructure/)
+- [Collector on a VM](/sending-data/collector-vm/)
+- [Collector on Docker](/sending-data/collector-docker/)
+- [Kubernetes](/sending-data/kubernetes/)

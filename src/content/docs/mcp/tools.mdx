@@ -3,7 +3,7 @@ title: MCP tools and resources
 description: The tools and resources the FuseScope MCP server offers AI assistants, grouped by area, with which ones read and which ones change FuseScope.
 ---
 
-The [FuseScope MCP server](/fusescope-docs/mcp/) offers the tools below. Assistants
+The [FuseScope MCP server](/mcp/) offers the tools below. Assistants
 choose them on their own; you rarely call one by name. The
 [README](https://github.com/fuseone-io/fusescope-mcp-server#available-tools) lists every
 parameter.
@@ -13,7 +13,7 @@ tools to auto-approve in your client.
 
 In the **Kind** column, *read* tools never change FuseScope and are safe to
 auto-approve. *Create*, *update* and *delete* tools change it and need an Editor or
-Admin key; see [read-only or read-write](/fusescope-docs/mcp/#read-only-or-read-write).
+Admin key; see [read-only or read-write](/mcp/#read-only-or-read-write).
 
 ## Overview
 
@@ -44,7 +44,7 @@ Admin key; see [read-only or read-write](/fusescope-docs/mcp/#read-only-or-read-
 | `fusescope_get_top_metrics` | read | Top 100 metrics by ingested samples, for cost work. |
 | `fusescope_check_metric_usage` | read | Which dashboards and alerts use a metric. |
 | `fusescope_check_metric_cardinality` | read | A metric's labels ranked by number of distinct values. |
-| `fusescope_execute_builder_query` | read | Run a full [Query Builder](/fusescope-docs/querying/query-builder/) request, including PromQL and ClickHouse SQL. |
+| `fusescope_execute_builder_query` | read | Run a full [Query Builder](/querying/query-builder/) request, including PromQL and ClickHouse SQL. |
 
 ## AI Observability
 
@@ -54,7 +54,7 @@ Admin key; see [read-only or read-write](/fusescope-docs/mcp/#read-only-or-read-
 | `fusescope_list_ai_attribute_mappings` | read | Mappings from vendor span attributes to `gen_ai.*` keys. |
 | `fusescope_test_ai_attribute_mapping` | read | Try sample spans against the mappings without saving. |
 
-See [AI Observability](/fusescope-docs/analyze/ai-observability/).
+See [AI Observability](/analyze/ai-observability/).
 
 ## Alerts
 

@@ -10,13 +10,13 @@ The Redis integration reads server statistics with the collector's `redis` recei
 **Redis overview** dashboard.
 
 **Use this page when** you run Redis yourself. For Amazon ElastiCache, see
-[AWS ElastiCache for Redis](/fusescope-docs/sending-data/integrations/aws-elasticache-redis/).
+[AWS ElastiCache for Redis](/sending-data/integrations/aws-elasticache-redis/).
 
 ## Prerequisites
 
 - **Redis newer than 3.0.**
 - **An `otelcol-contrib` collector**, v0.88.0 or newer, where you can add config files
-  and environment variables. See [Integrations](/fusescope-docs/sending-data/integrations/#how-it-works).
+  and environment variables. See [Integrations](/sending-data/integrations/#how-it-works).
 - **For metrics:** the collector can connect to Redis as a client. If the server sets
   `requirepass`, you need that password.
 - **For logs:** the collector can read the Redis log file. Find it with
@@ -138,7 +138,7 @@ service:
 </Tabs>
 
 Run the collector with `--config redis-metrics.yaml --config redis-logs.yaml`, as shown
-in [Run the collector](/fusescope-docs/sending-data/integrations/#run-the-collector).
+in [Run the collector](/sending-data/integrations/#run-the-collector).
 Set `insecure: false` in the exporter when the FuseScope endpoint uses TLS.
 
 <Aside type="note" title="Collector on another host">
@@ -169,7 +169,7 @@ Set `insecure: false` in the exporter when the FuseScope endpoint uses TLS.
 - Clients blocked, Unsaved changes
 
 No log pipelines and no alert rules. Parsing happens in the collector config; see
-[Log pipelines](/fusescope-docs/sending-data/log-pipelines/) for more.
+[Log pipelines](/sending-data/log-pipelines/) for more.
 
 ## Data collected
 
@@ -216,7 +216,7 @@ The most useful of the 31 metrics. The **Data Collected** tab lists them all.
 
 ## Related
 
-- [Integrations](/fusescope-docs/sending-data/integrations/)
-- [AWS ElastiCache for Redis](/fusescope-docs/sending-data/integrations/aws-elasticache-redis/)
-- [Log pipelines](/fusescope-docs/sending-data/log-pipelines/)
+- [Integrations](/sending-data/integrations/)
+- [AWS ElastiCache for Redis](/sending-data/integrations/aws-elasticache-redis/)
+- [Log pipelines](/sending-data/log-pipelines/)
 - [`redis` receiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/redisreceiver)

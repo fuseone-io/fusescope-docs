@@ -5,7 +5,7 @@ description: Parse, normalise and enrich logs before they are stored, with pipel
 
 import { Aside, Steps } from "@astrojs/starlight/components";
 
-A [log pipeline](/fusescope-docs/reference/glossary/#log-pipeline) changes logs on
+A [log pipeline](/reference/glossary/#log-pipeline) changes logs on
 their way in, before they are stored. Use one to turn a line of text into fields you
 can filter on, to give every service the same severity spelling, or to add facts the
 logs lack, such as which team owns them.
@@ -24,12 +24,12 @@ Each pipeline has three parts:
    one thing: parse JSON, set the severity, add an attribute. See
    [Processors](#processors).
 3. **The stored log**: what comes out of the last processor is what FuseScope keeps
-   and what you see in the [Logs explorer](/fusescope-docs/explore/logs/).
+   and what you see in the [Logs explorer](/explore/logs/).
 
 When there are several pipelines, a log goes through them in list order, so a later
 pipeline sees the changes of an earlier one.
 
-Pipelines run in the FuseScope [collector](/fusescope-docs/reference/glossary/#collector),
+Pipelines run in the FuseScope [collector](/reference/glossary/#collector),
 so they apply to every log it receives, whichever SDK or agent sent it. They change
 only logs that arrive after you save; logs already stored stay as they are.
 
@@ -68,7 +68,7 @@ Nothing is applied while you edit. The bar at the bottom says what is pending:
   throws them away.
 
 Saving needs the Editor or Admin
-[role](/fusescope-docs/administration/users-and-roles/#roles); viewers can read and
+[role](/administration/users-and-roles/#roles); viewers can read and
 preview pipelines.
 
 ## Create a pipeline
@@ -87,7 +87,7 @@ preview pipelines.
 
 ## Processors
 
-A [processor](/fusescope-docs/reference/glossary/#processor) is one step of a
+A [processor](/reference/glossary/#processor) is one step of a
 pipeline. **Add Processor**, or the pencil on a processor, opens a sheet on the
 right. Pick the type in **Select Processor Type**, give the step a name, fill in its
 fields and click **Create** (or **Update**).
@@ -123,7 +123,7 @@ that mean that level, such as `error, err, 5xx` under ERROR.
 
 It sets `severity_number` and, by default, rewrites `severity_text` to the level
 name, so every service ends up with the same spelling in storage. The Logs explorer already groups spellings on screen (see
-[Severity levels](/fusescope-docs/explore/logs/#severity-levels)); the parser makes
+[Severity levels](/explore/logs/#severity-levels)); the parser makes
 the stored data agree, which helps queries, alerts and exports that read the raw
 fields.
 
@@ -219,9 +219,9 @@ page.
 
 ## Related
 
-- [Logs explorer](/fusescope-docs/explore/logs/): search the logs your pipelines
+- [Logs explorer](/explore/logs/): search the logs your pipelines
   produce.
-- [Severity levels](/fusescope-docs/explore/logs/#severity-levels): how FuseScope
+- [Severity levels](/explore/logs/#severity-levels): how FuseScope
   groups severities on screen.
-- [Instrument applications](/fusescope-docs/sending-data/instrumentation/#logs): send
+- [Instrument applications](/sending-data/instrumentation/#logs): send
   logs that already carry fields and trace IDs.

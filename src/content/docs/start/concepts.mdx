@@ -10,7 +10,7 @@ short and uses the same example: a ride-booking app with the services `frontend`
 `customer`, `driver` and `route`.
 
 **Read this page when** a term on another page is unclear. For one-line definitions,
-see the [Glossary](/fusescope-docs/reference/glossary/).
+see the [Glossary](/reference/glossary/).
 
 ## Traces and spans
 
@@ -49,7 +49,7 @@ looks at.
 
 A **service** is one program that sends data, such as `frontend` or `driver`.
 FuseScope reads its name from the `service.name` attribute. Every service that sends
-spans gets a row on the [Services](/fusescope-docs/apm/services/) page.
+spans gets a row on the [Services](/apm/services/) page.
 
 ## Attributes and resource attributes
 
@@ -63,7 +63,7 @@ An **attribute** is a key and a value attached to data, used to filter and group
 
 Most of the time you can write a key without caring which kind it is. When the same
 key exists in both, write `resource.` or `attribute.` in front of it; see
-[Search syntax](/fusescope-docs/querying/search-syntax/#attribute-keys).
+[Search syntax](/querying/search-syntax/#attribute-keys).
 
 ## Logs: body and severity
 
@@ -73,7 +73,7 @@ A log record has:
 - a **severity**: how serious it is. `severity_text` holds the level name (`DEBUG`,
   `INFO`, `WARN`, `ERROR`, `FATAL`) and `severity_number` a matching number. Programs
   spell the name in many ways, so FuseScope groups them into
-  [seven levels](/fusescope-docs/explore/logs/#severity-levels);
+  [seven levels](/explore/logs/#severity-levels);
 - a timestamp, attributes, resource attributes and, when written inside a request,
   the **trace ID** and **span ID**. Those two IDs are what link a log to its trace.
 
@@ -91,7 +91,7 @@ FuseScope how to add the numbers up:
 | **Summary** | Percentiles computed by the app | Older Prometheus clients |
 
 More detail, including temporality, is in
-[Metrics explorer](/fusescope-docs/explore/metrics/#metric-types-and-temporality).
+[Metrics explorer](/explore/metrics/#metric-types-and-temporality).
 
 ## Time range
 
@@ -114,8 +114,8 @@ Without an aggregation you get a list of matching spans or logs. With one, you g
 chart or a table. For example, `count()` grouped by `service.name` draws one line per
 service with its number of spans over time.
 
-See [Search syntax](/fusescope-docs/querying/search-syntax/) for filters and
-[Query builder](/fusescope-docs/querying/query-builder/) for the rest.
+See [Search syntax](/querying/search-syntax/) for filters and
+[Query builder](/querying/query-builder/) for the rest.
 
 ## Latency and percentiles: P50, P95, P99
 
@@ -151,7 +151,7 @@ What is "bad" depends on the service. A steady 0.1% may be normal; a jump from 0
 shows it as the **rate**, in requests per second (req/s).
 
 Rate, errors and duration (latency) together are the **RED** metrics, the three numbers
-the [Services](/fusescope-docs/apm/services/) page shows for every service.
+the [Services](/apm/services/) page shows for every service.
 
 ## Apdex
 
@@ -165,8 +165,8 @@ time *T* (0.5 s by default). Then each request is:
 The score is (satisfied + tolerating ÷ 2) ÷ all requests. With *T* = 0.5 s, 80
 satisfied, 15 tolerating and 5 frustrated requests score (80 + 7.5) ÷ 100 = 0.875.
 1.0 is perfect; below 0.7 users are noticing.
-See [Services](/fusescope-docs/apm/services/#apdex-threshold) to change *T*.
+See [Services](/apm/services/#apdex-threshold) to change *T*.
 
 ## Next step
 
-Open the app with the [Tour of the interface](/fusescope-docs/start/tour/).
+Open the app with the [Tour of the interface](/start/tour/).

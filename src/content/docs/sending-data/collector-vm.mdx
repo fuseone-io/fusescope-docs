@@ -10,11 +10,11 @@ machine from the official packages. It runs as a systemd service, receives OTLP 
 apps on the machine and forwards it to FuseScope.
 
 **Use this page when** your apps run on a virtual machine or bare-metal server, outside
-Docker and Kubernetes, or when you want [host metrics](/fusescope-docs/sending-data/hosts/)
+Docker and Kubernetes, or when you want [host metrics](/sending-data/hosts/)
 from that machine.
 
 For why a local collector helps (batching, retries, enrichment, one egress point), see
-[Collector on Docker](/fusescope-docs/sending-data/collector-docker/#why-run-a-local-collector).
+[Collector on Docker](/sending-data/collector-docker/#why-run-a-local-collector).
 
 ## Install
 
@@ -171,7 +171,7 @@ service:
 </Tabs>
 
 - Replace `fusescope-collector.example.com` with your FuseScope collector address; see
-  [From outside the cluster](/fusescope-docs/sending-data/otlp/#from-outside-the-cluster).
+  [From outside the cluster](/sending-data/otlp/#from-outside-the-cluster).
   Self-hosted FuseScope needs no ingestion key.
 - To accept data from other machines, use `0.0.0.0:4317` and `0.0.0.0:4318`, and
   restrict access with a firewall: the receivers have no authentication.
@@ -222,7 +222,7 @@ are also available in the config as `${env:NAME}`.
 5. If data still doesn't show in FuseScope, add the `debug` exporter (`verbosity:
    detailed`) to a pipeline, restart, and watch the journal to see what the collector
    receives. See
-   [Collector on Docker](/fusescope-docs/sending-data/collector-docker/#check-that-it-works).
+   [Collector on Docker](/sending-data/collector-docker/#check-that-it-works).
 
 </Steps>
 
@@ -240,7 +240,7 @@ are kept, and the service restarts.
 
 ## Related
 
-- [Hosts](/fusescope-docs/sending-data/hosts/): CPU, memory, disk and network of this machine
-- [Prometheus metrics](/fusescope-docs/sending-data/prometheus/)
-- [Collector on Docker](/fusescope-docs/sending-data/collector-docker/)
-- [OTLP endpoints](/fusescope-docs/sending-data/otlp/)
+- [Hosts](/sending-data/hosts/): CPU, memory, disk and network of this machine
+- [Prometheus metrics](/sending-data/prometheus/)
+- [Collector on Docker](/sending-data/collector-docker/)
+- [OTLP endpoints](/sending-data/otlp/)

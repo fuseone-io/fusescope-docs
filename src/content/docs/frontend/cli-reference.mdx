@@ -6,7 +6,7 @@ description: The @fusescope/cli commands sourcemaps upload, list and delete, the
 import { Aside } from "@astrojs/starlight/components";
 
 [`@fusescope/cli`](https://www.npmjs.com/package/@fusescope/cli) uploads your build's
-[source maps](/fusescope-docs/frontend/source-maps/) to FuseScope and manages them. It
+[source maps](/frontend/source-maps/) to FuseScope and manages them. It
 needs Node 22 or later and has no runtime dependencies. It is licensed Apache-2.0.
 
 The current release is `0.1.0-beta.2`, on npm's `next` tag. It is a beta: flags may
@@ -31,7 +31,7 @@ lands in your shell history or in process lists:
 |---|---|---|
 | `FUSESCOPE_URL` | `--url <base>` | FuseScope's base URL, such as `https://fusescope.example.com`. |
 | `FUSESCOPE_APP` | `--app <id>` | The RUM application **id**, the `applicationId` of your `init()` snippet, such as `01a16431-12ca-7064-bae9-6ac64cf20a29`. Not its name. |
-| `FUSESCOPE_API_KEY` | `--api-key <key>` | The key of a [service account](/fusescope-docs/administration/service-accounts/) with the **Editor** role. The application's public key does not work. |
+| `FUSESCOPE_API_KEY` | `--api-key <key>` | The key of a [service account](/administration/service-accounts/) with the **Editor** role. The application's public key does not work. |
 
 The key is sent in the `SigNoz-Api-Key` header and never printed.
 
@@ -116,7 +116,7 @@ Upload after every build, with the version from `package.json`:
 
 `$npm_package_version` is set by npm, pnpm and Yarn in POSIX shells; in Windows `cmd`, use
 `%npm_package_version%`, or set `FUSESCOPE_RELEASE`. Pass the same version to the SDK; see
-[Source maps](/fusescope-docs/frontend/source-maps/#upload-with-the-cli).
+[Source maps](/frontend/source-maps/#upload-with-the-cli).
 
 ## CI
 
@@ -154,5 +154,5 @@ curl -X POST "$FUSESCOPE_URL/api/v1/rum/applications/$FUSESCOPE_APP/sourcemaps?r
 
 ## Related
 
-- [Source maps](/fusescope-docs/frontend/source-maps/)
-- [Service accounts](/fusescope-docs/administration/service-accounts/)
+- [Source maps](/frontend/source-maps/)
+- [Service accounts](/administration/service-accounts/)

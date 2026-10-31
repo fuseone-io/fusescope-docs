@@ -11,7 +11,7 @@ reads `kS · app.4GMSW5AF.js:2:11056`, which says nothing. A **source map** is t
 your bundler writes next to each bundle, `app.4GMSW5AF.js.map`, that maps every position
 back to your source: `applyCoupon · src/cart/pricing.js:13:11`.
 
-Upload the maps of each release to FuseScope and the [Errors](/fusescope-docs/frontend/errors/)
+Upload the maps of each release to FuseScope and the [Errors](/frontend/errors/)
 tab shows original stack traces.
 
 - **Maps stay private.** They are stored on the FuseScope server and never served to
@@ -44,7 +44,7 @@ the bundle in the stack trace, ignoring the origin:
 | `/assets/index-abc123.js.map` | `https://shop.example.com/assets/index-abc123.js` |
 | `/static/app.js.map` | `https://cdn.example.com/static/app.js` |
 
-The [CLI](/fusescope-docs/frontend/cli-reference/) names each map after its path under your
+The [CLI](/frontend/cli-reference/) names each map after its path under your
 build directory, with `--url-prefix` in front (`/` by default). If your bundles are served
 from a sub-path or a CDN, pass that path: `--url-prefix /static/`.
 
@@ -59,7 +59,7 @@ so an app served under an extra prefix, such as `/shop/assets/app.js` for a map 
 
 1. **Create a key.** In *Settings → Service accounts*, create a service account with the
    **Editor** role, such as `ci-release`, and add a key to it. See
-   [Service accounts](/fusescope-docs/administration/service-accounts/). Keep the key in
+   [Service accounts](/administration/service-accounts/). Keep the key in
    your CI's secrets.
 
 2. **Build with hidden source maps**, so the maps are written but the bundles don't link
@@ -114,7 +114,7 @@ so an app served under an extra prefix, such as `/shop/assets/app.js` for a map 
 `FUSESCOPE_APP` is the application **id**, not its name: it is the `applicationId` in your
 `init()` snippet, and it is filled in for you in the **Source maps** tab and in the upload
 command of an error with a missing map. Every flag, `list`, `delete` and CI examples are in
-the [CLI reference](/fusescope-docs/frontend/cli-reference/).
+the [CLI reference](/frontend/cli-reference/).
 
 <Aside type="caution">
   `@fusescope/cli` is a beta on npm's `next` tag; use `@fusescope/cli@next` (0.1.0-beta.2 or
@@ -195,14 +195,14 @@ with the reason, and the others are still uploaded.
 Maps are stored on the FuseScope backend's disk, under `/var/lib/signoz/sourcemaps`. The
 Helm chart keeps that directory on the backend's persistent volume, so maps survive
 restarts. The settings are under `rum.sourcemaps` in the
-[configuration file](/fusescope-docs/configuration/config-file/): `dir`, `max_file_size`,
+[configuration file](/configuration/config-file/): `dir`, `max_file_size`,
 `max_files_per_release`, `quota` (per application), `cache_size` (memory for decoded
 maps), `context_lines` (source lines shown around a frame, 5 by default) and
 `cleanup_interval` (how often retention runs, hourly by default).
 
 ## Related
 
-- [CLI reference](/fusescope-docs/frontend/cli-reference/)
-- [R8 mappings](/fusescope-docs/frontend/r8-mappings/): the Android counterpart.
-- [Errors](/fusescope-docs/frontend/errors/)
-- [Service accounts](/fusescope-docs/administration/service-accounts/)
+- [CLI reference](/frontend/cli-reference/)
+- [R8 mappings](/frontend/r8-mappings/): the Android counterpart.
+- [Errors](/frontend/errors/)
+- [Service accounts](/administration/service-accounts/)
