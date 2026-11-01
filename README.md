@@ -1,4 +1,18 @@
-# FuseScope documentation
+<p align="center">
+  <img alt="FuseScope" src=".github/brand/fusescope-logo-universal.svg" width="440">
+</p>
+
+<h1 align="center">FuseScope documentation</h1>
+
+<p align="center">
+  <b>Source of the FuseScope documentation site.</b>
+</p>
+
+<p align="center">
+  <a href="https://docs.fusescope.fuseone.io/">docs.fusescope.fuseone.io</a> ·
+  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-0f5fb8"></a>
+  <a href="https://github.com/fuseone-io/fusescope-docs/issues"><img alt="GitHub issues" src="https://img.shields.io/github/issues/fuseone-io/fusescope-docs?color=950fb8"></a>
+</p>
 
 Source of the [FuseScope](https://github.com/fuseone-io/fusescope) documentation site,
 published at https://docs.fusescope.fuseone.io/.
