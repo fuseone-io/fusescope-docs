@@ -1,0 +1,85 @@
+---
+title: Android native crashes
+description: Recover Android native process exits on the next launch, inspect tombstone code frames, and understand grouping, consent and platform limits.
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+Native crashes are failures in native code, such as a process ending with
+`SIGSEGV` or `SIGABRT`. FuseScope reports them as exception events with source
+`native`, separately from Java/Kotlin crashes and ANRs.
+
+<Aside type="caution">
+Native recovery requires the Android SDK and FuseScope releases that include
+native-crash support. It is not part of Android SDK `0.1.0-beta.2`.
+</Aside>
+
+## Capture on the next launch
+
+The SDK reads Android's `ApplicationExitInfo` after collection starts. It reports
+eligible native exits from previous processes in the background; it does not install
+a signal handler or intercept a dying native process.
+
+- **Android 11 / API 30:** native exit metadata is available, but tombstone frames
+  are not provided by this API.
+- **Android 12 / API 31 and later:** Android can provide a protobuf tombstone.
+  The SDK retains only the crashing thread's code frames and signal. It does not
+  send register values, memory dumps, log buffers or command-line contents.
+- Android keeps a circular history. A trace can be missing or overwritten; an
+  available native exit can therefore appear without frames.
+
+Keep the usual initialization in `Application.onCreate`. Native recovery follows
+`instrumentations.crashes`; disabling crashes disables this recovery too.
+
+With `requireConsent=true`, recovery waits for consent. Exits without a saved,
+initialized context for this application are ignored, as are unsampled sessions.
+A recovered event belongs to the original session, release and timestamp, rather
+than the session that happens to upload it after relaunch.
+
+Confirmed exports are marked to avoid reporting the same exit again. Failed exports
+can be retried on another launch while the OS history and saved context remain
+available. The OS does not guarantee permanent crash storage.
+
+## Read a native crash
+
+Open **Frontend → your Android application → Errors** and select **native** in the
+source filter. A native group is marked **Native crash**. The stack shows the
+library and library-relative program counter, for example:
+
+```text
+#00 pc 0000000000000042 /data/app/example/lib/arm64/libcheckout.so (pay+8) (BuildId: aabbcc)
+```
+
+Groups use the top application libraries and relative offsets, with the build ID
+when available. Installation-directory changes and process address randomization
+do not create different groups. Common system abort frames are used only when no
+application frame is available. A different build ID keeps unrelated library
+builds from sharing an offset accidentally.
+
+Native code frames do not use [R8 mappings](/frontend/r8-mappings/).
+They are not shown as obfuscated Java frames and do not request a mapping upload.
+At this stage there is no `.so` debug-symbol upload or ELF/DWARF symbolication, and native frames are not resolved to source files and lines at this stage.
+
+## Check a sample crash
+
+The SDK repository's sample application can deliberately send `SIGABRT` to its own
+process. Run it on an emulator with API 31 or later, using a configured RUM
+application whose allowed package names include the sample package:
+
+```sh
+adb shell am start -n io.fuseone.fusescope.sample/.MainActivity --es action native
+adb shell am start -n io.fuseone.fusescope.sample/.MainActivity
+```
+
+The first command terminates the sample; the second launches it again so the SDK
+can recover the exit. Allow export to finish, then check **Errors** for a native
+`SIGABRT` event and its tombstone frames. Relaunching again should not resend a
+confirmed exit. A release with native support must be installed before producing
+the test crash; recovery does not retroactively instrument processes that ran
+before initialization or consent.
+
+## Related
+
+- [Set up an Android application](/frontend/set-up-android/)
+- [Errors](/frontend/errors/)
+- [R8 mappings](/frontend/r8-mappings/)

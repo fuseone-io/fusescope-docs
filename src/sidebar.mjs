@@ -119,6 +119,7 @@ export const sidebar = [
       { label: "Errors", slug: "frontend/errors" },
       { label: "Source maps", slug: "frontend/source-maps" },
       { label: "R8 mappings", slug: "frontend/r8-mappings" },
+      { label: "Android native crashes", slug: "frontend/native-crashes" },
       { label: "Frontend alerts", slug: "frontend/alerts" },
       { label: "Keys", slug: "frontend/keys" },
       { label: "Browser SDK reference", slug: "frontend/sdk-reference" },
