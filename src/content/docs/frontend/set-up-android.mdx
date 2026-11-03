@@ -12,12 +12,14 @@ can build and run.
 The SDK, `io.fuseone.fusescope:android`, is a thin distribution of
 [OpenTelemetry Android](https://github.com/open-telemetry/opentelemetry-android). It
 records sessions, screens, crashes, ANRs (Application Not Responding), app start and
-OkHttp requests linked to backend traces. It is in beta, `0.1.0-beta.2`, and its options
-may change before 1.0. Native (NDK) crashes are not captured yet; they are planned.
+OkHttp requests linked to backend traces. It is in beta, `0.1.0-beta.3`, and its options
+may change before 1.0. [Native process exits](/frontend/native-crashes/) are recovered
+on the next consented launch on API 30+, with tombstone frames available on API 31+.
 
-`0.1.0-beta.2` needs FuseScope 0.156.0 or later to keep one
+Beta.2 and beta.3 need FuseScope 0.156.0 or later to keep one
 [R8 mapping per build](/frontend/r8-mappings/#the-release-rule);
-`0.1.0-beta.1` works with 0.155.0 or later.
+`0.1.0-beta.1` works with 0.155.0 or later. Native frames and grouping need
+FuseScope `0.159.0-beta.1` or later; older servers do not provide native-frame support.
 
 If you don't know what RUM records yet, start with
 [Real User Monitoring](/frontend/real-user-monitoring/).
@@ -128,12 +130,12 @@ Then, in the app module:
 ```kotlin title="app/build.gradle.kts"
 plugins {
     id("com.android.application")
-    id("io.fuseone.fusescope.android.mappings") version "0.1.0-beta.2" // optional, uploads R8 mappings
+    id("io.fuseone.fusescope.android.mappings") version "0.1.0-beta.3" // optional, uploads R8 mappings
 }
 
 dependencies {
-    implementation("io.fuseone.fusescope:android:0.1.0-beta.2")
-    implementation("io.fuseone.fusescope:android-compose:0.1.0-beta.2") // optional, Compose and Navigation screens
+    implementation("io.fuseone.fusescope:android:0.1.0-beta.3")
+    implementation("io.fuseone.fusescope:android-compose:0.1.0-beta.3") // optional, Compose and Navigation screens
 }
 ```
 
@@ -389,7 +391,7 @@ Run the app, on a device or the emulator, and move through a few screens. The
 application's **Install** step updates by itself: it reads **Waiting for first data…**
 until the gateway accepts the first request, then **Receiving data**, with what arrived
 in the last 5 minutes (**Sessions**, **Views**, **Errors** and the vitals, counted under
-**Web Vitals**) and the SDK seen, such as `io.fuseone.fusescope:android 0.1.0-beta.2`
+**Web Vitals**) and the SDK seen, such as `io.fuseone.fusescope:android 0.1.0-beta.3`
 **Supported**. **Open shop-android** opens the application's
 [overview](/frontend/applications/#the-overview).
 
