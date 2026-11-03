@@ -26,9 +26,10 @@ and consent, are then yours to implement in your client.
 
 - **Encoding**: OTLP/HTTP, with `Content-Type: application/json` or
   `application/x-protobuf`. `Content-Encoding: gzip` is accepted.
-- **Key**: the application's public key in the **`FuseScope-RUM-Key`** header. For
-  `navigator.sendBeacon`, which can't set headers, pass it as the
-  `fusescope_rum_key` query parameter instead.
+- **Key**: the application's public key in the **`FuseScope-RUM-Key`** header, always.
+  To send on page unload, use `fetch(url, { method: 'POST', keepalive: true, headers })`
+  rather than `navigator.sendBeacon`, which can't set headers; `keepalive` has the same
+  64 KiB in-flight limit as a beacon. A key in the URL is not accepted.
 - **Size**: 4 MiB per request at most, before and after gzip.
 - **Response**: an OTLP export response, `200`, in the request's encoding.
 
