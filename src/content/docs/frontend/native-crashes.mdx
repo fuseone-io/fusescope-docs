@@ -10,8 +10,8 @@ Native crashes are failures in native code, such as a process ending with
 `native`, separately from Java/Kotlin crashes and ANRs.
 
 <Aside type="caution">
-Native recovery requires the Android SDK and FuseScope releases that include
-native-crash support. It is not part of Android SDK `0.1.0-beta.2`.
+Use Android SDK `0.1.0-beta.3` or later and FuseScope `0.159.0-beta.1` or later
+for native frames and grouping. Android SDK `0.1.0-beta.2` does not capture native exits.
 </Aside>
 
 ## Capture on the next launch
@@ -38,7 +38,9 @@ than the session that happens to upload it after relaunch.
 
 Confirmed exports are marked to avoid reporting the same exit again. Failed exports
 can be retried on another launch while the OS history and saved context remain
-available. The OS does not guarantee permanent crash storage.
+available. Recovery is at least once: if the process terminates before the export
+acknowledgement is saved durably, an exit can be reported again. The OS does not
+guarantee permanent crash storage.
 
 ## Read a native crash
 
