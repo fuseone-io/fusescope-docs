@@ -24,6 +24,51 @@ FuseScope `0.159.0-beta.2` or later; older servers do not provide native-frame s
 If you don't know what RUM records yet, start with
 [Real User Monitoring](/frontend/real-user-monitoring/).
 
+## Compatibility and preparing for 1.0
+
+The current published version is `0.1.0-beta.3`. Version `1.0.0` is being prepared;
+keep the installation examples below on beta.3 until the aligned artifacts are published.
+
+| Feature | Backend requirement and verified status |
+|---|---|
+| Sessions, views, errors and per-build R8 mappings | Beta.3 with FuseScope 0.156.0+; full real-app acceptance used 0.159.0-beta.2 |
+| Native frames and grouping | FuseScope 0.159.0-beta.2, accepted with SDK beta.3 |
+| App-start ingestion | Accepted with SDK beta.3 and FuseScope 0.159.0-beta.2 |
+| App-start in the session timeline | Requires the backend correction in [PR #313](https://github.com/fuseone-io/fusescope/pull/313); source-build acceptance passed, released minimum version pending |
+
+The verified build baseline is JDK 21, Gradle 9.7.1, AGP 9.4.0, Kotlin 2.4.10 and
+compile SDK 37, with OpenTelemetry Android 1.7.0, Java 1.65.0 and instrumentation
+2.31.1. Runtime acceptance used an API 35 emulator. `minSdk` 23 is the supported API
+floor; that run does not establish testing on every API level or older build toolchain.
+
+### Migration checklist for the 1.0 candidate
+
+- Upgrade the SDK, optional Compose library and optional mappings plugin together to
+  `1.0.0` **after publication**. The plugin marker and implementation must match.
+  Include `mavenCentral()` in both plugin and dependency repositories.
+- Keep the existing initialization, facade, Compose APIs and configuration defaults.
+  No telemetry format or data migration is required. The backend supplies app-start
+  timeline presentation for already captured Android events.
+- Use a base `endpoint` without embedded credentials. Candidate validation rejects
+  URLs with userinfo and reports a fixed diagnostic for invalid endpoints. Continue
+  using the public RUM `key`; keep the Editor mapping-upload secret in CI.
+- If migrating from beta.1, configure `traceparentHosts` for your API hosts: beta.2+
+  defaults to the endpoint host. An empty list disables propagation; unsampled
+  sessions export no data and send no trace context.
+- Keep your consent policy: consent is optional by default. With `requireConsent`,
+  collection starts on grant. Withdrawal stops new collection and flushes previously
+  collected data; it does not retract earlier exports. Another grant resumes collection.
+- Preserve the existing privacy/session defaults and the matching application,
+  release and R8 map ID for each minified build. Native ELF/DWARF symbolication is
+  separate from the 1.0 stabilization work.
+
+The [SDK migration guide](https://github.com/fuseone-io/fusescope-sdk-android/blob/feat/189-android-1.0/docs/android-1.0-migration.md)
+records the aligned artifact coordinates, isolated consumer verification and remaining
+release gates. The [real Android acceptance](https://github.com/fuseone-io/fusescope-sdk-android/actions/runs/41763544558)
+passed sessions, views/Compose, consent/sampling, privacy/propagation, native/Java/ANR/R8
+and four UI checks with published beta.3 and a source-built backend. Final 1.0
+acceptance and the released backend version containing #313 remain pending.
+
 ## The steps at a glance
 
 <Steps>
