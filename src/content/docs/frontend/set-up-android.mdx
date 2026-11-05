@@ -69,6 +69,21 @@ passed sessions, views/Compose, consent/sampling, privacy/propagation, native/Ja
 and four UI checks with published beta.3 and a source-built backend. Final 1.0
 acceptance and the released backend version containing #313 remain pending.
 
+## Collector ingress on FuseScope 0.159.0+
+
+The new FuseScope collector serves `/rum/v1/traces` and `/rum/v1/logs`; the backend
+no longer accepts telemetry on those routes. Point the SDK at the collector's HTTPS
+ingestion URL. The public RUM key, protobuf payloads and Android package allowlist
+contract are unchanged. The collector receives application policy and reports setup
+status over authenticated TLS OpAMP.
+
+Keep the backend URL for API queries and the Errors UI. Until the artifact migration
+[#234](https://github.com/fuseone-io/fusescope/issues/234) is delivered, R8 mapping uploads
+also use the backend management URL with an Editor key. Configure the mappings plugin
+endpoint separately from the SDK endpoint. A common hostname needs a proxy routing each
+path to its owning service. Private collector certificates need app trust; keep TLS
+certificate and hostname verification enabled.
+
 ## The steps at a glance
 
 <Steps>
@@ -211,7 +226,7 @@ class ShopApplication : Application() {
             FuseScopeConfig(
                 applicationId = "01a16431-12ca-7064-bae9-6ac64cf20a29",
                 key = "rum_pub_…",
-                endpoint = "https://fusescope.example.com",
+                endpoint = "https://ingest.example.com",
                 environment = "production",
             ),
         )
@@ -227,10 +242,10 @@ Register the class in the manifest, if it isn't already:
 
 - `applicationId` is the RUM application's id (a UUID), not your Android
   `applicationId`.
-- `endpoint` is the FuseScope URL your users' devices reach. If you opened FuseScope
-  through `localhost` or an internal host name, use its public URL. The SDK sends to
-  `<endpoint>/rum/v1/traces` and `<endpoint>/rum/v1/logs`. On the emulator, the host
-  machine is `http://10.0.2.2`.
+- `endpoint` is the collector ingestion URL your users' devices reach on server
+  0.159.0+. The SDK sends to `<endpoint>/rum/v1/traces` and `<endpoint>/rum/v1/logs`.
+  Use HTTPS with a trusted certificate. On the emulator, the host bridge is `10.0.2.2`;
+  a local TLS certificate must cover that IP and its CA must be trusted by the sample.
 - `service` and `release` are left out: the gateway names the service after the
   application, and `release` defaults to the app's `versionName`, as the mapping upload
   does.
@@ -246,7 +261,7 @@ Register the class in the manifest, if it isn't already:
 |---|---|---|
 | `applicationId` | required | The RUM application id from the **Install** step. |
 | `key` | required | The public key, `rum_pub_…`. |
-| `endpoint` | required | The FuseScope base URL. |
+| `endpoint` | required | The collector ingestion base URL on server 0.159.0+. |
 | `service` | none | `service.name`. When unset, the gateway uses the application's name; set it only to override that. |
 | `environment` | none | `deployment.environment.name`. When unset, the gateway uses the application's environment. |
 | `release` | `versionName` | `service.version`: the **Release** filter, and the release [R8 mappings](/frontend/r8-mappings/) are looked up by. |
@@ -475,7 +490,7 @@ check:
 
 Release builds minified with R8 have obfuscated stack traces, such as
 `a.b.c(SourceFile:12)`. With the `io.fuseone.fusescope.android.mappings` plugin applied,
-configure where to upload:
+configure the **backend management URL** (distinct from the SDK collector URL until artifact migration #234):
 
 ```kotlin title="app/build.gradle.kts"
 fusescope {
