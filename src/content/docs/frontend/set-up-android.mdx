@@ -84,6 +84,16 @@ endpoint separately from the SDK endpoint. A common hostname needs a proxy routi
 path to its owning service. Private collector certificates need app trust; keep TLS
 certificate and hostname verification enabled.
 
+<Aside type="caution" title="Published beta.3 consent limitation">
+  An intermittent TLS connection close during consent withdrawal can crash beta.3
+  with `NetworkOnMainThreadException`. The correction in
+  [SDK PR #9](https://github.com/fuseone-io/fusescope-sdk-android/pull/9) passed full
+  source-candidate acceptance with five consent cycles, but has not been published.
+  Track the released fix under [#336](https://github.com/fuseone-io/fusescope/issues/336).
+  Withdrawal/shutdown flush data and should run off main; that alone does not fix the
+  upstream callback race in beta.3.
+</Aside>
+
 The library's `minSdk` remains 23, but a direct connection to the collector's TLS-1.3-only
 listener requires a compatible TLS provider. Android's default provider supports TLS 1.3
 from API 29 ([official protocol matrix](https://developer.android.com/reference/javax/net/ssl/SSLSocket)).
