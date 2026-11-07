@@ -39,8 +39,9 @@ keep the installation examples below on beta.3 until the aligned artifacts are p
 
 The verified build baseline is JDK 21, Gradle 9.7.1, AGP 9.4.0, Kotlin 2.4.10 and
 compile SDK 37, with OpenTelemetry Android 1.7.0, Java 1.65.0 and instrumentation
-2.31.1. Runtime acceptance used an API 35 emulator. `minSdk` 23 is the supported API
-floor; that run does not establish testing on every API level or older build toolchain.
+2.31.1. Source-candidate runtime acceptance covered AOSP emulators API 23, 28 and 35.
+`minSdk` 23 is the supported API floor; those runs do not establish testing on every
+API/device/provider variant or older build toolchain.
 
 ### Migration checklist for the 1.0 candidate
 
