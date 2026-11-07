@@ -34,6 +34,7 @@ keep the installation examples below on beta.3 until the aligned artifacts are p
 | Sessions, views, errors and per-build R8 mappings | Beta.3 with FuseScope 0.156.0+; full real-app acceptance used 0.159.0-beta.2 |
 | Native frames and grouping | FuseScope 0.159.0-beta.2, accepted with SDK beta.3 |
 | App-start ingestion | Accepted with SDK beta.3 and FuseScope 0.159.0-beta.2 |
+| Android 1.0 support label | Requires [PR #343](https://github.com/fuseone-io/fusescope/pull/343) to recognize the stable 1.0.x line; released minimum pending |
 | App-start in the session timeline | Requires the backend correction in [PR #313](https://github.com/fuseone-io/fusescope/pull/313); source-build acceptance passed, released minimum version pending |
 
 The verified build baseline is JDK 21, Gradle 9.7.1, AGP 9.4.0, Kotlin 2.4.10 and
@@ -67,7 +68,7 @@ records the aligned artifact coordinates, isolated consumer verification and rem
 release gates. The [real Android acceptance](https://github.com/fuseone-io/fusescope-sdk-android/actions/runs/41763544558)
 passed sessions, views/Compose, consent/sampling, privacy/propagation, native/Java/ANR/R8
 and four UI checks with published beta.3 and a source-built backend. Final 1.0
-acceptance and the released backend version containing #313 remain pending.
+acceptance and the released backend version containing #313 and #343 remain pending.
 
 ## Collector ingress on FuseScope 0.159.0+
 
@@ -94,12 +95,19 @@ certificate and hostname verification enabled.
   upstream callback race in beta.3.
 </Aside>
 
-The library's `minSdk` remains 23, but a direct connection to the collector's TLS-1.3-only
-listener requires a compatible TLS provider. Android's default provider supports TLS 1.3
-from API 29 ([official protocol matrix](https://developer.android.com/reference/javax/net/ssl/SSLSocket)).
-Direct ingestion from API 23–28 with the stock provider is therefore not covered by the
-candidate's compatibility claim; the older-device transport strategy remains a 1.0
-release decision. Successful API 35 acceptance does not validate that older range.
+The SDK retains Android 6+/API 23+ as its support target. Collector **0.3.1** can
+explicitly accept TLS 1.2 with ECDHE AEAD suites for stock Android 6–9; TLS 1.3 remains
+the default. Chart **0.161.1** exposes `fusescopeCollector.rum.tlsMinVersion: "1.2"`.
+The public proxy must also accept TLS 1.2 on the RUM endpoint. A verified
+proxy-to-collector connection may remain TLS 1.3. No additional SDK TLS provider is
+required; keep certificate and hostname verification enabled.
+
+Older-device candidate acceptance is tracked in [#337](https://github.com/fuseone-io/fusescope/issues/337).
+Do not infer device compatibility from minSdk or server handshake tests alone. The
+prepared checks cover actual TLS/cipher negotiation, invalid certificate rejection,
+consent, sessions/views, sampling, propagation and Java/ANR/R8; Android native recovery
+continues to require its platform APIs. Final Android 1.0 publication and acceptance
+of the published artifacts remain pending.
 
 ## The steps at a glance
 
