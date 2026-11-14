@@ -44,11 +44,8 @@ FuseScope.
    ```bash
    export OTEL_SERVICE_NAME=checkout
    export OTEL_RESOURCE_ATTRIBUTES=deployment.environment.name=production,service.version=1.4.2
-   export OTEL_EXPORTER_OTLP_ENDPOINT=https://fusescope-agent-otlp.fusescope.svc:4318
-   export OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
-   export OTEL_EXPORTER_OTLP_CERTIFICATE=/etc/fusescope-agent-ca/ca.crt
-   export FUSESCOPE_AGENT_TOKEN=<the token from the fusescope-agent-otlp-token Secret>
-   export OTEL_EXPORTER_OTLP_HEADERS="Authorization=Bearer%20${FUSESCOPE_AGENT_TOKEN}"
+   # The exporter variables of "Send to FuseScope" below: they work only in a pod
+   # of the Kubernetes cluster that runs FuseScope.
    ```
 
 3. Start the JVM with the agent:

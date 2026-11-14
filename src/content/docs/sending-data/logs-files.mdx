@@ -9,29 +9,28 @@ Many applications write their logs to files. The OpenTelemetry Collector's `file
 receiver reads those files as they grow, turns each line into a log record and sends it
 to FuseScope. It ships in the `otelcol-contrib` distribution.
 
-**Use this page when** an application or a service on a VM or in Docker writes logs to
-files, and you can't or don't want to change it to send logs over OTLP.
+**Use this page when** an application in a Kubernetes pod writes logs to files instead of
+stdout, and you can't or don't want to change it to send logs over OTLP.
 
-<Aside type="caution" title="Not from outside the cluster yet">
-  The FuseScope chart exposes no OTLP endpoint outside the Kubernetes cluster that runs
-  FuseScope. A collector on a VM, in Docker outside Kubernetes, or in another cluster has no
-  supported destination yet. The exporters on this page send to the FuseScope agent and work
-  only from inside that cluster.
+<Aside type="caution" title="Inside the cluster only">
+  These configurations are for a collector running as a pod in the Kubernetes cluster that runs
+  FuseScope: its exporter sends to the FuseScope agent's Service, which exists only there. A
+  collector outside that cluster has no supported destination yet.
 </Aside>
 
-On Kubernetes, use the [Kubernetes logs](/sending-data/logs-kubernetes/)
-preset instead: it already reads every pod's log files.
+Logs a container writes to stdout or stderr need no collector of yours: the FuseScope agents
+read them on every node. See [Kubernetes logs](/sending-data/logs-kubernetes/).
 
 ## How it works
 
 <Steps>
 
-1. A collector runs next to the application, as a container or as a service on the
-   host. See [Collector in Docker](/sending-data/collector-docker/) or
-   [Collector on a VM](/sending-data/collector-vm/) to install it.
+1. A collector runs next to the application, as a sidecar container in its pod
+   ([Run it](#run-it)).
 2. The `filelog` receiver watches the files that match `include` and reads new lines.
 3. Optional operators parse each line into fields, a timestamp and a severity.
-4. An exporter sends the logs to the FuseScope collector over OTLP.
+4. An exporter sends the logs to the FuseScope agent on the node, over OTLP with TLS 1.3 and
+   the agent's token.
 
 </Steps>
 
@@ -134,7 +133,8 @@ service:
 ```
 
 The collector must be able to write to `directory`, and the directory must survive a
-restart: on Docker, mount it as a volume.
+restart of the collector container: in a pod, put it on a volume such as an `emptyDir`, which
+lives as long as the pod.
 
 ## Multiline logs
 
@@ -270,47 +270,35 @@ severity in a pipeline.
 
 ## Run it
 
-<Tabs>
-<TabItem label="Docker">
+Run the collector as a sidecar container in the application's pod, so both share the volume the
+application writes its logs to:
 
-Mount the log directory read-only and a host directory for the read positions. The
-image runs as user `10001`, so it must be able to read the logs and write the storage
-directory.
-
-```bash
-sudo mkdir -p /var/lib/otelcol-storage
-sudo chown 10001:10001 /var/lib/otelcol-storage
-
-docker run -d --name otelcol \
-  -v "$PWD/config.yaml:/etc/otelcol-contrib/config.yaml:ro" \
-  -v /var/log/checkout:/var/log/checkout:ro \
-  -v /var/lib/otelcol-storage:/var/lib/otelcol/file_storage \
-  otel/opentelemetry-collector-contrib:0.139.0
+```yaml title="pod spec (excerpt)"
+containers:
+  - name: checkout
+    image: checkout:latest
+    volumeMounts:
+      - {name: logs, mountPath: /var/log/checkout}
+  - name: otelcol
+    image: otel/opentelemetry-collector-contrib:0.139.0
+    args: [--config=/etc/otelcol-contrib/config.yaml]
+    env:
+      - name: FUSESCOPE_AGENT_TOKEN
+        valueFrom:
+          secretKeyRef: {name: fusescope-agent-otlp-token, key: token}
+    volumeMounts:
+      - {name: logs, mountPath: /var/log/checkout, readOnly: true}
+      - {name: otelcol-config, mountPath: /etc/otelcol-contrib, readOnly: true}
+      - {name: fusescope-agent-ca, mountPath: /etc/fusescope-agent-ca, readOnly: true}
+volumes:
+  - {name: logs, emptyDir: {}}
+  - {name: otelcol-config, configMap: {name: otelcol-checkout}}
+  - {name: fusescope-agent-ca, secret: {secretName: fusescope-agent-ca}}
 ```
 
-To read another container's logs, write them to a shared volume and mount it the same
-way. See [Collector in Docker](/sending-data/collector-docker/).
-
-</TabItem>
-<TabItem label="VM">
-
-Install the `otelcol-contrib` package, put the configuration in
-`/etc/otelcol-contrib/config.yaml` and restart the service. The service runs as the
-`otelcol-contrib` user, which must be able to read the log files:
-
-```bash
-sudo usermod -aG adm otelcol-contrib
-sudo mkdir -p /var/lib/otelcol/file_storage
-sudo chown otelcol-contrib:otelcol-contrib /var/lib/otelcol/file_storage
-sudo systemctl restart otelcol-contrib
-```
-
-The `adm` group reads most of `/var/log` on Debian and Ubuntu; for other files, grant
-read access to the group that owns them. See
-[Collector on a VM](/sending-data/collector-vm/).
-
-</TabItem>
-</Tabs>
+The configuration goes in the `otelcol-checkout` ConfigMap. The CA and token Secrets must be in
+the application's namespace; see [OTLP](/sending-data/otlp/). The image runs as user `10001`,
+which must be able to read the log files.
 
 ## Check that data arrives
 
@@ -327,9 +315,6 @@ read access to the group that owns them. See
 
 ## Related
 
-- [Collector in Docker](/sending-data/collector-docker/) and
-  [Collector on a VM](/sending-data/collector-vm/): install the agent.
 - [Log pipelines](/sending-data/log-pipelines/): parse logs in FuseScope.
-- [Kubernetes logs](/sending-data/logs-kubernetes/): pod logs with the
-  `k8s-infra` chart.
+- [Kubernetes logs](/sending-data/logs-kubernetes/): pod logs from the FuseScope agents.
 - [Logs explorer](/explore/logs/): search the logs.

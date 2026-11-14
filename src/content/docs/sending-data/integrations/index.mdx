@@ -12,11 +12,10 @@ FuseScope adds matching dashboards when you connect it.
 **Use this page when** you want to monitor a database, web server or AWS service that has
 a built-in integration, or want to know how integrations work in the app.
 
-<Aside type="caution" title="Not from outside the cluster yet">
-  The FuseScope chart exposes no OTLP endpoint outside the Kubernetes cluster that runs
-  FuseScope. A collector on a VM, in Docker outside Kubernetes, or in another cluster has no
-  supported destination yet. The exporters on this page send to the FuseScope agent and work
-  only from inside that cluster.
+<Aside type="caution" title="Inside the cluster only">
+  These configurations are for a collector running as a pod in the Kubernetes cluster that runs
+  FuseScope: the exporter sends to the FuseScope agent's Service, which exists only there. A
+  collector outside that cluster has no supported destination yet.
 </Aside>
 
 ## Available integrations
@@ -43,10 +42,9 @@ You run the collector. FuseScope does not reach into your systems.
 
 <Steps>
 
-1. **Run a collector next to the service.** Use the upstream `otelcol-contrib`
+1. **Run a collector in the cluster that runs FuseScope.** Use the upstream `otelcol-contrib`
    distribution, version v0.88.0 or newer; the examples use 0.139.0. See
-   [Collector in Docker](/sending-data/collector-docker/) or
-   [Collector on a VM](/sending-data/collector-vm/).
+   [Run the collector](#run-the-collector).
 2. **Add the integration's config files.** Each integration page has one file for
    metrics and one for logs. They export to FuseScope over OTLP gRPC.
 3. **Connect the integration in FuseScope.** This adds its dashboards and turns on the
@@ -119,52 +117,40 @@ the agents' receiver on and copy the credentials into your namespace.
 
 ## Run the collector
 
-The collector accepts several `--config` flags and merges the files. Add the
-integration files next to your main config.
+Run the collector as a pod in the cluster that runs FuseScope, for example a Deployment of
+`otel/opentelemetry-collector-contrib:0.139.0`. The collector accepts several `--config` flags and
+merges the files; put the integration files in a ConfigMap next to your main config:
 
-<Tabs>
-<TabItem label="Docker">
-
-```bash
-docker run -d --name otelcol \
-  -e OTLP_DESTINATION_ENDPOINT=fusescope-agent-otlp.fusescope.svc:4317 \
-  -e FUSESCOPE_AGENT_TOKEN='<token>' \
-  -v "$PWD/ca.crt:/etc/fusescope-agent-ca/ca.crt:ro" \
-  -e POSTGRESQL_ENDPOINT=db.internal:5432 \
-  -e POSTGRESQL_USERNAME=monitoring \
-  -e POSTGRESQL_PASSWORD='<password>' \
-  -v "$PWD/postgres-metrics.yaml:/etc/otelcol-contrib/postgres-metrics.yaml:ro" \
-  otel/opentelemetry-collector-contrib:0.139.0 \
-  --config /etc/otelcol-contrib/postgres-metrics.yaml
+```yaml title="deployment.yaml (excerpt)"
+containers:
+  - name: otelcol
+    image: otel/opentelemetry-collector-contrib:0.139.0
+    args:
+      - --config=/etc/otelcol-contrib/postgres-metrics.yaml
+    env:
+      - name: OTLP_DESTINATION_ENDPOINT
+        value: fusescope-agent-otlp.fusescope.svc:4317
+      - name: FUSESCOPE_AGENT_TOKEN
+        valueFrom:
+          secretKeyRef: {name: fusescope-agent-otlp-token, key: token}
+      - name: POSTGRESQL_ENDPOINT
+        value: db.internal:5432
+      - name: POSTGRESQL_USERNAME
+        value: monitoring
+      - name: POSTGRESQL_PASSWORD
+        valueFrom:
+          secretKeyRef: {name: postgres-monitoring, key: password}
+    volumeMounts:
+      - {name: config, mountPath: /etc/otelcol-contrib, readOnly: true}
+      - {name: fusescope-agent-ca, mountPath: /etc/fusescope-agent-ca, readOnly: true}
+volumes:
+  - {name: config, configMap: {name: otelcol-integrations}}
+  - {name: fusescope-agent-ca, secret: {secretName: fusescope-agent-ca}}
 ```
 
-To read log files, also mount the log directory read-only, for example
-`-v /var/log/postgresql:/var/log/postgresql:ro`.
-
-</TabItem>
-<TabItem label="Linux package">
-
-Copy the files to `/etc/otelcol-contrib/`, then list them in
-`/etc/otelcol-contrib/otelcol-contrib.conf` with the environment variables:
-
-```bash title="/etc/otelcol-contrib/otelcol-contrib.conf"
-OTELCOL_OPTIONS="--config=/etc/otelcol-contrib/config.yaml --config=/etc/otelcol-contrib/postgres-metrics.yaml --config=/etc/otelcol-contrib/postgres-logs.yaml"
-OTLP_DESTINATION_ENDPOINT=fusescope-agent-otlp.fusescope.svc:4317
-FUSESCOPE_AGENT_TOKEN=<token>
-POSTGRESQL_ENDPOINT=localhost:5432
-POSTGRESQL_USERNAME=monitoring
-POSTGRESQL_PASSWORD=<password>
-POSTGRESQL_LOG_FILE=/var/log/postgresql/postgresql.log
-```
-
-```bash
-sudo systemctl restart otelcol-contrib
-```
-
-The `otelcol-contrib` user must be able to read the log files.
-
-</TabItem>
-</Tabs>
+The CA and token Secrets must be in the collector's namespace; see [OTLP](/sending-data/otlp/).
+Integrations that read a service's log files need the collector where it can read them, such
+as a sidecar sharing the service's log volume.
 
 ## Anything else
 
@@ -180,7 +166,5 @@ Prometheus metrics work with the
 ## Related
 
 - [OTLP](/sending-data/otlp/)
-- [Collector in Docker](/sending-data/collector-docker/)
-- [Collector on a VM](/sending-data/collector-vm/)
 - [Log pipelines](/sending-data/log-pipelines/)
 - [Dashboards](/dashboards/dashboards/)

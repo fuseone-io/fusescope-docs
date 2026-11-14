@@ -9,25 +9,24 @@ Linux hosts, routers, firewalls and many appliances log over syslog. The OpenTel
 Collector's `syslog` receiver listens on a TCP or UDP port, parses each message and
 sends it to FuseScope as a log. It ships in the `otelcol-contrib` distribution.
 
-**Use this page when** you want the system logs of a host, or the logs of a device that
-can only forward syslog, in FuseScope.
+**Use this page when** you want the logs of hosts or devices that can only forward syslog in
+FuseScope, through a collector you run in the cluster that runs FuseScope.
 
-<Aside type="caution" title="Not from outside the cluster yet">
-  The FuseScope chart exposes no OTLP endpoint outside the Kubernetes cluster that runs
-  FuseScope. A collector on a VM, in Docker outside Kubernetes, or in another cluster has no
-  supported destination yet. The exporters on this page send to the FuseScope agent and work
-  only from inside that cluster.
+<Aside type="caution" title="Inside the cluster only">
+  These configurations are for a collector running as a pod in the Kubernetes cluster that runs
+  FuseScope: its exporter sends to the FuseScope agent's Service, which exists only there. A
+  collector outside that cluster has no supported destination yet.
 </Aside>
 
 ## How it works
 
 <Steps>
 
-1. Run a collector with the `syslog` receiver, on each host or on one host that
-   receives from many. See [Collector in Docker](/sending-data/collector-docker/)
-   or [Collector on a VM](/sending-data/collector-vm/).
-2. Point rsyslog, syslog-ng or the device at the collector's port.
-3. The collector exports the logs to FuseScope over OTLP.
+1. Run a collector with the `syslog` receiver as a Deployment in the cluster, with a Service
+   for its ports ([Run it in Kubernetes](#run-it-in-kubernetes)).
+2. Point rsyslog, syslog-ng or the device at that Service.
+3. The collector exports the logs to the FuseScope agent on its node, over OTLP with TLS 1.3 and
+   the agent's token.
 
 </Steps>
 
@@ -214,22 +213,32 @@ receiver, and point the device at the collector's address and port in its syslog
 remote-logging settings. If the device can't change the port, forward 514 to the
 collector's port, or run the collector with permission to bind ports below 1024.
 
-## Run it in Docker
+## Run it in Kubernetes
 
-Publish the receiver's port. UDP ports need `/udp`, or Docker publishes TCP only:
+Run the collector as a Deployment, with its configuration in a ConfigMap, the agents' CA and
+token Secrets mounted as in [OTLP](/sending-data/otlp/#from-another-collector), and a Service for
+the receiver's ports. A Service port is TCP unless you say otherwise, so list UDP explicitly:
 
-```bash
-docker run -d --name otelcol \
-  -v "$PWD/config.yaml:/etc/otelcol-contrib/config.yaml:ro" \
-  -p 54527:54527 \
-  -p 54526:54526/udp \
-  otel/opentelemetry-collector-contrib:0.139.0
+```yaml title="service.yaml"
+apiVersion: v1
+kind: Service
+metadata:
+  name: otelcol-syslog
+spec:
+  selector: {app: otelcol-syslog}
+  ports:
+    - {name: syslog-tcp, port: 54527, protocol: TCP}
+    - {name: syslog-udp, port: 54526, protocol: UDP}
 ```
+
+Senders in the cluster use `otelcol-syslog.<namespace>.svc`. To receive from hosts or devices
+outside the cluster, expose that Service on a private network, for example as an internal
+load balancer; never on the internet.
 
 <Aside type="caution" title="Ports below 1024">
   The image runs as a non-root user, which can't listen on port 514. Keep the
-  receiver on a high port and publish it as 514 if needed:
-  `-p 514:54526/udp`.
+  receiver on a high port, and map port 514 to it in the Service if senders need it
+  (`port: 514`, `targetPort: 54526`).
 </Aside>
 
 <Aside type="caution" title="The port has no authentication">
@@ -252,8 +261,6 @@ docker run -d --name otelcol \
 
 ## Related
 
-- [Collector in Docker](/sending-data/collector-docker/) and
-  [Collector on a VM](/sending-data/collector-vm/): install the agent.
 - [Log pipelines](/sending-data/log-pipelines/): parse the syslog
   `message` into fields in FuseScope.
 - [Logs from files](/sending-data/logs-files/): read log files instead.

@@ -1,6 +1,6 @@
 ---
 title: Kubernetes
-description: Collect pod logs, node and pod metrics with the FuseScope agents, and what the k8s-infra chart still adds for cluster metrics and events.
+description: Collect pod logs, node and pod metrics with the FuseScope agents, and what is not supported yet, such as cluster object metrics and Kubernetes events.
 ---
 
 import { Aside } from "@astrojs/starlight/components";
@@ -10,12 +10,9 @@ events in FuseScope, without changing your applications, or when an
 [instrumentation check](/observe/infrastructure/#instrumentation-checks) on
 the **Infrastructure** page says a metric or attribute is missing.
 
-Two charts collect Kubernetes telemetry:
-
-| Chart | Component | Collects | Sends to FuseScope |
-|---|---|---|---|
-| `fusescope` | `fusescopeAgent`, a DaemonSet | Pod logs, node metrics and kubelet stats on every node | Over mTLS with TLS 1.3 and a token: **recommended** |
-| `k8s-infra` | `otel-deployment`, a Deployment | Cluster object metrics and Kubernetes events | Only over the plaintext migration receiver, see below |
+The `fusescope` chart's agents (`fusescopeAgent`, a DaemonSet) collect pod logs, node metrics
+and kubelet stats on every node and send them over mTLS with TLS 1.3 and a token. Cluster object
+metrics and Kubernetes events are [not supported yet](#not-supported-yet).
 
 ## Node telemetry with the FuseScope agents
 
@@ -52,45 +49,21 @@ What the agents do not collect yet:
   node's traffic from kubelet stats (`k8s.node.network.*`) instead;
 - **`k8s.cluster.name`**, which the Infrastructure page checks for.
 
-## Cluster metrics and events with k8s-infra
+## Not supported yet
 
-The `k8s-infra` chart's `otel-deployment` collects cluster object metrics and events. It sends
-OTLP without the TLS and token the FuseScope agents require, so today it reaches FuseScope only
-through the gateway's plaintext receiver, `fusescopeCollector.otlp.insecure`, which is meant for
-SigNoz migrations. If you turn it on for `k8s-infra`:
+These have no supported path to FuseScope today:
 
-- list the `k8s-infra` pods in `fusescopeCollector.otlp.networkPolicy.ingressFrom`, so they are
-  the only senders admitted;
-- read the chart's README ([OTLP collector](https://github.com/fuseone-io/fusescope-charts/tree/main/charts/fusescope#otlp-collector)) for its limits;
-- turn off `k8s-infra`'s own node collection (`presets.logsCollection`, `presets.hostMetrics`,
-  `presets.kubeletMetrics`), which the FuseScope agents already do over TLS.
+- **Cluster object metrics** (`k8s_cluster`), such as `k8s.pod.phase`, `k8s.container.restarts`
+  and deployment replica counts;
+- **Kubernetes events**;
+- **`k8s.cluster.name`** on the agents' data.
 
-```yaml title="values-k8s-infra.yaml"
-global:
-  clusterName: production
-  deploymentEnvironment: production
-
-otelCollectorEndpoint: http://fusescope-otel-collector.fusescope.svc.cluster.local:4318
-otelInsecure: true
-
-presets:
-  logsCollection: {enabled: false}
-  hostMetrics: {enabled: false}
-  kubeletMetrics: {enabled: false}
-```
-
-```bash
-helm repo add fusescope https://fuseone-io.github.io/fusescope-charts
-helm install k8s-infra fusescope/k8s-infra -n fusescope -f values-k8s-infra.yaml
-```
-
-<Aside type="caution" title="Plaintext inside the cluster">
-  This path sends cluster metadata unencrypted and unauthenticated inside the cluster. Keep it
-  restricted with the network policy above, and plan to move off it.
-</Aside>
-
-All `k8s-infra` values are in the chart's
-[`values.yaml`](https://github.com/fuseone-io/fusescope-charts/blob/main/charts/k8s-infra/values.yaml).
+The `k8s-infra` chart collects the first two, but it sends without the TLS and token the
+FuseScope agents require, so it could reach FuseScope only through the gateway's plaintext
+receiver. That receiver is a temporary exception for migrating from SigNoz, with an exit
+criterion, not a path for new collection, so `k8s-infra` is not supported with this chart.
+The Infrastructure page's checks for these metrics stay unmet until FuseScope offers a secure
+path for them.
 
 ## What each component sends
 
@@ -132,23 +105,18 @@ and the `k8s.volume.*` metrics.
 
 ### k8scluster receiver
 
-Runs once in `k8s-infra`'s `otel-deployment` and watches the Kubernetes API for the state of
-objects: `k8s.pod.phase`, `k8s.container.restarts`, `k8s.container.ready`,
-`k8s.node.allocatable_cpu`, `k8s.node.condition_ready`, and the desired, current and
-ready counts of deployments, daemon sets, stateful sets and jobs.
-
-- Turned on by `presets.clusterMetrics.enabled` in `k8s-infra` (default `true`).
-- It reaches FuseScope only over the plaintext migration receiver
-  ([above](#cluster-metrics-and-events-with-k8s-infra)).
+Would watch the Kubernetes API for the state of objects: `k8s.pod.phase`,
+`k8s.container.restarts`, `k8s.container.ready`, `k8s.node.allocatable_cpu`,
+`k8s.node.condition_ready`, and the desired, current and ready counts of deployments, daemon
+sets, stateful sets and jobs. No supported component runs it yet; see
+[Not supported yet](#not-supported-yet).
 
 ### resourcedetection processor
 
 Adds attributes that describe where the data comes from.
 
-- **The FuseScope agents** set `host.name` and `k8s.node.name` to the node's name, and `os.type`.
-  They do not set `k8s.cluster.name`.
-- **`k8s-infra`** adds `k8s.cluster.name` from `global.clusterName` to what it sends
-  (`presets.resourceDetection.enabled`, default `true`).
+The FuseScope agents set `host.name` and `k8s.node.name` to the node's name, and `os.type`. They
+do not set `k8s.cluster.name`.
 
 ### k8sattributes processor
 
@@ -164,7 +132,6 @@ Adds the Kubernetes names to metrics, logs and traces: `k8s.pod.uid`, `k8s.pod.n
 
 ### Kubernetes events
 
-`presets.k8sEvents.enabled` in `k8s-infra` (default `true`) sends Kubernetes events, such as
-`Back-off restarting failed container`, as logs. They appear on the **Events** tab of a pod,
-node or other object on the Infrastructure page. Like cluster metrics, they reach FuseScope only
-over the plaintext migration receiver.
+Events such as `Back-off restarting failed container` would appear on the **Events** tab of a
+pod, node or other object on the Infrastructure page. No supported component collects them yet;
+see [Not supported yet](#not-supported-yet).

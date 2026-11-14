@@ -19,7 +19,8 @@ The data source catalog is the **Get Started** page, at `/get-started`. The old 
 It is organised by **goal**: you pick what you want to see in FuseScope, then the
 technology you use, and the entry opens the FuseScope setup page for it. Every entry
 ends up sending OpenTelemetry data over [OTLP](/sending-data/otlp/) to
-your own FuseScope collector, with no ingestion key.
+your own FuseScope installation. It needs no cloud ingestion key, but the FuseScope agent's
+bearer token is required.
 
 ## Monitor an application
 
@@ -99,9 +100,9 @@ reaches FuseScope.
 
 | Entry | Setup page |
 |---|---|
-| Docker | [Collector on Docker](/sending-data/collector-docker/) |
-| Linux VM (systemd) | [Collector on a VM](/sending-data/collector-vm/) |
-| An existing OpenTelemetry Collector | [OTLP › From another collector](/sending-data/otlp/#from-another-collector) |
+| An OpenTelemetry Collector in the cluster | [OTLP › From another collector](/sending-data/otlp/#from-another-collector) |
+| Docker outside Kubernetes | Not supported yet: [Collector on Docker](/sending-data/collector-docker/) |
+| Linux VM (systemd) | Not supported yet: [Collector on a VM](/sending-data/collector-vm/) |
 
 <Aside>
   Nothing in **Get Started** is required: FuseScope shows data as soon as it reaches the

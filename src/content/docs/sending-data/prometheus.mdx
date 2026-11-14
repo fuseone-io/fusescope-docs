@@ -14,28 +14,27 @@ OTLP.
 exporter) or library exposes a Prometheus endpoint and you want its metrics in
 FuseScope.
 
-<Aside type="caution" title="Not from outside the cluster yet">
-  The FuseScope chart exposes no OTLP endpoint outside the Kubernetes cluster that runs
-  FuseScope. A collector on a VM, in Docker outside Kubernetes, or in another cluster has no
-  supported destination yet. The exporters on this page send to the FuseScope agent and work
-  only from inside that cluster.
+<Aside type="caution" title="Inside the cluster only">
+  These configurations are for a collector running as a pod in the Kubernetes cluster that runs
+  FuseScope: its exporter sends to the FuseScope agent's Service, which exists only there. A
+  collector outside that cluster has no supported destination yet.
 </Aside>
 
 ## How it works
 
-| Where it runs | How you set it up |
-|---|---|
-| A VM or Docker | A collector with a `prometheus` receiver and your `scrape_configs`. See [the receiver](#the-prometheus-receiver). |
-| Kubernetes | The `k8s-infra` chart's `presets.prometheus`, which scrapes annotated pods. See [On Kubernetes](#on-kubernetes). |
+A collector you run as a pod in the cluster that runs FuseScope scrapes the endpoints with a
+`prometheus` receiver and your `scrape_configs`, and forwards the metrics to the FuseScope agent
+on its node, over OTLP with TLS 1.3 and the agent's token. See
+[the receiver](#the-prometheus-receiver).
 
-FuseScope doesn't accept Prometheus remote-write. Use one of the two above to scrape
-and forward over OTLP.
+FuseScope doesn't accept Prometheus remote-write, and the FuseScope agents do not scrape
+Prometheus endpoints themselves.
 
 ## The prometheus receiver
 
-The receiver takes a Prometheus `scrape_configs` list under `config`. Add it to a
-collector from [Collector on a VM](/sending-data/collector-vm/) or
-[Collector on Docker](/sending-data/collector-docker/):
+The receiver takes a Prometheus `scrape_configs` list under `config`. Add it to a collector
+you run in the cluster, with the agents' CA and token mounted as in
+[OTLP](/sending-data/otlp/#from-another-collector):
 
 ```yaml title="config.yaml"
 receivers:
@@ -126,79 +125,12 @@ receivers:
               target_label: k8s_pod_name
 ```
 
-If you install the `k8s-infra` chart, you don't need to write this: use its preset.
+## The k8s-infra preset
 
-## On Kubernetes
-
-The `k8s-infra` chart ([Kubernetes](/sending-data/kubernetes/)) has a
-preset that scrapes every pod carrying an opt-in annotation. It runs in the
-`otel-deployment` collector, a single replica, so each pod is scraped once.
-
-<Aside type="caution" title="Plaintext inside the cluster">
-  `k8s-infra` sends without the TLS and token the FuseScope agents require, so it reaches
-  FuseScope only through the gateway's plaintext migration receiver
-  (`fusescopeCollector.otlp.insecure`). See
-  [Kubernetes](/sending-data/kubernetes/#cluster-metrics-and-events-with-k8s-infra) for its limits.
-</Aside>
-
-<Steps>
-
-1. Turn on the preset in your `k8s-infra` values and upgrade the release:
-
-   ```yaml title="values-k8s-infra.yaml"
-   presets:
-     prometheus:
-       enabled: true
-       scrapeInterval: 30s
-   ```
-
-   ```bash
-   helm upgrade k8s-infra fusescope/k8s-infra -n fusescope -f values-k8s-infra.yaml
-   ```
-
-2. Annotate the pods to scrape, in the pod template of a Deployment, StatefulSet or
-   DaemonSet:
-
-   ```yaml
-   spec:
-     template:
-       metadata:
-         annotations:
-           signoz.io/scrape: "true"
-           signoz.io/port: "8080"
-           signoz.io/path: /metrics
-   ```
-
-</Steps>
-
-| Annotation | Required | Meaning |
-|---|---|---|
-| `signoz.io/scrape` | Yes | `"true"` to scrape the pod. |
-| `signoz.io/port` | Yes | The port of the metrics endpoint, as a string. |
-| `signoz.io/path` | No | The endpoint path. Default `/metrics`. |
-
-The `signoz.io/` prefix is an [internal name](/configuration/config-file/#internal-names)
-kept from SigNoz. Change it with `presets.prometheus.annotationsPrefix`, for example to
-`prometheus.io` if your pods already carry those annotations.
-
-### Preset values
-
-| Value | Default | Description |
-|---|---|---|
-| `presets.prometheus.enabled` | `false` | Turn the preset on. |
-| `presets.prometheus.annotationsPrefix` | `signoz.io` | Prefix of the pod annotations above. |
-| `presets.prometheus.scrapeInterval` | `60s` | How often each pod is scraped. |
-| `presets.prometheus.namespaceScoped` | `false` | Only scrape pods in the collector's own namespace. |
-| `presets.prometheus.namespaces` | `[]` | Only scrape pods in these namespaces. Empty means all. |
-| `presets.prometheus.includePodLabel` | `false` | Copy every pod label onto the metrics. Can add many series. |
-| `presets.prometheus.includeContainerName` | `false` | Add `k8s_container_name`. Not recommended for pods with several containers. |
-| `presets.prometheus.scrapeConfigs` | `[]` | Extra Prometheus scrape configs, added after the annotation job. Only used when `enabled` is `true`. Escape `$` as `$$`. |
-
-Metrics from the annotation job carry `job_name: signoz-scraper` and these labels:
-`k8s_namespace_name`, `k8s_pod_name`, `k8s_pod_uid`, `k8s_node_name`, `k8s_pod_ready`,
-`k8s_pod_phase`, and `signoz_k8s_name`, `signoz_k8s_instance` and
-`signoz_k8s_component` from the pod's `app.kubernetes.io/name`, `instance` and
-`component` labels.
+The `k8s-infra` chart's `presets.prometheus` also scrapes annotated pods, but `k8s-infra` sends
+without the TLS and token the FuseScope agents require. It is not supported with the secure path;
+scrape annotated pods with [the receiver](#scrape-kubernetes-pods-by-annotation) in a collector
+of yours instead.
 
 ## Find the metrics in FuseScope
 
@@ -235,7 +167,6 @@ Names and labels with dots must be quoted; see
 ## Related
 
 - [Kubernetes](/sending-data/kubernetes/)
-- [Collector on a VM](/sending-data/collector-vm/)
-- [Collector on Docker](/sending-data/collector-docker/)
+- [OTLP](/sending-data/otlp/#from-another-collector): forward from a collector to the agent
 - [Metrics explorer](/explore/metrics/)
 - [ClickHouse SQL and PromQL](/querying/clickhouse-promql/)

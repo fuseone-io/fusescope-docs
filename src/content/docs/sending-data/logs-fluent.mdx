@@ -11,16 +11,15 @@ FuseScope. There are two ways:
 | Way | How | Use it when |
 |---|---|---|
 | **Forward protocol** | Fluent Bit or Fluentd sends with its `forward` output to an OpenTelemetry Collector running the `fluentforward` receiver. | You use Fluentd, or you want a collector in between to parse, filter or set `service.name`. |
-| **OTLP** | Fluent Bit's `opentelemetry` output sends OTLP/HTTP straight to the FuseScope collector on port 4318. | You use Fluent Bit and don't want another component. |
+| **OTLP** | Fluent Bit's `opentelemetry` output sends OTLP/HTTP straight to the FuseScope agent on its node, port 4318, with TLS and the agent's token. | You use Fluent Bit and don't want another component. |
 
-**Use this page when** you run Fluent Bit or Fluentd and want their logs in FuseScope
-without replacing them.
+**Use this page when** you run Fluent Bit or Fluentd in the cluster that runs FuseScope and
+want their logs in FuseScope without replacing them.
 
-<Aside type="caution" title="Not from outside the cluster yet">
-  The FuseScope chart exposes no OTLP endpoint outside the Kubernetes cluster that runs
-  FuseScope. A collector or Fluent Bit on a VM, in Docker outside Kubernetes, or in another
-  cluster has no supported destination yet. The outputs on this page send to the FuseScope agent
-  and work only from inside that cluster.
+<Aside type="caution" title="Inside the cluster only">
+  These configurations are for a collector or Fluent Bit running as a pod in the Kubernetes
+  cluster that runs FuseScope: they send to the FuseScope agent's Service, which exists only
+  there. Outside that cluster there is no supported destination yet.
 </Aside>
 
 ## Forward protocol
@@ -28,8 +27,8 @@ without replacing them.
 ### Configure the collector
 
 Run an OpenTelemetry Collector (the `otelcol-contrib` distribution) with the
-`fluentforward` receiver. See [Collector in Docker](/sending-data/collector-docker/)
-or [Collector on a VM](/sending-data/collector-vm/) to install it.
+`fluentforward` receiver as a Deployment in the cluster, with the agents' CA and token mounted as
+in [OTLP](/sending-data/otlp/#from-another-collector).
 
 ```yaml title="config.yaml"
 receivers:
@@ -70,14 +69,8 @@ The receiver turns each Fluent record into a log:
 It listens on TCP and answers heartbeats on UDP on the same port. It doesn't support
 TLS or the shared-key handshake of secure forward, so keep it on a private network.
 
-In Docker, publish both:
-
-```bash
-docker run -d --name otelcol \
-  -v "$PWD/config.yaml:/etc/otelcol-contrib/config.yaml:ro" \
-  -p 8006:8006 -p 8006:8006/udp \
-  otel/opentelemetry-collector-contrib:0.139.0
-```
+Give the collector a Service with both, as port 8006 over TCP and over UDP; Fluent Bit and
+Fluentd then send to `<service>.<namespace>.svc:8006`.
 
 ### Send from Fluent Bit or Fluentd
 
@@ -238,10 +231,9 @@ The `opentelemetry_envelope` and `content_modifier` processors set `service.name
 resource attribute. Processors need the YAML configuration format. All parameters are
 in the [Fluent Bit OpenTelemetry output docs](https://docs.fluentbit.io/manual/pipeline/outputs/opentelemetry).
 
-<Aside type="caution" title="No authentication">
-  Self-hosted FuseScope needs no key or token, and the chart configures no
-  authentication on its OTLP receivers. Don't expose port 4318 to the internet without
-  a gateway in front of it.
+<Aside title="The token is required">
+  Self-hosted FuseScope needs no cloud ingestion key, but the FuseScope agent accepts OTLP only
+  over TLS 1.3 with its bearer token. Requests without it are refused.
 </Aside>
 
 ## Parse the logs
@@ -268,8 +260,7 @@ parsing, since it doesn't need a redeploy.
 
 - [Logs from files](/sending-data/logs-files/): read log files with the
   collector instead.
-- [Kubernetes logs](/sending-data/logs-kubernetes/): pod logs with the
-  `k8s-infra` chart.
+- [Kubernetes logs](/sending-data/logs-kubernetes/): pod logs from the FuseScope agents.
 - [OTLP endpoints](/sending-data/otlp/): addresses and ports.
 - [Log pipelines](/sending-data/log-pipelines/): parse logs in FuseScope.
 - [Logs explorer](/explore/logs/): search the logs.
