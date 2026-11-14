@@ -165,9 +165,9 @@ It also puts `trace_id` and `span_id` in the Logback MDC and Log4j context, so y
 them in your log pattern, for example `%X{trace_id}`.
 
 <Aside type="caution">
-  If a collector also reads the same logs from stdout or files (such as the k8s-infra agent),
-  each line is stored twice. Set `OTEL_LOGS_EXPORTER=none` to keep only the file copy, or
-  exclude the pod from file collection.
+  If a collector also reads the same logs from stdout or files, each line is stored twice. The
+  FuseScope agents read every pod's stdout and cannot exclude a pod, so with them either set
+  `OTEL_LOGS_EXPORTER=none` to keep only the stdout copy, or stop writing these logs to stdout.
 </Aside>
 
 ## Check that data arrives
