@@ -1,0 +1,166 @@
+---
+title: Public RUM edge
+description: Expose the FuseScope Collector's RUM endpoints to browsers and mobile apps on the internet while keeping the agents' listener, OpAMP, ClickHouse and the backend internal.
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+
+Real User Monitoring is the one path that must be reachable from the internet: browsers and
+mobile apps send from wherever your users are. Everything else the collector touches is
+internal traffic and must stay inside the cluster.
+
+**Use this page when** you turn on RUM in production and decide how the gateway is exposed.
+For the RUM product itself, see [Real User Monitoring](/frontend/real-user-monitoring/).
+
+## What is public and what is not
+
+| Endpoint | Exposure |
+|---|---|
+| `POST /rum/v1/traces`, `POST /rum/v1/logs` on the gateway (port 4319) | **Public**, through an ingress only |
+| The browser SDK, `/rum/v1/sdk/` | Public, served by the FuseScope backend's ingress, not by the collector |
+| The agents' listener (4322) | Internal: this release's agents only |
+| The agents' OTLP receiver (4317/4318 on the agents) | Internal: the cluster's pods only |
+| The plaintext migration receiver (4317/4318 on the gateway) | Internal; the chart refuses any external route to it |
+| OpAMP between the gateway and the backend (4320, 4321) | Internal |
+| ClickHouse | Internal |
+| Health (13133) and the collector's own metrics (`127.0.0.1:8888`) | Internal; the metrics listen on loopback only |
+
+## Expose RUM through the chart's ingress
+
+```yaml
+fusescopeCollector:
+  rum:
+    enabled: true
+    tls:
+      certManager:
+        enabled: true
+        issuerRef: {name: internal-ca}   # the ingress-to-collector hop; a cluster CA is enough
+  ingress:
+    enabled: true
+    className: nginx-public
+    hosts: [rum.example.com]               # without hosts, it reuses signoz.ingress's
+    tls:
+      - secretName: rum-example-com-tls
+        hosts: [rum.example.com]
+```
+
+What the chart renders:
+
+- **Two exact paths only.** The Ingress routes `/rum/v1/traces` and `/rum/v1/logs` with
+  `pathType: Exact`. Nothing else on the gateway is reachable through it.
+- **TLS on both hops.** The ingress terminates the public certificate and re-encrypts to the
+  gateway's RUM listener. The default annotations are ingress-nginx's
+  (`backend-protocol: HTTPS`, `proxy-body-size: 4m`); set the equivalents for another
+  controller.
+- **The Service stays `ClusterIP`.** Do not change `fusescopeCollector.service.type` to
+  `LoadBalancer` or `NodePort` to expose RUM: that Service also carries the agents' listener.
+  Expose the ingress controller instead.
+
+## Keep the public edge apart from internal traffic
+
+<Steps>
+
+1. **Use a host of its own for RUM**, for example `rum.example.com`, separate from the FuseScope
+   UI's host. You can then put the RUM host behind your CDN or WAF, give it its own certificate
+   and its own access logs, and keep the UI on an internal network or behind single sign-on.
+
+2. **Use a public ingress class for it**, distinct from the one internal services use, when your
+   cluster has both. A mistake in an internal Ingress then cannot publish it, and the public
+   controller can carry stricter defaults.
+
+3. **Keep internal traffic off the public path.** Agents send to the gateway's Service directly
+   on 4322. SDKs send to their node's agent. Neither goes through the ingress, so the public
+   edge carries only RUM.
+
+4. **Narrow who can reach the RUM port**, if your CNI enforces NetworkPolicy. The chart's
+   policy (`fusescopeCollector.agentListener.networkPolicy`, on by default) restricts the
+   agents' listener, but leaves the RUM port open to any source in the cluster. NetworkPolicies
+   add up, so another policy cannot narrow that. To admit only the ingress controller on 4319,
+   set `agentListener.networkPolicy.enabled: false` and apply one complete policy of your own
+   for the gateway pods:
+
+   ```yaml
+   apiVersion: networking.k8s.io/v1
+   kind: NetworkPolicy
+   metadata:
+     name: fusescope-collector
+     namespace: fusescope
+   spec:
+     podSelector:
+       matchLabels:
+         app.kubernetes.io/instance: fusescope
+         app.kubernetes.io/component: fusescope-collector
+     policyTypes: [Ingress]
+     ingress:
+       - from:      # the agents, on their listener
+           - podSelector:
+               matchLabels:
+                 app.kubernetes.io/component: fusescope-agent
+         ports:
+           - {port: otlp-agents, protocol: TCP}
+       - from:      # the public ingress controller, on RUM
+           - namespaceSelector:
+               matchLabels:
+                 kubernetes.io/metadata.name: ingress-nginx-public
+         ports:
+           - {port: rum, protocol: TCP}
+       - ports:     # the kubelet's probes
+           - {port: health, protocol: TCP}
+   ```
+
+   Check that no other policy in the namespace selects the gateway pods and admits more.
+
+</Steps>
+
+## Client IP, rate limits and body size
+
+- **The real client IP.** The gateway rate-limits per key and per client IP. It takes the IP
+  from `X-Forwarded-For` only when the request comes from an address in
+  `fusescopeCollector.rum.trustedProxies`, walking the header from the right past trusted
+  addresses. With the ingress on, the private ranges are trusted by default. Make sure the real
+  client IP reaches the controller, for example with `externalTrafficPolicy: Local` on its
+  Service or the PROXY protocol from your load balancer. Otherwise every browser shares one
+  limit.
+- **Limits are per replica.** The defaults are 20 requests/s per key and client IP (burst 60),
+  and 500 requests/s per key across clients (burst 1000), unless the ingest policy sets a limit
+  for the key. With *N* replicas, the effective limits are *N* times higher. They protect the
+  gateway from one noisy client; they are not a defence against a distributed attack. Use your
+  edge's protection for that.
+- **Body size.** The gateway refuses bodies above `rum.maxBodySize` (4 MiB), before and after
+  gzip decoding. Keep the ingress's body limit equal to it, as the default annotation does.
+
+## CORS belongs to the collector
+
+The gateway answers `OPTIONS` preflights itself, from each application's allowed origins in
+the ingest policy. The ingress must pass `OPTIONS` and the `Origin` header through and must not
+add CORS headers of its own. With ingress-nginx, do not set
+`nginx.ingress.kubernetes.io/enable-cors`.
+
+## Keys and the ingest policy
+
+- **Public keys are not secrets.** A RUM key ships inside your web page or app; it identifies
+  the application. What protects the endpoint is the application's allowed origins, the rate
+  limits and the gateway's validation. Rotate a key from [Keys](/frontend/keys/) if it is abused.
+- **Fail closed.** The gateway accepts RUM only while it holds a valid ingest policy from the
+  backend. Until it has one, the pod runs but stays out of the Service.
+- **Through a backend outage.** A policy the gateway holds keeps working while the backend is
+  unreachable. To stop accepting RUM after a while instead, set `rum.maxStaleness`, for
+  example `1h`.
+
+## Android 6 to 9
+
+Stock Android API 23 to 28 cannot do TLS 1.3. The setting that matters is on the hop where the
+device's TLS connection ends.
+
+- **Behind the chart's Ingress** (this page's setup), the device's TLS ends at the ingress
+  controller. Make the controller accept TLS 1.2 with ECDHE key exchange and AEAD suites only
+  (AES-GCM, ChaCha20-Poly1305) on the RUM host. The controller then opens a new TLS connection
+  to the gateway, which stays at TLS 1.3: leave `fusescopeCollector.rum.tlsMinVersion` at its
+  default, `"1.3"`. With ingress-nginx, set the protocols and ciphers for that host or
+  controller, not for the backend.
+- **Without a terminating proxy**, when devices reach the gateway's TLS directly (for example
+  through a TCP load balancer or TLS passthrough), set
+  `fusescopeCollector.rum.tlsMinVersion: "1.2"`. The gateway then accepts TLS 1.2 with the same
+  suites on the RUM listener only.
+
+Modern clients negotiate TLS 1.3 either way.

@@ -14,6 +14,16 @@ export const sidebar = [
     items: [{ label: "Install with Helm", slug: "install/helm" }],
   },
   {
+    label: "FuseScope Collector",
+    items: [
+      { label: "Overview and topology", slug: "collector" },
+      { label: "Production setup", slug: "collector/production-setup" },
+      { label: "Security", slug: "collector/security" },
+      { label: "Public RUM edge", slug: "collector/rum-edge" },
+      { label: "Sizing and resources", slug: "collector/sizing" },
+    ],
+  },
+  {
     label: "Send data",
     items: [
       { label: "Data source catalog", slug: "sending-data/data-source-catalog" },

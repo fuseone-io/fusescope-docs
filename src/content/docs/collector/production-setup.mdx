@@ -1,0 +1,246 @@
+---
+title: Production setup
+description: A complete Helm values file for the FuseScope Collector in production, the checklist behind it, how to monitor the gateway and the agents, and how to upgrade.
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+
+**Use this page when** you move an installation from a trial to production. It brings the
+other pages of this section together into one values file; each choice links to the page that
+explains it.
+
+## Values file
+
+This example runs:
+
+- the agents on every node, with OTLP from pods;
+- the gateway with two to six replicas;
+- RUM on a host of its own.
+
+It uses a cert-manager CA issuer named `internal-ca` for the internal certificates.
+
+```yaml
+fusescopeCollector:
+  # The gateway: agents' listener, RUM, its own metrics.
+  agentListener:
+    enabled: true
+    tls:
+      certManager: {enabled: true, issuerRef: {name: internal-ca}}
+    token:
+      existingSecret: fusescope-agent-token          # created beforehand, see Security
+  rum:
+    enabled: true
+    tls:
+      certManager: {enabled: true, issuerRef: {name: internal-ca}}
+  ingress:
+    enabled: true
+    className: nginx-public
+    hosts: [rum.example.com]
+    tls:
+      - secretName: rum-example-com-tls
+        hosts: [rum.example.com]
+  selfMetrics:
+    enabled: true                                    # the default; needed for monitoring
+  # Sizing: see Sizing and resources for the measurements behind these numbers.
+  resources:
+    requests: {cpu: 500m, memory: 1Gi}
+    limits: {memory: 2Gi}
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 70
+  topologySpreadConstraints:
+    - maxSkew: 1
+      topologyKey: topology.kubernetes.io/zone
+      whenUnsatisfiable: ScheduleAnyway
+      labelSelector:
+        matchLabels:
+          app.kubernetes.io/component: fusescope-collector
+  priorityClassName: fusescope-ingest                 # a class you create, above batch workloads
+
+fusescopeAgent:
+  enabled: true
+  tls:
+    certManager: {enabled: true, issuerRef: {name: internal-ca}}
+  otlp:
+    enabled: true
+    tls:
+      certManager: {enabled: true, issuerRef: {name: internal-ca}}
+    token:
+      existingSecret: fusescope-agent-otlp-token     # not the agents' token
+    networkPolicy:
+      ingressFrom:
+        - namespaceSelector:
+            matchLabels: {fusescope.io/otlp: "true"}
+  resources:
+    requests: {cpu: 100m, memory: 128Mi}
+    limits: {memory: 512Mi}
+  priorityClassName: fusescope-agent                 # a class of your own; system-* classes are often limited to kube-system
+  tolerations:
+    - operator: Exists                               # an agent on every node, tainted ones too
+
+signoz:
+  # RUM: FuseScope serves the ingest policy (applications and keys) to the gateway
+  # over OpAMP with TLS 1.3, authenticated by a token.
+  ingestPolicy:
+    tokens:
+      existingSecret: fusescope-ingest-tokens        # key "tokens": one token per line
+    tls:
+      certManager: {enabled: true, issuerRef: {name: internal-ca}}
+  integrations:
+    autoInstall: [builtin-fusescope_collector]       # the collector's dashboard and alerts
+```
+
+The chart's README lists every value. This file renders as is with chart 0.170.0 once the
+Secrets below exist and cert-manager serves the `internal-ca` issuer.
+
+## Checklist
+
+### Before installing
+
+- [ ] **Secrets created**, each from `--from-literal` with no trailing newline
+      ([Security](/collector/security/#credentials)):
+  - `fusescope-agent-token`, key `token`: the agents' token;
+  - `fusescope-agent-otlp-token`, key `token`: the SDK token, a different value;
+  - `fusescope-ingest-tokens`, key `tokens`: the ingest policy token, 32 to 256 characters,
+    for RUM.
+- [ ] **cert-manager with a CA issuer**, or `existingSecret`s whose certificates name the
+      Services.
+- [ ] **A CNI that enforces NetworkPolicy**, if you rely on the policies.
+- [ ] **Kubernetes 1.26 or later**, for the agents' node-local Service.
+- [ ] **The namespace's Pod Security level** allows the agents, if they read pod logs or host
+      metrics ([Security](/collector/security/#agents)).
+
+### Gateway
+
+- [ ] **At least two replicas** (`autoscaling.minReplicas: 2`, or `replicaCount: 2`). With one,
+      a restart pauses ingest, and agents and SDKs buffer and retry.
+- [ ] **Spread across zones or nodes** with `topologySpreadConstraints`.
+- [ ] **A PodDisruptionBudget**, which the chart does not create. Add one so that node drains
+      keep a replica up:
+
+  ```yaml
+  apiVersion: policy/v1
+  kind: PodDisruptionBudget
+  metadata:
+    name: fusescope-collector
+    namespace: fusescope
+  spec:
+    minAvailable: 1
+    selector:
+      matchLabels:
+        app.kubernetes.io/instance: fusescope
+        app.kubernetes.io/component: fusescope-collector
+  ```
+- [ ] **Resources from your measured throughput** ([Sizing](/collector/sizing/)).
+- [ ] **ClickHouse over TLS** with `secure` and `verify` when ClickHouse is outside the cluster.
+
+### Agents
+
+- [ ] **Coverage.** The agents' tolerations, node selector and affinity decide which nodes have
+      one. Pods on a node without an agent cannot send through the node-local Service: their
+      connections fail and the SDK retries.
+- [ ] **CA and SDK token copied into every application namespace**, and into new namespaces as
+      they appear. A pod cannot mount a Secret from another namespace.
+- [ ] **SDKs configured explicitly**, with the protocol, the endpoint, the CA and the token
+      header:
+
+  ```yaml
+  env:
+    - name: OTEL_EXPORTER_OTLP_PROTOCOL
+      value: grpc
+    - name: OTEL_EXPORTER_OTLP_ENDPOINT
+      value: https://fusescope-agent-otlp.fusescope.svc:4317
+    - name: OTEL_EXPORTER_OTLP_CERTIFICATE
+      value: /etc/fusescope-agent-ca/ca.crt
+    - name: FUSESCOPE_AGENT_TOKEN
+      valueFrom:
+        secretKeyRef: {name: fusescope-agent-otlp-token, key: token}
+    - name: OTEL_EXPORTER_OTLP_HEADERS
+      value: Authorization=Bearer%20$(FUSESCOPE_AGENT_TOKEN)
+  ```
+
+  The protocol is explicit because SDK defaults differ, and some send HTTP to 4317. The space
+  after `Bearer` is written `%20`, as the header variable follows the W3C baggage syntax. For
+  HTTP, use `http/protobuf` and port 4318.
+
+### RUM
+
+- [ ] **Only `/rum/v1/*` public**, on a host of its own, through the ingress
+      ([Public RUM edge](/collector/rum-edge/)).
+- [ ] **`trustedProxies` covers the ingress**, and the real client IP reaches it.
+- [ ] **The ingest policy** served over TLS (`signoz.ingestPolicy.tls`) with its token
+      Secret (`signoz.ingestPolicy.tokens`). Without both, the chart refuses `rum.enabled`.
+
+## Monitor the collector
+
+The gateway writes its own metrics to ClickHouse every 60 s (`selfMetrics`). Install the
+built-in **FuseScope Collector** integration (catalog v1.2.0 and later), from Integrations or
+with `signoz.integrations.autoInstall`, for a dashboard and these alerts. All are evaluated
+every 5 minutes.
+
+| Alert | Severity | Fires when |
+|---|---|---|
+| receiver-refused | critical | A replica's receiver refused data in the last 10 minutes **and** in the 10 minutes before, per replica and receiver. The memory limiter's refusals count. |
+| receiver-failed | critical | A replica's receiver failed to take data in, in both 10-minute windows, per replica and receiver. |
+| export-dropped | critical | The ClickHouse exporter (`fusescope_clickhouse` or `fusescope_clickhouse/meter`) failed to send or to enqueue data in the last 10 minutes, per replica and exporter. One window is enough. |
+| clickhouse-insert-errors | warning | INSERTs into a table failed in both 10-minute windows, per replica and table. |
+| queue-backing-up | warning | An exporter queue is over half full now **and** was 10 minutes ago, per replica, exporter and signal. It compares two instants, not windows. |
+| rum-policy-unavailable | critical | RUM requests were refused for want of an ingest policy, in both 10-minute windows, per replica. |
+| rum-backpressure | warning | RUM requests were refused because the gateway or its pipeline was busy, in both 10-minute windows, per replica. |
+| no-telemetry | critical | No collector reported any metric for 10 minutes. It is global, not per replica: one replica going silent while another reports does not fire it. |
+
+The metrics behind them, to query or chart yourself:
+
+| Metric | What it tells you |
+|---|---|
+| `otelcol_receiver_accepted_*`, `otelcol_receiver_refused_*` | What each receiver took in or turned away, by `receiver` |
+| `otelcol_exporter_queue_size`, `otelcol_exporter_queue_capacity` | How full each exporter's queue is |
+| `otelcol_exporter_send_failed_*` | Data the exporter could not deliver |
+| `otelcol_exporter_fusescope_clickhouse_insert_errors` | Failed INSERTs, by `exporter`, `table` and `outcome` (retryable or permanent) |
+| `otelcol_exporter_fusescope_clickhouse_insert_duration` | INSERT latency, by `exporter`, `table` and `outcome` |
+| `otelcol_exporter_fusescope_clickhouse_inserted_rows` | Rows in confirmed inserts, by `exporter` and `table` |
+| `otelcol_process_memory_rss`, `otelcol_process_cpu_seconds` | The process's memory and CPU |
+
+The `exporter` label (collector 0.6.3 and later) tells the main exporter,
+`fusescope_clickhouse`, apart from the usage meter's, `fusescope_clickhouse/meter`.
+
+<Aside type="caution" title="The agents' own metrics are not collected yet">
+  Refusals and drops at an agent do not reach FuseScope. To inspect one agent, forward its
+  loopback metrics port:
+
+  ```bash
+  kubectl -n fusescope port-forward pod/<agent-pod> 8888:8888
+  curl -s localhost:8888/metrics | grep otlp/sdks
+  ```
+
+  Requests refused for a missing or wrong token may not appear in the receiver's counters; the
+  client's error (`Unauthenticated` or `401`) shows them.
+</Aside>
+
+## Upgrade
+
+<Steps>
+
+1. Read the chart's upgrade notes for every version you cross, in the chart's README under
+   "Breaking Changes".
+
+2. Check the collector image the new chart pins. The chart pins it by digest. To verify its
+   signature, run the `cosign verify` command from the collector's release notes
+   ([Security](/collector/security/#images)).
+
+3. Upgrade:
+
+   ```bash
+   helm upgrade fusescope fusescope/fusescope -n fusescope -f values.yaml
+   ```
+
+   The gateway rolls with its Deployment's rolling update, so with two or more replicas and the
+   PodDisruptionBudget one stays up. The agents roll node by node; while a node's agent
+   restarts, its pods' SDKs retry.
+
+4. Watch `otelcol_receiver_refused_*` and the integration's alerts for the next 20 minutes.
+
+</Steps>
