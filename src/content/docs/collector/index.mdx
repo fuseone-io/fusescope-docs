@@ -1,0 +1,134 @@
+---
+title: FuseScope Collector
+description: What the FuseScope Collector is, the two roles it runs in, every path telemetry takes into it, and the topologies to choose from.
+---
+
+import { Aside, CardGrid, LinkCard } from "@astrojs/starlight/components";
+
+The **FuseScope Collector** receives your telemetry and writes it to ClickHouse. It is a
+distribution of the upstream [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/),
+plus FuseScope's own components: the ClickHouse exporter, the service metrics, the usage meter,
+log pipelines and the RUM receiver. The `fusescope` Helm chart deploys it.
+
+**Use this page when** you plan an installation: which parts to run, which paths to open, and
+how data flows. The other pages in this section cover the
+[production setup](/collector/production-setup/), [security](/collector/security/), the
+[public RUM edge](/collector/rum-edge/) and [sizing](/collector/sizing/).
+
+## Two roles, one binary
+
+The same image runs in two roles, each with its own configuration.
+
+| Role | Chart values | Runs as | Receives | Sends to |
+|---|---|---|---|---|
+| **Gateway** | `fusescopeCollector` | Deployment, 1 or more replicas | The agents, RUM, and during a SigNoz migration plaintext OTLP | ClickHouse, directly |
+| **Agent** | `fusescopeAgent` | DaemonSet, one pod per node | Its node's pod logs, host metrics and kubelet stats, and optionally OTLP from the node's pods | The gateway, over mTLS |
+
+The gateway is the only part that writes storage and the only part FuseScope configures
+remotely. The agent writes nothing and takes no remote configuration.
+
+## Topology
+
+```text
+                     ┌──────────────────────────── Kubernetes cluster ─────────────────────────────┐
+                     │                                                                             │
+                     │   node A                         node B                                     │
+                     │   ┌────────────┐ ┌──────────┐    ┌────────────┐ ┌──────────┐               │
+                     │   │ app pod    │ │ app pod  │    │ app pod    │ │ app pod  │               │
+                     │   └─────┬──────┘ └────┬─────┘    └─────┬──────┘ └────┬─────┘               │
+                     │         │ OTLP, TLS 1.3 + token        │             │                     │
+                     │         ▼   (node-local Service)       ▼             ▼                     │
+                     │   ┌──────────────────────┐        ┌──────────────────────┐                 │
+                     │   │ agent (DaemonSet)    │        │ agent (DaemonSet)    │                 │
+                     │   │ + pod logs, kubelet, │        │ + pod logs, kubelet, │                 │
+                     │   │   host metrics       │        │   host metrics       │                 │
+                     │   └──────────┬───────────┘        └──────────┬───────────┘                 │
+                     │              │  OTLP/gRPC :4322, mTLS + token │                             │
+                     │              └───────────────┬────────────────┘                            │
+                     │                              ▼                                             │
+ browsers, apps ──── │ ── ingress (TLS) ───►  ┌──────────────┐  native protocol  ┌────────────┐    │
+ /rum/v1/* only      │   re-encrypts :4319    │   gateway    │ ────────────────► │ ClickHouse │    │
+                     │                        │ (Deployment) │                   └────────────┘    │
+                     │                        └──────┬───────┘                                    │
+                     │                               │ OpAMP: processors and the ingest policy    │
+                     │                               ▼                                            │
+                     │                        ┌──────────────┐                                    │
+                     │                        │  FuseScope   │                                    │
+                     │                        │  backend     │                                    │
+                     │                        └──────────────┘                                    │
+                     └─────────────────────────────────────────────────────────────────────────────┘
+```
+
+## Paths into the collector
+
+Telemetry enters only on the paths you turn on. Each has its own port and its own
+authentication; none is open by default.
+
+| Path | Listener | Port | Authentication | Turn on with |
+|---|---|---|---|---|
+| Agents to gateway | gateway `otlp/agents`, gRPC | 4322 | TLS 1.3, a client certificate signed by the client CA, and the agents' token, all required | `fusescopeCollector.agentListener.enabled` |
+| Pods to their node's agent | agent `otlp/sdks`, gRPC and HTTP | 4317, 4318 | TLS 1.3 and a bearer token, both required | `fusescopeAgent.otlp.enabled` |
+| Browsers and mobile apps (RUM) | gateway `rum`, HTTPS | 4319 | TLS 1.3 (1.2 by opt-in) and the application's public key | `fusescopeCollector.rum.enabled` |
+| SigNoz migration only | gateway `otlp/insecure`, gRPC and HTTP | 4317, 4318 | **None, plaintext** | `fusescopeCollector.otlp.insecure` |
+
+With none of them on, the chart does not deploy the gateway and the release receives no
+telemetry.
+
+Two more ports exist on every pod and carry no telemetry: the health check on 13133, and the
+collector's own metrics on `127.0.0.1:8888`, which is bound to loopback and never exposed.
+
+## Paths out of the collector
+
+| From | To | Protocol | Notes |
+|---|---|---|---|
+| Gateway | ClickHouse | Native protocol (the chart's ClickHouse TCP port, 9000 by default) | One `INSERT` per table per batch, LZ4 on the wire. Plaintext unless `clickhouse.secure` (or `externalClickhouse.secure`) is set. |
+| Gateway | FuseScope backend | OpAMP over WebSocket | Port 4320 in plaintext without RUM; port 4321 over TLS 1.3 with a token when RUM is on. |
+| Agent | Gateway | OTLP/gRPC, port 4322 | mTLS with TLS 1.3, plus a token; `zstd` compression. |
+
+## What happens to the data
+
+- **Traces** go through two processors FuseScope manages (span attribute mapping and LLM
+  pricing). The gateway then writes the spans and derives the service metrics (rate, errors,
+  duration) the Services page reads.
+- **Logs** go through the log pipelines you define in the UI. FuseScope sends them to the
+  gateway over OpAMP.
+- **Metrics** are written as they arrive.
+- **Batches of up to 10 seconds.** The gateway batches each ClickHouse write for up to 10 s. The
+  service map joins a parent and a child span only within one insert, so longer batches keep it
+  complete. New telemetry can take about 10 s to appear.
+- **Usage metering.** The gateway counts ingested spans, log records and data points each hour,
+  per service and ingestion key, for the Cost Meter and Ingestion Settings.
+- **Filter suggestions.** It records the distinct attribute sets it writes, for the related
+  values of filter suggestions. Both metering and suggestions are bounded and never delay or fail
+  the data path.
+- **Its own telemetry.** The gateway writes its own metrics (`otelcol_*`) to ClickHouse, so you
+  can watch it in FuseScope.
+
+## What FuseScope can change remotely
+
+Over OpAMP, the FuseScope backend can change only an allow-list: the log pipelines, span
+attribute mapping, LLM pricing, and the ingest policy (RUM applications and keys). It can never
+change what the collector listens on, where it writes, or which extensions run. Those come from
+the chart's values alone, so an account in the UI cannot open a port or redirect data.
+
+## Choose a topology
+
+- **Applications in the cluster.** Run the agents with OTLP on (`fusescopeAgent.otlp`). Each pod
+  sends to the agent on its own node, which adds the pod's Kubernetes attributes and forwards to
+  the gateway over mTLS. This is the recommended path.
+- **Browsers and mobile apps.** Turn on RUM and expose only `/rum/v1/*` through an ingress. See
+  [Public RUM edge](/collector/rum-edge/) for how to keep that edge apart from internal traffic.
+- **Migrating from SigNoz.** Existing emitters that send plaintext OTLP to
+  `fusescope-otel-collector:4317/4318` can keep doing so through `otlp.insecure` while you move
+  them. It is temporary: [security](/collector/security/#plaintext-during-a-signoz-migration)
+  explains how to restrict it and when to turn it off.
+- **Hosts outside Kubernetes.** The chart's agents run only in the cluster, and the chart does
+  not expose the agents' listener outside it. Sending from hosts outside the cluster is not
+  covered by this section yet.
+
+<CardGrid>
+  <LinkCard title="Production setup" href="/collector/production-setup/" description="A complete values file and the checklist behind it." />
+  <LinkCard title="Security" href="/collector/security/" description="TLS, credentials, rotation, network policies and the agent's privileges." />
+  <LinkCard title="Public RUM edge" href="/collector/rum-edge/" description="Expose RUM to the internet without exposing anything else." />
+  <LinkCard title="Sizing and resources" href="/collector/sizing/" description="Measured CPU and memory per throughput, and how to size and scale." />
+</CardGrid>
