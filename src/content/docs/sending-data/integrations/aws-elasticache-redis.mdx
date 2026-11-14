@@ -138,7 +138,9 @@ yourself, see [Redis](/sending-data/integrations/redis/).
      otlp/fusescope:
        endpoint: ${env:OTLP_DESTINATION_ENDPOINT}
        tls:
-         insecure: true
+         ca_file: /etc/fusescope-agent-ca/ca.crt
+       headers:
+         Authorization: "Bearer ${env:FUSESCOPE_AGENT_TOKEN}"
 
    service:
      pipelines:
@@ -152,7 +154,8 @@ yourself, see [Redis](/sending-data/integrations/redis/).
    | `REDIS_ENDPOINT` | `my-cache.abc123.0001.use1.cache.amazonaws.com:6379` | Node or primary endpoint. |
    | `REDIS_PASSWORD` | | The AUTH token, if the cluster uses one. |
    | `CLOUDWATCH_EXPORTER_ENDPOINT` | `localhost:9106` | Where the CloudWatch exporter listens. |
-   | `OTLP_DESTINATION_ENDPOINT` | `fusescope-collector.example.com:4317` | FuseScope collector, OTLP gRPC. |
+   | `OTLP_DESTINATION_ENDPOINT` | `fusescope-agent-otlp.fusescope.svc:4317` | The FuseScope agent on the node, OTLP gRPC over TLS. |
+   | `FUSESCOPE_AGENT_TOKEN` | | The agents' OTLP token, from its Secret. |
 
 3. **Run the collector** with `--config elasticache-metrics.yaml`, as shown in
    [Run the collector](/sending-data/integrations/#run-the-collector).
@@ -196,7 +199,9 @@ exporters:
   otlp/fusescope:
     endpoint: ${env:OTLP_DESTINATION_ENDPOINT}
     tls:
-      insecure: true
+      ca_file: /etc/fusescope-agent-ca/ca.crt
+    headers:
+      Authorization: "Bearer ${env:FUSESCOPE_AGENT_TOKEN}"
 
 service:
   pipelines:

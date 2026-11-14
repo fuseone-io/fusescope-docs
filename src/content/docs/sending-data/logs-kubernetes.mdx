@@ -13,8 +13,17 @@ stdout or stderr arrives as a log, labelled with its pod, namespace and node.
 logs it collects, join multiline logs such as Java stack traces, or give pod logs a
 `service.name`.
 
-To install the chart, see [Kubernetes](/sending-data/kubernetes/#install).
-Its main values are in [Key values](/sending-data/kubernetes/#key-values).
+<Aside type="caution" title="Prefer the FuseScope agents for pod logs">
+  `k8s-infra` sends without the TLS and token the FuseScope agents require, so it reaches
+  FuseScope only through the gateway's plaintext migration receiver. The FuseScope agents
+  (`fusescopeAgent.podLogs`, on by default) read every pod's logs on each node and send them over
+  mTLS; see [Kubernetes](/sending-data/kubernetes/#node-telemetry-with-the-fusescope-agents).
+  They do not offer this page's namespace and pod filters, multiline joining or `service.name`
+  rules; [log pipelines](/sending-data/log-pipelines/) can parse and enrich the logs they send.
+</Aside>
+
+To install `k8s-infra`, see [Kubernetes](/sending-data/kubernetes/#cluster-metrics-and-events-with-k8s-infra).
+All `k8s-infra` values are in the chart's [`values.yaml`](https://github.com/fuseone-io/fusescope-charts/blob/main/charts/k8s-infra/values.yaml).
 
 ## How it works
 

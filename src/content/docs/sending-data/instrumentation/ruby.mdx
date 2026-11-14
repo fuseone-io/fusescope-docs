@@ -74,8 +74,11 @@ bundle add opentelemetry-logs-sdk opentelemetry-exporter-otlp-logs opentelemetry
    ```bash
    export OTEL_SERVICE_NAME=checkout
    export OTEL_RESOURCE_ATTRIBUTES=deployment.environment.name=production,service.version=1.4.2
-   export OTEL_EXPORTER_OTLP_ENDPOINT=http://fusescope-collector.example.com:4318
+   export OTEL_EXPORTER_OTLP_ENDPOINT=https://fusescope-agent-otlp.fusescope.svc:4318
    export OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+   export OTEL_EXPORTER_OTLP_CERTIFICATE=/etc/fusescope-agent-ca/ca.crt
+   export FUSESCOPE_AGENT_TOKEN=<the token from the fusescope-agent-otlp-token Secret>
+   export OTEL_EXPORTER_OTLP_HEADERS="Authorization=Bearer%20${FUSESCOPE_AGENT_TOKEN}"
    ```
 
    Traces, metrics and logs default to `otlp` once their gems are loaded. Set
@@ -91,37 +94,29 @@ bundle add opentelemetry-logs-sdk opentelemetry-exporter-otlp-logs opentelemetry
 
 ## Send to FuseScope
 
-<Tabs>
-  <TabItem label="Direct (gRPC 4317)">
-
-Not supported by the Ruby SDK. Use **Direct (HTTP 4318)**, or send to a local collector
-over HTTP and let it forward over gRPC.
-
-  </TabItem>
-  <TabItem label="Direct (HTTP 4318)">
+Inside the Kubernetes cluster that runs FuseScope, send to the FuseScope agent on the pod's
+node. It accepts OTLP only over TLS 1.3 with a bearer token, and the chart turns it on with
+`fusescopeAgent.otlp.enabled`; see [OTLP](/sending-data/otlp/) for the setup and the
+credentials to copy into your namespace.
 
 ```bash
-OTEL_EXPORTER_OTLP_ENDPOINT=http://fusescope-collector.example.com:4318
+OTEL_EXPORTER_OTLP_ENDPOINT=https://fusescope-agent-otlp.fusescope.svc:4318
 OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+OTEL_EXPORTER_OTLP_CERTIFICATE=/etc/fusescope-agent-ca/ca.crt
+OTEL_EXPORTER_OTLP_HEADERS=Authorization=Bearer%20<token>
 ```
 
-Behind the chart ingress, use `https://otlp.example.com`. See
-[from outside the cluster](/sending-data/otlp/#from-outside-the-cluster).
+For gRPC, use port 4317 and `OTEL_EXPORTER_OTLP_PROTOCOL=grpc`. Set the protocol explicitly:
+defaults differ between SDKs and versions.
 
-  </TabItem>
-  <TabItem label="Through a local collector">
+`%20` is the space after `Bearer`: the headers variable follows the W3C baggage syntax. The
+[Kubernetes](#kubernetes) section below mounts the CA and reads the token from a Secret.
 
-```bash
-OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
-OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
-```
-
-Run the collector with [Docker](/sending-data/collector-docker/), on a
-[VM](/sending-data/collector-vm/) or in
-[Kubernetes](/sending-data/kubernetes/).
-
-  </TabItem>
-</Tabs>
+<Aside type="caution" title="Not from outside the cluster yet">
+  The FuseScope chart exposes no OTLP endpoint outside the Kubernetes cluster that runs
+  FuseScope. Applications on a VM, in Docker outside Kubernetes, or in another cluster have no
+  supported path to send to FuseScope yet.
+</Aside>
 
 ## Docker
 
@@ -138,14 +133,9 @@ COPY . .
 CMD ["bundle", "exec", "rails", "server", "-b", "0.0.0.0"]
 ```
 
-```bash
-docker run \
-  -e OTEL_SERVICE_NAME=checkout \
-  -e OTEL_RESOURCE_ATTRIBUTES=deployment.environment.name=production \
-  -e OTEL_EXPORTER_OTLP_ENDPOINT=http://fusescope-collector.example.com:4318 \
-  -e OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf \
-  checkout:latest
-```
+Run the image in the cluster that runs FuseScope, with the variables of the
+[Kubernetes](#kubernetes) section. Outside that cluster there is no supported
+destination yet.
 
 ## Kubernetes
 
@@ -156,9 +146,16 @@ env:
   - name: OTEL_SERVICE_NAME
     value: checkout
   - name: OTEL_EXPORTER_OTLP_ENDPOINT
-    value: http://fusescope-otel-collector.fusescope.svc.cluster.local:4318
+    value: https://fusescope-agent-otlp.fusescope.svc:4318
   - name: OTEL_EXPORTER_OTLP_PROTOCOL
     value: http/protobuf
+  - name: OTEL_EXPORTER_OTLP_CERTIFICATE
+    value: /etc/fusescope-agent-ca/ca.crt
+  - name: FUSESCOPE_AGENT_TOKEN
+    valueFrom:
+      secretKeyRef: {name: fusescope-agent-otlp-token, key: token}
+  - name: OTEL_EXPORTER_OTLP_HEADERS
+    value: Authorization=Bearer%20$(FUSESCOPE_AGENT_TOKEN)
   - name: K8S_POD_NAME
     valueFrom:
       fieldRef:
@@ -170,6 +167,11 @@ env:
   - name: OTEL_RESOURCE_ATTRIBUTES
     value: deployment.environment.name=production,k8s.pod.name=$(K8S_POD_NAME),k8s.namespace.name=$(K8S_NAMESPACE_NAME)
 ```
+
+Mount the CA bundle at `/etc/fusescope-agent-ca`, from a Secret holding the agents' `ca.crt`
+in the application's namespace (a `volumes` entry with `secret: {secretName:
+fusescope-agent-ca}` and a matching `volumeMounts` entry). Copy that Secret and the token
+Secret into the namespace first: a pod cannot read Secrets from another namespace.
 
 `$(VAR)` only expands variables defined earlier in the list, so keep
 `OTEL_RESOURCE_ATTRIBUTES` last.

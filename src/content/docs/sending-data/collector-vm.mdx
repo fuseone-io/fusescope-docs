@@ -13,6 +13,13 @@ apps on the machine and forwards it to FuseScope.
 Docker and Kubernetes, or when you want [host metrics](/sending-data/hosts/)
 from that machine.
 
+<Aside type="caution" title="Not from outside the cluster yet">
+  The FuseScope chart exposes no OTLP endpoint outside the Kubernetes cluster that runs
+  FuseScope. A collector on a VM, in Docker outside Kubernetes, or in another cluster has no
+  supported destination yet. The exporters on this page send to the FuseScope agent and work
+  only from inside that cluster.
+</Aside>
+
 For why a local collector helps (batching, retries, enrichment, one egress point), see
 [Collector on Docker](/sending-data/collector-docker/#why-run-a-local-collector).
 
@@ -98,7 +105,12 @@ processors:
 
 exporters:
   otlphttp:
-    endpoint: http://fusescope-collector.example.com:4318
+    # The FuseScope agent on this node, inside the cluster that runs FuseScope.
+    endpoint: https://fusescope-agent-otlp.fusescope.svc:4318
+    tls:
+      ca_file: /etc/fusescope-agent-ca/ca.crt
+    headers:
+      Authorization: "Bearer ${env:FUSESCOPE_AGENT_TOKEN}"
 
 extensions:
   health_check:
@@ -142,9 +154,12 @@ processors:
 
 exporters:
   otlp:
-    endpoint: fusescope-collector.example.com:4317
+    # The FuseScope agent on this node, inside the cluster that runs FuseScope.
+    endpoint: fusescope-agent-otlp.fusescope.svc:4317
     tls:
-      insecure: true
+      ca_file: /etc/fusescope-agent-ca/ca.crt
+    headers:
+      Authorization: "Bearer ${env:FUSESCOPE_AGENT_TOKEN}"
 
 extensions:
   health_check:
@@ -170,9 +185,9 @@ service:
 </TabItem>
 </Tabs>
 
-- Replace `fusescope-collector.example.com` with your FuseScope collector address; see
-  [From outside the cluster](/sending-data/otlp/#from-outside-the-cluster).
-  Self-hosted FuseScope needs no ingestion key.
+- The exporter sends to the FuseScope agent, with the agents' CA and OTLP token
+  (`FUSESCOPE_AGENT_TOKEN`); see [OTLP](/sending-data/otlp/). It works only from inside the
+  cluster that runs FuseScope, as the caution above says.
 - To accept data from other machines, use `0.0.0.0:4317` and `0.0.0.0:4318`, and
   restrict access with a firewall: the receivers have no authentication.
 - Point apps on the machine at `http://localhost:4318` with

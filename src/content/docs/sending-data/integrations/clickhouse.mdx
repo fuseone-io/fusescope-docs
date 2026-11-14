@@ -70,7 +70,9 @@ exporters:
   otlp/fusescope:
     endpoint: ${env:OTLP_DESTINATION_ENDPOINT}
     tls:
-      insecure: true
+      ca_file: /etc/fusescope-agent-ca/ca.crt
+    headers:
+      Authorization: "Bearer ${env:FUSESCOPE_AGENT_TOKEN}"
 
 service:
   pipelines:
@@ -84,7 +86,8 @@ service:
 |---|---|---|
 | `CLICKHOUSE_PROM_METRICS_ENDPOINT` | `clickhouse:9363` | Prometheus `host:port` on the ClickHouse server. |
 | `CLICKHOUSE_PROM_METRICS_PATH` | `/metrics` | Prometheus path. |
-| `OTLP_DESTINATION_ENDPOINT` | `fusescope-collector.example.com:4317` | FuseScope collector, OTLP gRPC. |
+| `OTLP_DESTINATION_ENDPOINT` | `fusescope-agent-otlp.fusescope.svc:4317` | The FuseScope agent on the node, OTLP gRPC over TLS. |
+| `FUSESCOPE_AGENT_TOKEN` | | The agents' OTLP token, from its Secret. |
 
 </TabItem>
 <TabItem label="Logs">
@@ -147,7 +150,9 @@ exporters:
   otlp/fusescope:
     endpoint: ${env:OTLP_DESTINATION_ENDPOINT}
     tls:
-      insecure: true
+      ca_file: /etc/fusescope-agent-ca/ca.crt
+    headers:
+      Authorization: "Bearer ${env:FUSESCOPE_AGENT_TOKEN}"
 
 service:
   pipelines:
@@ -161,7 +166,8 @@ service:
 |---|---|---|
 | `CLICKHOUSE_LOG_FILE` | `/var/log/clickhouse-server/clickhouse-server.log` | Server log file. |
 | `CLICKHOUSE_TIMEZONE` | `Etc/UTC` | The server's [`timezone`](https://clickhouse.com/docs/en/operations/server-configuration-parameters/settings#timezone), as an IANA name. ClickHouse writes log timestamps without a zone. |
-| `OTLP_DESTINATION_ENDPOINT` | `fusescope-collector.example.com:4317` | FuseScope collector, OTLP gRPC. |
+| `OTLP_DESTINATION_ENDPOINT` | `fusescope-agent-otlp.fusescope.svc:4317` | The FuseScope agent on the node, OTLP gRPC over TLS. |
+| `FUSESCOPE_AGENT_TOKEN` | | The agents' OTLP token, from its Secret. |
 
 </TabItem>
 </Tabs>

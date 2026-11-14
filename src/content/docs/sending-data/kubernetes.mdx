@@ -1,25 +1,69 @@
 ---
 title: Kubernetes
-description: Collect cluster metrics, events and pod logs with the k8s-infra chart.
+description: Collect pod logs, node and pod metrics with the FuseScope agents, and what the k8s-infra chart still adds for cluster metrics and events.
 ---
 
 import { Aside } from "@astrojs/starlight/components";
 
-**Use this page when** you run on Kubernetes and want pod logs, node and pod metrics and cluster events in FuseScope, without changing your applications, or when an
+**Use this page when** you run on Kubernetes and want pod logs, node and pod metrics and cluster
+events in FuseScope, without changing your applications, or when an
 [instrumentation check](/observe/infrastructure/#instrumentation-checks) on
 the **Infrastructure** page says a metric or attribute is missing.
 
-The `k8s-infra` chart, in the same Helm repository, runs OpenTelemetry collectors that
-send Kubernetes telemetry to FuseScope:
+Two charts collect Kubernetes telemetry:
 
-| Component | Kind | Collects |
-|---|---|---|
-| `otel-agent` | DaemonSet | Pod logs, host metrics and kubelet metrics on every node |
-| `otel-deployment` | Deployment | Cluster metrics and Kubernetes events |
+| Chart | Component | Collects | Sends to FuseScope |
+|---|---|---|---|
+| `fusescope` | `fusescopeAgent`, a DaemonSet | Pod logs, node metrics and kubelet stats on every node | Over mTLS with TLS 1.3 and a token: **recommended** |
+| `k8s-infra` | `otel-deployment`, a Deployment | Cluster object metrics and Kubernetes events | Only over the plaintext migration receiver, see below |
 
-Both add Kubernetes attributes (namespace, pod, node, cluster) to the data.
+## Node telemetry with the FuseScope agents
 
-## Install
+The `fusescope` chart's agents collect each node's pod logs, host metrics and kubelet stats, add
+the pod's Kubernetes attributes, and send them to the gateway over mTLS. They write nothing and
+take no remote configuration.
+
+```yaml
+fusescopeCollector:
+  agentListener:
+    enabled: true
+    tls:
+      certManager: {enabled: true, issuerRef: {name: internal-ca}}
+    token:
+      existingSecret: fusescope-agent-token
+fusescopeAgent:
+  enabled: true
+  tls:
+    certManager: {enabled: true, issuerRef: {name: internal-ca}}
+```
+
+Each source has its own switch, all on by default: `fusescopeAgent.podLogs`,
+`fusescopeAgent.hostMetrics` and `fusescopeAgent.kubeletStats`. With `podLogs` or `hostMetrics`
+the agent runs as root, as nodes keep those files readable by root only; see
+the chart's README ([Agents](https://github.com/fuseone-io/fusescope-charts/tree/main/charts/fusescope#agents)) for its privileges and the Pod Security level it
+needs.
+
+What the agents do not collect yet:
+
+- **cluster object metrics** (`k8s_cluster`), such as `k8s.pod.phase` and deployment replica
+  counts;
+- **Kubernetes events**;
+- **host network and process metrics**: without the host network namespace, the agents read the
+  node's traffic from kubelet stats (`k8s.node.network.*`) instead;
+- **`k8s.cluster.name`**, which the Infrastructure page checks for.
+
+## Cluster metrics and events with k8s-infra
+
+The `k8s-infra` chart's `otel-deployment` collects cluster object metrics and events. It sends
+OTLP without the TLS and token the FuseScope agents require, so today it reaches FuseScope only
+through the gateway's plaintext receiver, `fusescopeCollector.otlp.insecure`, which is meant for
+SigNoz migrations. If you turn it on for `k8s-infra`:
+
+- list the `k8s-infra` pods in `fusescopeCollector.otlp.networkPolicy.ingressFrom`, so they are
+  the only senders admitted;
+- read the chart's README ([OTLP collector](https://github.com/fuseone-io/fusescope-charts/tree/main/charts/fusescope#otlp-collector)) for its limits;
+- turn off `k8s-infra`'s own node collection (`presets.logsCollection`, `presets.hostMetrics`,
+  `presets.kubeletMetrics`), which the FuseScope agents already do over TLS.
 
 ```yaml title="values-k8s-infra.yaml"
 global:
@@ -28,6 +72,11 @@ global:
 
 otelCollectorEndpoint: http://fusescope-otel-collector.fusescope.svc.cluster.local:4318
 otelInsecure: true
+
+presets:
+  logsCollection: {enabled: false}
+  hostMetrics: {enabled: false}
+  kubeletMetrics: {enabled: false}
 ```
 
 ```bash
@@ -35,154 +84,87 @@ helm repo add fusescope https://fuseone-io.github.io/fusescope-charts
 helm install k8s-infra fusescope/k8s-infra -n fusescope -f values-k8s-infra.yaml
 ```
 
-<Aside type="caution" title="Use the OTLP/HTTP endpoint">
-  The chart exports with the `otlphttp` exporter by default
-  (`presets.otlphttpExporter.enabled: true`), so `otelCollectorEndpoint` must be an HTTP
-  URL on port 4318: `http://<collector>:4318`. A gRPC address such as `<collector>:4317`
-  does not work with it.
+<Aside type="caution" title="Plaintext inside the cluster">
+  This path sends cluster metadata unencrypted and unauthenticated inside the cluster. Keep it
+  restricted with the network policy above, and plan to move off it.
 </Aside>
 
-To export over gRPC instead, switch exporters and use port 4317:
-
-```yaml
-otelCollectorEndpoint: fusescope-otel-collector.fusescope.svc.cluster.local:4317
-presets:
-  otlphttpExporter:
-    enabled: false
-  otlpExporter:
-    enabled: true
-```
-
-## Key values
-
-| Value | Default | Description |
-|---|---|---|
-| `otelCollectorEndpoint` | `null` | FuseScope collector endpoint. |
-| `otelInsecure` | `true` | Plain-text connection. Set to `false` for an `https://` endpoint. |
-| `global.clusterName` | `""` | Added to every record as `k8s.cluster.name`. |
-| `global.deploymentEnvironment` | `""` | Added as `deployment.environment` when not already set. |
-| `presets.logsCollection.enabled` | `true` | Pod logs. |
-| `presets.hostMetrics.enabled` | `true` | Node CPU, load, memory, disk and more. |
-| `presets.kubeletMetrics.enabled` | `true` | Pod and container metrics from the kubelet. |
-| `presets.clusterMetrics.enabled` | `true` | Cluster-level object metrics. |
-| `presets.k8sEvents.enabled` | `true` | Kubernetes events as logs. |
-| `presets.prometheus.enabled` | `false` | Scrape pods annotated with `signoz.io/scrape` (prefix set by `presets.prometheus.annotationsPrefix`). |
-
-`signoz.io/scrape` is an [internal name](/configuration/config-file/#internal-names).
-
-All values are in the chart's
+All `k8s-infra` values are in the chart's
 [`values.yaml`](https://github.com/fuseone-io/fusescope-charts/blob/main/charts/k8s-infra/values.yaml).
 
 ## What each component sends
 
-The [Infrastructure](/observe/infrastructure/) page checks for the
-metrics and attributes below and names the collector component that should produce
-each one. Every component is part of the `k8s-infra` chart and on by default; this
-section says which value turns it on, and what to check when a metric is missing.
+The [Infrastructure](/observe/infrastructure/) page checks for the metrics and attributes below
+and names the collector component that should produce each one. This section says which chart
+runs it, which value turns it on, and what to check when a metric is missing.
 
 ### hostmetrics receiver
 
-Runs in `otel-agent` on every node and reads the node's CPU, memory, load, disk,
-file system and network: `system.cpu.time`, `system.memory.usage`,
-`system.cpu.load_average.15m`, `system.filesystem.usage` and the `process.*` metrics.
-It feeds the **Hosts** tab.
+Runs in the FuseScope agent on every node and reads the node's CPU, memory, load and file
+systems: `system.cpu.time`, `system.memory.usage`, `system.cpu.load_average.15m` and
+`system.filesystem.usage`. It feeds the **Hosts** tab.
 
-- Turned on by `presets.hostMetrics.enabled` (default `true`).
-- It reads the node's file systems through `presets.hostMetrics.rootPath`
-  (`/hostfs`). If CPU and memory arrive but `system.filesystem.usage` doesn't, check
-  that the agent pods can mount the host root.
+- Turned on by `fusescopeAgent.hostMetrics.enabled` (default `true`), every
+  `fusescopeAgent.hostMetrics.collectionInterval` (30 s).
+- It reads the node through the host root mounted read-only at `/hostfs`. If CPU and memory
+  arrive but `system.filesystem.usage` doesn't, check that the agent pods can mount it.
+- It does not scrape the network or processes: without the host network namespace it would
+  read the pod's own. The node's traffic comes from kubelet stats (`k8s.node.network.*`).
 
 #### Hosts outside Kubernetes
 
-For a virtual machine or a bare-metal server, run the FuseScope collector (or any
-OpenTelemetry Collector) on the host with the `hostmetrics` receiver and the
-`resourcedetection` processor, and send to FuseScope over OTLP:
-
-```yaml
-receivers:
-  hostmetrics:
-    collection_interval: 30s
-    scrapers:
-      cpu: {}
-      load: {}
-      memory: {}
-      disk: {}
-      filesystem: {}
-      network: {}
-
-processors:
-  resourcedetection:
-    detectors: [env, system]
-    system:
-      hostname_sources: [os]
-
-exporters:
-  otlp:
-    endpoint: fusescope-otel-collector.example.com:4317
-
-service:
-  pipelines:
-    metrics:
-      receivers: [hostmetrics]
-      processors: [resourcedetection]
-      exporters: [otlp]
-```
-
-See [OTLP endpoints](/sending-data/otlp/#from-another-collector) for
-the endpoint and TLS settings.
+The chart's agents run only in the cluster, and the chart exposes no endpoint for collectors
+outside it. Hosts outside Kubernetes are not covered yet.
 
 ### kubeletstats receiver
 
-Runs in `otel-agent` and asks each node's kubelet for container, pod, node and volume
+Runs in the FuseScope agent and asks its node's kubelet for container, pod, node and volume
 usage: `container.cpu.usage`, `container.memory.working_set`, `k8s.pod.cpu.usage`,
 `k8s.pod.memory.working_set`, `k8s.node.cpu.usage`, `k8s.node.memory.working_set`
 and the `k8s.volume.*` metrics.
 
-- Turned on by `presets.kubeletMetrics.enabled` (default `true`).
-- The optional request and limit metrics, such as
-  `k8s.pod.cpu_request_utilization` and `k8s.container.memory_limit_utilization`, are
-  listed under `presets.kubeletMetrics.metrics` and on by default. They only have a
-  value for containers that set CPU or memory **requests** and **limits** in their
-  spec. GKE Autopilot clusters don't expose them.
-- If nothing arrives, check that the agent's service account may read the kubelet
-  API (`nodes/stats`); the chart creates that permission.
+- Turned on by `fusescopeAgent.kubeletStats.enabled` (default `true`).
+- It authenticates with the agent's service account (`nodes/stats`, which the chart grants) and
+  verifies the kubelet's serving certificate. Where kubelets serve a self-signed one, set
+  `fusescopeAgent.kubeletStats.insecureSkipVerify: true` or turn kubelet stats off.
+- The optional request and limit metrics, such as `k8s.pod.cpu_request_utilization`, are not
+  collected.
 
 ### k8scluster receiver
 
-Runs once in `otel-deployment` and watches the Kubernetes API for the state of
+Runs once in `k8s-infra`'s `otel-deployment` and watches the Kubernetes API for the state of
 objects: `k8s.pod.phase`, `k8s.container.restarts`, `k8s.container.ready`,
 `k8s.node.allocatable_cpu`, `k8s.node.condition_ready`, and the desired, current and
 ready counts of deployments, daemon sets, stateful sets and jobs.
 
-- Turned on by `presets.clusterMetrics.enabled` (default `true`).
-- The optional `k8s.pod.status_reason`, `k8s.container.status.reason` and
-  `k8s.container.status.state`, which explain states such as `CrashLoopBackOff`, are
-  under `presets.clusterMetrics.metrics` and on by default.
+- Turned on by `presets.clusterMetrics.enabled` in `k8s-infra` (default `true`).
+- It reaches FuseScope only over the plaintext migration receiver
+  ([above](#cluster-metrics-and-events-with-k8s-infra)).
 
 ### resourcedetection processor
 
-Adds attributes that describe where the data comes from: `host.name` and `os.type` on
-host metrics, and `k8s.cluster.name` on everything.
+Adds attributes that describe where the data comes from.
 
-- Turned on by `presets.resourceDetection.enabled` (default `true`).
-- `k8s.cluster.name` comes from `global.clusterName`. If the check reports it
-  missing, set `global.clusterName` in your values.
+- **The FuseScope agents** set `host.name` and `k8s.node.name` to the node's name, and `os.type`.
+  They do not set `k8s.cluster.name`.
+- **`k8s-infra`** adds `k8s.cluster.name` from `global.clusterName` to what it sends
+  (`presets.resourceDetection.enabled`, default `true`).
 
 ### k8sattributes processor
 
-Adds the Kubernetes names to metrics, logs and traces: `k8s.pod.uid`,
-`k8s.pod.name`, `k8s.namespace.name`, `k8s.node.name`, `k8s.container.name` and the
-owner (`k8s.deployment.name`, `k8s.statefulset.name`, `k8s.daemonset.name`,
-`k8s.job.name`).
+Adds the Kubernetes names to metrics, logs and traces: `k8s.pod.uid`, `k8s.pod.name`,
+`k8s.namespace.name`, `k8s.node.name`, `k8s.container.name` and the owner
+(`k8s.deployment.name`, `k8s.statefulset.name`, `k8s.daemonset.name`, `k8s.job.name`).
 
-- Turned on by `presets.kubernetesAttributes.enabled` (default `true`).
-- It needs permission to read pods, namespaces and replica sets; the chart creates it.
-  With `presets.kubernetesAttributes.passthrough: true` the agents make no Kubernetes
-  API calls and add no metadata themselves.
+- The FuseScope agents run it on everything they send, including OTLP from pods, limited to the
+  pods of their own node. It needs permission to read pods, namespaces, nodes and replica sets;
+  the chart grants it.
+- A pod's first records, sent before the agent's cache sees the pod, can arrive without these
+  attributes.
 
 ### Kubernetes events
 
-`presets.k8sEvents.enabled` (default `true`) sends Kubernetes events, such as
-`Back-off restarting failed container`, as logs. They appear on the **Events** tab of
-a pod, node or other object on the Infrastructure page.
-
+`presets.k8sEvents.enabled` in `k8s-infra` (default `true`) sends Kubernetes events, such as
+`Back-off restarting failed container`, as logs. They appear on the **Events** tab of a pod,
+node or other object on the Infrastructure page. Like cluster metrics, they reach FuseScope only
+over the plaintext migration receiver.

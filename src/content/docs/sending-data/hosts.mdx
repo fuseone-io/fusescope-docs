@@ -14,6 +14,13 @@ OpenTelemetry Collector's `hostmetrics` receiver, running on each machine, plus 
 [instrumentation check](/observe/infrastructure/#instrumentation-checks)
 reports missing host metrics or `host.name`, or you add a new server or VM.
 
+<Aside type="caution" title="Not from outside the cluster yet">
+  The FuseScope chart exposes no OTLP endpoint outside the Kubernetes cluster that runs
+  FuseScope. A collector on a VM, in Docker outside Kubernetes, or in another cluster has no
+  supported destination yet. The exporters on this page send to the FuseScope agent and work
+  only from inside that cluster.
+</Aside>
+
 On Kubernetes you don't need this page: the `k8s-infra` chart already runs the
 receiver on every node. See
 [hostmetrics receiver](/sending-data/kubernetes/#hostmetrics-receiver).
@@ -77,7 +84,12 @@ processors:
 
 exporters:
   otlphttp:
-    endpoint: http://fusescope-collector.example.com:4318
+    # The FuseScope agent on this node, inside the cluster that runs FuseScope.
+    endpoint: https://fusescope-agent-otlp.fusescope.svc:4318
+    tls:
+      ca_file: /etc/fusescope-agent-ca/ca.crt
+    headers:
+      Authorization: "Bearer ${env:FUSESCOPE_AGENT_TOKEN}"
 
 service:
   pipelines:

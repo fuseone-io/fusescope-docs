@@ -11,6 +11,13 @@ container. Your apps send OTLP to it, and it forwards everything to FuseScope.
 **Use this page when** your apps run in Docker or Docker Compose and you want a local
 collector between them and FuseScope.
 
+<Aside type="caution" title="Not from outside the cluster yet">
+  The FuseScope chart exposes no OTLP endpoint outside the Kubernetes cluster that runs
+  FuseScope. A collector on a VM, in Docker outside Kubernetes, or in another cluster has no
+  supported destination yet. The exporters on this page send to the FuseScope agent and work
+  only from inside that cluster.
+</Aside>
+
 ## Why run a local collector
 
 Apps can send straight to FuseScope (see
@@ -51,7 +58,12 @@ processors:
 
 exporters:
   otlphttp:
-    endpoint: http://fusescope-collector.example.com:4318
+    # The FuseScope agent on this node, inside the cluster that runs FuseScope.
+    endpoint: https://fusescope-agent-otlp.fusescope.svc:4318
+    tls:
+      ca_file: /etc/fusescope-agent-ca/ca.crt
+    headers:
+      Authorization: "Bearer ${env:FUSESCOPE_AGENT_TOKEN}"
 
 extensions:
   health_check:
@@ -73,9 +85,6 @@ service:
       processors: [memory_limiter, batch]
       exporters: [otlphttp]
 ```
-
-For an `https://` address, such as `https://otlp.example.com` behind the chart's
-ingress, put that URL in `endpoint`. No other change is needed.
 
 </TabItem>
 <TabItem label="OTLP gRPC">
@@ -98,9 +107,12 @@ processors:
 
 exporters:
   otlp:
-    endpoint: fusescope-collector.example.com:4317
+    # The FuseScope agent on this node, inside the cluster that runs FuseScope.
+    endpoint: fusescope-agent-otlp.fusescope.svc:4317
     tls:
-      insecure: true
+      ca_file: /etc/fusescope-agent-ca/ca.crt
+    headers:
+      Authorization: "Bearer ${env:FUSESCOPE_AGENT_TOKEN}"
 
 extensions:
   health_check:
@@ -123,13 +135,13 @@ service:
       exporters: [otlp]
 ```
 
-`tls.insecure: true` sends plain text. Remove it when FuseScope's gRPC port is behind TLS.
-
 </TabItem>
 </Tabs>
 
-Replace `fusescope-collector.example.com` with your FuseScope collector address; see
-[From outside the cluster](/sending-data/otlp/#from-outside-the-cluster).
+The exporter sends to the FuseScope agent on the collector's node, over TLS 1.3 with the
+agents' OTLP token: mount the agents' CA bundle at `/etc/fusescope-agent-ca` and set
+`FUSESCOPE_AGENT_TOKEN` from the token Secret. See [OTLP](/sending-data/otlp/) for turning the
+receiver on and copying the credentials into your namespace.
 Self-hosted FuseScope needs no ingestion key or token header.
 
 What each part does:

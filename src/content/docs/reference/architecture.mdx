@@ -19,18 +19,27 @@ and SSO domains in the [metadata store](/configuration/metadata-store/).
 Its OpAMP server on port 4320 pushes collector configuration managed in the UI, such as
 log pipelines, to the collectors.
 
-### OpenTelemetry collector
+### FuseScope Collector
 
-`ghcr.io/fuseone-io/fusescope-otel-collector`, from
-[fusescope-otel-collector](https://github.com/fuseone-io/fusescope-otel-collector). It
-receives OTLP on ports 4317 (gRPC) and 4318 (HTTP), and Jaeger, computes span metrics,
-and writes traces, metrics and logs to ClickHouse. It scales horizontally.
+`ghcr.io/fuseone-io/fusescope-collector`, from
+[fusescope-collector-server](https://github.com/fuseone-io/fusescope-collector-server), a
+distribution of the OpenTelemetry Collector. It runs in two roles:
+
+- **Agents**, a DaemonSet (`fusescopeAgent`): each node's pod logs, host metrics and kubelet
+  stats, and optionally OTLP from the node's pods over TLS 1.3 with a token. They send to the
+  gateway over mTLS and write nothing.
+- **The gateway**, a Deployment (`fusescopeCollector`): it receives from the agents and from
+  browsers and mobile apps (RUM), computes span metrics, and writes traces, metrics and logs to
+  ClickHouse. It scales horizontally.
+
+It receives only OTLP. During a SigNoz migration, the gateway can also serve plaintext OTLP
+inside the cluster, by explicit opt-in.
 
 ### Schema migrator
 
-The collector image also owns the ClickHouse schema. The Helm chart runs it as a Job
-(`migrate bootstrap`, `migrate sync up`, `migrate async up`) at install and as a
-pre-upgrade hook, so the schema is current before a new version starts.
+The collector image also ships `fusescope-schema`, which owns the ClickHouse schema. The Helm
+chart runs it as a Job at install and upgrade, and the gateway waits until the schema is migrated
+before it writes.
 
 ### ClickHouse
 
@@ -56,9 +65,12 @@ SQLite on a persistent volume for a single backend replica, or PostgreSQL for se
 | Component | Port | Use |
 |---|---|---|
 | Backend | 8080 | UI and API |
-| Backend | 4320 | OpAMP for collectors |
+| Backend | 4320 | OpAMP for collectors (processor settings) |
+| Backend | 4321 | OpAMP over TLS 1.3, the ingest policy for RUM |
 | Backend | 9090 | Prometheus metrics of the backend itself |
-| Collector | 4317 | OTLP gRPC |
-| Collector | 4318 | OTLP/HTTP |
-| Collector | 14268 | Jaeger Thrift over HTTP |
+| Gateway | 4322 | The agents' listener: OTLP/gRPC, mTLS and a token |
+| Gateway | 4319 | RUM, TLS |
+| Gateway | 4317, 4318 | Plaintext OTLP, only for a SigNoz migration and only when turned on |
+| Agent | 4317, 4318 | OTLP from the node's pods, TLS 1.3 and a token, when turned on |
+| Gateway, agent | 13133 | Health check |
 | ClickHouse | 9000 | Native protocol used by the backend and collector |

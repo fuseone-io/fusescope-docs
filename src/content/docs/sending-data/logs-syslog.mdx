@@ -12,6 +12,13 @@ sends it to FuseScope as a log. It ships in the `otelcol-contrib` distribution.
 **Use this page when** you want the system logs of a host, or the logs of a device that
 can only forward syslog, in FuseScope.
 
+<Aside type="caution" title="Not from outside the cluster yet">
+  The FuseScope chart exposes no OTLP endpoint outside the Kubernetes cluster that runs
+  FuseScope. A collector on a VM, in Docker outside Kubernetes, or in another cluster has no
+  supported destination yet. The exporters on this page send to the FuseScope agent and work
+  only from inside that cluster.
+</Aside>
+
 ## How it works
 
 <Steps>
@@ -48,7 +55,12 @@ processors:
 
 exporters:
   otlphttp:
-    endpoint: http://fusescope-collector.example.com:4318
+    # The FuseScope agent on this node, inside the cluster that runs FuseScope.
+    endpoint: https://fusescope-agent-otlp.fusescope.svc:4318
+    tls:
+      ca_file: /etc/fusescope-agent-ca/ca.crt
+    headers:
+      Authorization: "Bearer ${env:FUSESCOPE_AGENT_TOKEN}"
 
 service:
   pipelines:
@@ -78,7 +90,12 @@ processors:
 
 exporters:
   otlphttp:
-    endpoint: http://fusescope-collector.example.com:4318
+    # The FuseScope agent on this node, inside the cluster that runs FuseScope.
+    endpoint: https://fusescope-agent-otlp.fusescope.svc:4318
+    tls:
+      ca_file: /etc/fusescope-agent-ca/ca.crt
+    headers:
+      Authorization: "Bearer ${env:FUSESCOPE_AGENT_TOKEN}"
 
 service:
   pipelines:
@@ -93,8 +110,10 @@ RFC 3164 timestamps have no time zone; `location` says which one the senders use
 </TabItem>
 </Tabs>
 
-Replace `fusescope-collector.example.com` with your FuseScope collector address. See
-[OTLP endpoints](/sending-data/otlp/#from-outside-the-cluster).
+The exporter sends to the FuseScope agent on the collector's node, over TLS 1.3 with the
+agents' OTLP token: mount the agents' CA bundle at `/etc/fusescope-agent-ca` and set
+`FUSESCOPE_AGENT_TOKEN` from the token Secret. See [OTLP](/sending-data/otlp/) for turning the
+receiver on and copying the credentials into your namespace.
 
 To receive both formats, add two receivers, such as `syslog/tcp` and `syslog/udp`, and
 list both in the pipeline.

@@ -12,6 +12,13 @@ to FuseScope. It ships in the `otelcol-contrib` distribution.
 **Use this page when** an application or a service on a VM or in Docker writes logs to
 files, and you can't or don't want to change it to send logs over OTLP.
 
+<Aside type="caution" title="Not from outside the cluster yet">
+  The FuseScope chart exposes no OTLP endpoint outside the Kubernetes cluster that runs
+  FuseScope. A collector on a VM, in Docker outside Kubernetes, or in another cluster has no
+  supported destination yet. The exporters on this page send to the FuseScope agent and work
+  only from inside that cluster.
+</Aside>
+
 On Kubernetes, use the [Kubernetes logs](/sending-data/logs-kubernetes/)
 preset instead: it already reads every pod's log files.
 
@@ -51,7 +58,12 @@ processors:
 
 exporters:
   otlphttp:
-    endpoint: http://fusescope-collector.example.com:4318
+    # The FuseScope agent on this node, inside the cluster that runs FuseScope.
+    endpoint: https://fusescope-agent-otlp.fusescope.svc:4318
+    tls:
+      ca_file: /etc/fusescope-agent-ca/ca.crt
+    headers:
+      Authorization: "Bearer ${env:FUSESCOPE_AGENT_TOKEN}"
 
 service:
   pipelines:
@@ -61,9 +73,10 @@ service:
       exporters: [otlphttp]
 ```
 
-Replace `fusescope-collector.example.com` with your FuseScope collector address. See
-[OTLP endpoints](/sending-data/otlp/#from-outside-the-cluster) for the
-address and TLS settings.
+The exporter sends to the FuseScope agent on the collector's node, over TLS 1.3 with the
+agents' OTLP token: mount the agents' CA bundle at `/etc/fusescope-agent-ca` and set
+`FUSESCOPE_AGENT_TOKEN` from the token Secret. See [OTLP](/sending-data/otlp/) for turning the
+receiver on and copying the credentials into your namespace.
 
 ## Receiver options
 

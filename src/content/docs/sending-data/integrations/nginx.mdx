@@ -102,7 +102,9 @@ exporters:
   otlp/fusescope:
     endpoint: ${env:OTLP_DESTINATION_ENDPOINT}
     tls:
-      insecure: true
+      ca_file: /etc/fusescope-agent-ca/ca.crt
+    headers:
+      Authorization: "Bearer ${env:FUSESCOPE_AGENT_TOKEN}"
 
 service:
   pipelines:
@@ -116,7 +118,8 @@ service:
 |---|---|---|
 | `NGINX_ACCESS_LOG_FILE` | `/var/log/nginx/access.log` | Access log file. |
 | `NGINX_ERROR_LOG_FILE` | `/var/log/nginx/error.log` | Error log file. |
-| `OTLP_DESTINATION_ENDPOINT` | `fusescope-collector.example.com:4317` | FuseScope collector, OTLP gRPC. |
+| `OTLP_DESTINATION_ENDPOINT` | `fusescope-agent-otlp.fusescope.svc:4317` | The FuseScope agent on the node, OTLP gRPC over TLS. |
+| `FUSESCOPE_AGENT_TOKEN` | | The agents' OTLP token, from its Secret. |
 
 Run the collector with `--config nginx-logs.yaml`, as shown in
 [Run the collector](/sending-data/integrations/#run-the-collector). Set
