@@ -61,8 +61,9 @@ remotely. The agent writes nothing and takes no remote configuration.
 
 ## Paths into the collector
 
-Telemetry enters only on the paths you turn on. Each has its own port and its own
-authentication; none is open by default.
+Telemetry enters only on the paths you turn on; none is open by default. Every path requires TLS
+and authentication, except the temporary plaintext receiver for SigNoz migrations, which has
+neither and exists only by explicit opt-in.
 
 | Path | Listener | Port | Authentication | Turn on with |
 |---|---|---|---|---|
