@@ -149,9 +149,18 @@ add CORS headers of its own. With ingress-nginx, do not set
 
 ## Android 6 to 9
 
-Stock Android API 23 to 28 cannot do TLS 1.3. To accept those devices:
+Stock Android API 23 to 28 cannot do TLS 1.3. The setting that matters is on the hop where the
+device's TLS connection ends.
 
-- set `fusescopeCollector.rum.tlsMinVersion: "1.2"`;
-- make the public edge accept TLS 1.2 with ECDHE and AEAD suites on the RUM host.
+- **Behind the chart's Ingress** (this page's setup), the device's TLS ends at the ingress
+  controller. Make the controller accept TLS 1.2 with ECDHE key exchange and AEAD suites only
+  (AES-GCM, ChaCha20-Poly1305) on the RUM host. The controller then opens a new TLS connection
+  to the gateway, which stays at TLS 1.3: leave `fusescopeCollector.rum.tlsMinVersion` at its
+  default, `"1.3"`. With ingress-nginx, set the protocols and ciphers for that host or
+  controller, not for the backend.
+- **Without a terminating proxy**, when devices reach the gateway's TLS directly (for example
+  through a TCP load balancer or TLS passthrough), set
+  `fusescopeCollector.rum.tlsMinVersion: "1.2"`. The gateway then accepts TLS 1.2 with the same
+  suites on the RUM listener only.
 
-The hop from the ingress to the collector can stay TLS 1.3.
+Modern clients negotiate TLS 1.3 either way.

@@ -13,10 +13,13 @@ would break it fail at `helm install` with a message that names the rule.
 
 - **TLS 1.3 on every listener.** The agents' listener (4322), the agents' OTLP receiver
   (4317/4318) and the RUM listener (4319) accept TLS 1.3 only. There is no plaintext fallback.
-- **TLS 1.2 for RUM only, by opt-in.** Stock Android 6 to 9 cannot do TLS 1.3.
-  `fusescopeCollector.rum.tlsMinVersion: "1.2"` accepts TLS 1.2 on the RUM listener alone, with
-  ECDHE key exchange and AEAD suites only (AES-GCM and ChaCha20-Poly1305). Modern clients still
-  negotiate 1.3. Do not lower any other listener.
+- **TLS 1.2 for RUM only, where the client's TLS ends.** Stock Android 6 to 9 cannot do TLS 1.3.
+  Accept TLS 1.2, with ECDHE key exchange and AEAD suites only (AES-GCM and ChaCha20-Poly1305),
+  on the hop where the device's TLS connection terminates. Behind the chart's Ingress, that is
+  the ingress controller, and the gateway's RUM listener stays at TLS 1.3. Only when devices
+  reach the gateway's TLS directly, without a terminating proxy, set
+  `fusescopeCollector.rum.tlsMinVersion: "1.2"`. Modern clients still negotiate 1.3. Do not lower
+  any other listener ([Public RUM edge](/collector/rum-edge/#android-6-to-9)).
 - **mTLS between agents and the gateway.** Each agent presents a client certificate the
   gateway's client CA must have signed, plus a token. Both are required.
 - **ClickHouse.** The gateway connects with ClickHouse's native protocol. It uses TLS when
@@ -116,7 +119,9 @@ exposure:
 - Give the token only to the namespaces that need it.
 - Keep `ingressFrom` narrow.
 - Rotate the token.
-- Rely on `memory_limiter`, which refuses data before the agent runs out of memory.
+- Size the agents for a burst, not only the average ([Sizing](/collector/sizing/)).
+  `memory_limiter` refuses data under memory pressure, but it watches the Go heap only; in our
+  measurements it did not prevent an out-of-memory kill.
 
 ## Privileges
 
