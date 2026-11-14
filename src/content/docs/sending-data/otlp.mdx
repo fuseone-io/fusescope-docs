@@ -1,92 +1,153 @@
 ---
 title: OTLP
-description: Send traces, metrics and logs to FuseScope over OTLP gRPC or OTLP/HTTP.
+description: Where applications and collectors send traces, metrics and logs over OTLP, with TLS 1.3 and a token, and the plaintext path kept for SigNoz migrations only.
 ---
 
 import { Aside } from "@astrojs/starlight/components";
 
-**Use this page when** you point an application or a collector at FuseScope and need the address and port to send to.
+**Use this page when** you point an application or a collector at FuseScope and need the address,
+port and credentials to send to.
 
-FuseScope ingests telemetry through the FuseScope OpenTelemetry collector, which listens
-for [OTLP](/reference/glossary/#otlp), the OpenTelemetry protocol, on two
-ports:
+FuseScope receives [OTLP](/reference/glossary/#otlp), the OpenTelemetry protocol, through the
+FuseScope Collector. Applications in the cluster send to the **agent on their own node**, which
+forwards to the gateway. That path requires TLS 1.3 and a token. The one exception is the
+temporary plaintext receiver for SigNoz migrations, which is off by default and has neither.
+No path is open by default.
 
-| Protocol | Port | Endpoint inside the cluster |
-|---|---|---|
-| OTLP gRPC | 4317 | `fusescope-otel-collector.<namespace>.svc.cluster.local:4317` |
-| OTLP/HTTP | 4318 | `http://fusescope-otel-collector.<namespace>.svc.cluster.local:4318` |
+| Path | Protocol and port | Endpoint inside the cluster | Credentials |
+|---|---|---|---|
+| Pods to their node's agent | gRPC 4317, HTTP 4318 | `https://fusescope-agent-otlp.<namespace>.svc:4317` (or `:4318`) | TLS 1.3, the agents' CA, and a bearer token |
+| SigNoz migration only | gRPC 4317, HTTP 4318 | `fusescope-otel-collector.<namespace>.svc` | **None, plaintext**; off by default |
 
-The service name assumes the Helm release is named `fusescope`. The collector also accepts
-Jaeger Thrift over HTTP on port 14268.
+The names assume the Helm release is named `fusescope`. The collector receives only OTLP: Jaeger,
+Zipkin and other protocols are not served; send that telemetry as OTLP.
+
+## Turn it on
+
+The agents' OTLP receiver is off by default. In the chart's values:
+
+```yaml
+fusescopeAgent:
+  enabled: true
+  otlp:
+    enabled: true
+    tls:
+      certManager:
+        enabled: true
+        issuerRef: {name: internal-ca}       # a CA issuer, so ca.crt is set
+    token:
+      existingSecret: fusescope-agent-otlp-token
+```
+
+It needs Kubernetes 1.26 or later, the agents' listener on the gateway, and the token Secret,
+created beforehand without a trailing newline:
+
+```bash
+kubectl -n fusescope create secret generic fusescope-agent-otlp-token \
+  --from-literal=token=$(openssl rand -hex 32)
+```
+
+The chart's README section [OTLP from pods to the agent](https://github.com/fuseone-io/fusescope-charts/tree/main/charts/fusescope#otlp-from-pods-to-the-agent)
+has every value, and explains what the token does and does not protect: the node-local route is
+not isolation, so TLS and the token are the security boundary.
+
+## Copy the credentials into your namespaces
+
+A pod cannot read a Secret from another namespace. Copy into each application namespace:
+
+- **the CA bundle** that signed the agents' certificate (with cert-manager, the `ca.crt` of
+  `fusescope-agent-otlp-tls`);
+- **the token** Secret.
+
+Update those copies when you rotate either. A secret sync controller can do it for you.
 
 ## From an application
 
 OpenTelemetry SDKs read the standard
-[exporter environment variables](https://opentelemetry.io/docs/languages/sdk-configuration/otlp-exporter/):
+[exporter environment variables](https://opentelemetry.io/docs/languages/sdk-configuration/otlp-exporter/).
+In a pod spec, with the CA mounted at `/etc/fusescope-agent-ca` and the token from its Secret:
 
-```bash
-OTEL_SERVICE_NAME=checkout
-OTEL_RESOURCE_ATTRIBUTES=deployment.environment=production
-OTEL_EXPORTER_OTLP_ENDPOINT=http://fusescope-otel-collector.fusescope.svc.cluster.local:4318
-OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+```yaml
+env:
+  - name: OTEL_SERVICE_NAME
+    value: checkout
+  - name: OTEL_RESOURCE_ATTRIBUTES
+    value: deployment.environment=production
+  - name: OTEL_EXPORTER_OTLP_PROTOCOL
+    value: grpc
+  - name: OTEL_EXPORTER_OTLP_ENDPOINT
+    value: https://fusescope-agent-otlp.fusescope.svc:4317
+  - name: OTEL_EXPORTER_OTLP_CERTIFICATE
+    value: /etc/fusescope-agent-ca/ca.crt
+  - name: FUSESCOPE_AGENT_TOKEN
+    valueFrom:
+      secretKeyRef: {name: fusescope-agent-otlp-token, key: token}
+  - name: OTEL_EXPORTER_OTLP_HEADERS
+    value: Authorization=Bearer%20$(FUSESCOPE_AGENT_TOKEN)
 ```
 
-For gRPC, use port 4317 and `OTEL_EXPORTER_OTLP_PROTOCOL=grpc`.
+- **For HTTP**, use `OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf` and port 4318.
+- **Set the protocol explicitly.** SDK defaults differ, and some send HTTP to 4317 without it.
+- **`%20` is the space** after `Bearer`: the headers variable follows the W3C baggage syntax.
+- **Order matters.** Kubernetes expands `$(FUSESCOPE_AGENT_TOKEN)` only if that variable is
+  defined before the headers variable.
 
-`service.name` names the service in APM and traces; `deployment.environment` lets you
-filter by environment.
+`service.name` names the service in APM and traces; `deployment.environment` lets you filter by
+environment.
 
 ## From another collector
 
-Forward from an OpenTelemetry Collector you already run with the `otlphttp` exporter:
+An OpenTelemetry Collector you run in the cluster sends to the same Service, with the CA and the
+token:
 
 ```yaml
+extensions:
+  bearertokenauth/fusescope:
+    scheme: Bearer
+    filename: /etc/fusescope-agent-token/token   # the token Secret, mounted as a directory
+
 exporters:
-  otlphttp:
-    endpoint: http://fusescope-otel-collector.fusescope.svc.cluster.local:4318
+  otlp/fusescope:                                # `otlp_grpc/fusescope` in recent collector releases
+    endpoint: fusescope-agent-otlp.fusescope.svc:4317
+    tls:
+      ca_file: /etc/fusescope-agent-ca/ca.crt
+      min_version: "1.3"
+    auth:
+      authenticator: bearertokenauth/fusescope
 
 service:
+  extensions: [bearertokenauth/fusescope]
   pipelines:
     traces:
       receivers: [otlp]
-      exporters: [otlphttp]
+      exporters: [otlp/fusescope]
     metrics:
       receivers: [otlp]
-      exporters: [otlphttp]
+      exporters: [otlp/fusescope]
     logs:
       receivers: [otlp]
-      exporters: [otlphttp]
+      exporters: [otlp/fusescope]
 ```
+
+The Service routes each connection to the agent on the sending pod's node, so run your collector
+where an agent runs.
 
 ## From outside the cluster
 
-Expose OTLP/HTTP with the chart's collector ingress:
+The chart exposes no OTLP endpoint outside the cluster. The only public path is RUM, for browsers
+and mobile apps ([Real User Monitoring](https://github.com/fuseone-io/fusescope-charts/tree/main/charts/fusescope#real-user-monitoring)). It refuses an Ingress, a `NodePort` or
+a `LoadBalancer` for the plaintext migration receiver.
 
-```yaml
-otelCollector:
-  ingress:
-    enabled: true
-    className: nginx
-    annotations:
-      cert-manager.io/cluster-issuer: letsencrypt-prod
-    hosts:
-      - host: otlp.example.com
-        paths:
-          - path: /
-            pathType: ImplementationSpecific
-            port: 4318
-    tls:
-      - secretName: otlp-example-com-tls
-        hosts:
-          - otlp.example.com
-```
+## During a SigNoz migration
 
-Applications then use `OTEL_EXPORTER_OTLP_ENDPOINT=https://otlp.example.com`.
+Emitters of a SigNoz installation that send plaintext OTLP to
+`fusescope-otel-collector:4317/4318` keep working only if you turn on
+`fusescopeCollector.otlp.insecure`. It is inside the cluster only, unauthenticated, and meant to
+be turned off once every emitter has moved to the path above.
+The chart's README ([OTLP collector](https://github.com/fuseone-io/fusescope-charts/tree/main/charts/fusescope#otlp-collector)) explains how to restrict it
+and when to turn it off.
 
 <Aside type="caution">
-  The chart configures no authentication on the OTLP receivers. Restrict who can reach a public
-  ingress, for example with network policies or authentication at the ingress controller.
+  Any workload that reaches the plaintext ports can send, inject or forge telemetry. Do not use
+  them for new applications.
 </Aside>
-
-To expose OTLP gRPC through ingress-nginx instead, point the ingress at port 4317 and add
-the `nginx.ingress.kubernetes.io/backend-protocol: "GRPC"` annotation.

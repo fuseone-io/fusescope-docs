@@ -11,18 +11,24 @@ FuseScope. There are two ways:
 | Way | How | Use it when |
 |---|---|---|
 | **Forward protocol** | Fluent Bit or Fluentd sends with its `forward` output to an OpenTelemetry Collector running the `fluentforward` receiver. | You use Fluentd, or you want a collector in between to parse, filter or set `service.name`. |
-| **OTLP** | Fluent Bit's `opentelemetry` output sends OTLP/HTTP straight to the FuseScope collector on port 4318. | You use Fluent Bit and don't want another component. |
+| **OTLP** | Fluent Bit's `opentelemetry` output sends OTLP/HTTP straight to the FuseScope agent on its node, port 4318, with TLS and the agent's token. | You use Fluent Bit and don't want another component. |
 
-**Use this page when** you run Fluent Bit or Fluentd and want their logs in FuseScope
-without replacing them.
+**Use this page when** you run Fluent Bit or Fluentd in the cluster that runs FuseScope and
+want their logs in FuseScope without replacing them.
+
+<Aside type="caution" title="Inside the cluster only">
+  These configurations are for a collector or Fluent Bit running as a pod in the Kubernetes
+  cluster that runs FuseScope: they send to the FuseScope agent's Service, which exists only
+  there. Outside that cluster there is no supported destination yet.
+</Aside>
 
 ## Forward protocol
 
 ### Configure the collector
 
 Run an OpenTelemetry Collector (the `otelcol-contrib` distribution) with the
-`fluentforward` receiver. See [Collector in Docker](/sending-data/collector-docker/)
-or [Collector on a VM](/sending-data/collector-vm/) to install it.
+`fluentforward` receiver as a Deployment in the cluster, with the agents' CA and token mounted as
+in [OTLP](/sending-data/otlp/#from-another-collector).
 
 ```yaml title="config.yaml"
 receivers:
@@ -34,7 +40,12 @@ processors:
 
 exporters:
   otlphttp:
-    endpoint: http://fusescope-collector.example.com:4318
+    # The FuseScope agent on this node, inside the cluster that runs FuseScope.
+    endpoint: https://fusescope-agent-otlp.fusescope.svc:4318
+    tls:
+      ca_file: /etc/fusescope-agent-ca/ca.crt
+    headers:
+      Authorization: "Bearer ${env:FUSESCOPE_AGENT_TOKEN}"
 
 service:
   pipelines:
@@ -44,8 +55,10 @@ service:
       exporters: [otlphttp]
 ```
 
-Replace `fusescope-collector.example.com` with your FuseScope collector address. See
-[OTLP endpoints](/sending-data/otlp/#from-outside-the-cluster).
+The exporter sends to the FuseScope agent on the collector's node, over TLS 1.3 with the
+agents' OTLP token: mount the agents' CA bundle at `/etc/fusescope-agent-ca` and set
+`FUSESCOPE_AGENT_TOKEN` from the token Secret. See [OTLP](/sending-data/otlp/) for turning the
+receiver on and copying the credentials into your namespace.
 
 The receiver turns each Fluent record into a log:
 
@@ -56,14 +69,8 @@ The receiver turns each Fluent record into a log:
 It listens on TCP and answers heartbeats on UDP on the same port. It doesn't support
 TLS or the shared-key handshake of secure forward, so keep it on a private network.
 
-In Docker, publish both:
-
-```bash
-docker run -d --name otelcol \
-  -v "$PWD/config.yaml:/etc/otelcol-contrib/config.yaml:ro" \
-  -p 8006:8006 -p 8006:8006/udp \
-  otel/opentelemetry-collector-contrib:0.139.0
-```
+Give the collector a Service with both, as port 8006 over TCP and over UDP; Fluent Bit and
+Fluentd then send to `<service>.<namespace>.svc:8006`.
 
 ### Send from Fluent Bit or Fluentd
 
@@ -153,8 +160,8 @@ the same value together.
 
 ## OTLP from Fluent Bit
 
-Fluent Bit's `opentelemetry` output sends OTLP/HTTP straight to the FuseScope
-collector, with no collector in between.
+Fluent Bit's `opentelemetry` output sends OTLP/HTTP straight to the FuseScope agent on its
+node, with no collector in between, over TLS 1.3 with the agents' OTLP token.
 
 <Tabs>
 <TabItem label="Classic">
@@ -163,12 +170,15 @@ collector, with no collector in between.
 [OUTPUT]
     Name                     opentelemetry
     Match                    *
-    Host                     fusescope-collector.example.com
+    Host                     fusescope-agent-otlp.fusescope.svc
     Port                     4318
     Logs_uri                 /v1/logs
     Logs_body_key            $log
     Logs_body_key_attributes true
-    Tls                      off
+    Tls                      on
+    Tls.verify               on
+    Tls.ca_file              /etc/fusescope-agent-ca/ca.crt
+    Header                   Authorization Bearer ${FUSESCOPE_AGENT_TOKEN}
 ```
 
 </TabItem>
@@ -192,12 +202,15 @@ pipeline:
   outputs:
     - name: opentelemetry
       match: "*"
-      host: fusescope-collector.example.com
+      host: fusescope-agent-otlp.fusescope.svc
       port: 4318
       logs_uri: /v1/logs
       logs_body_key: $log
       logs_body_key_attributes: true
-      tls: off
+      tls: on
+      tls.verify: on
+      tls.ca_file: /etc/fusescope-agent-ca/ca.crt
+      header: Authorization Bearer ${FUSESCOPE_AGENT_TOKEN}
 ```
 
 </TabItem>
@@ -205,10 +218,12 @@ pipeline:
 
 | Parameter | Default | Set it to |
 |---|---|---|
-| `Host` | `127.0.0.1` | The FuseScope collector, such as `fusescope-otel-collector.fusescope.svc.cluster.local` inside the cluster. |
-| `Port` | `80` | `4318`, or `443` behind the chart ingress. |
+| `Host` | `127.0.0.1` | The FuseScope agents' Service, `fusescope-agent-otlp.<namespace>.svc`. |
+| `Port` | `80` | `4318`. |
 | `Logs_uri` | `/v1/logs` | Keep the default. |
-| `Tls` | `off` | `on` for an `https://` endpoint such as `otlp.example.com` on port 443. |
+| `Tls`, `Tls.verify` | `off`, `on` | `on`, `on`: the agent accepts only TLS 1.3. |
+| `Tls.ca_file` | none | The agents' CA bundle, mounted from its Secret. |
+| `Header` | none | `Authorization Bearer <token>`, the agents' OTLP token, here from the `FUSESCOPE_AGENT_TOKEN` environment variable. |
 | `Logs_body_key` | none | The record field to use as the body: `$log` for the `tail` input, `$message` for many others. |
 | `Logs_body_key_attributes` | `false` | `true` to send the other record fields as attributes. |
 
@@ -216,10 +231,9 @@ The `opentelemetry_envelope` and `content_modifier` processors set `service.name
 resource attribute. Processors need the YAML configuration format. All parameters are
 in the [Fluent Bit OpenTelemetry output docs](https://docs.fluentbit.io/manual/pipeline/outputs/opentelemetry).
 
-<Aside type="caution" title="No authentication">
-  Self-hosted FuseScope needs no key or token, and the chart configures no
-  authentication on its OTLP receivers. Don't expose port 4318 to the internet without
-  a gateway in front of it.
+<Aside title="The token is required">
+  Self-hosted FuseScope needs no cloud ingestion key, but the FuseScope agent accepts OTLP only
+  over TLS 1.3 with its bearer token. Requests without it are refused.
 </Aside>
 
 ## Parse the logs
@@ -246,8 +260,7 @@ parsing, since it doesn't need a redeploy.
 
 - [Logs from files](/sending-data/logs-files/): read log files with the
   collector instead.
-- [Kubernetes logs](/sending-data/logs-kubernetes/): pod logs with the
-  `k8s-infra` chart.
+- [Kubernetes logs](/sending-data/logs-kubernetes/): pod logs from the FuseScope agents.
 - [OTLP endpoints](/sending-data/otlp/): addresses and ports.
 - [Log pipelines](/sending-data/log-pipelines/): parse logs in FuseScope.
 - [Logs explorer](/explore/logs/): search the logs.

@@ -87,7 +87,12 @@ With the release named `fusescope`, the chart creates these services:
 | Service | Ports | Purpose |
 |---|---|---|
 | `fusescope` | 8080 | UI and API |
-| `fusescope-otel-collector` | 4317, 4318 | OTLP gRPC and OTLP/HTTP ingestion |
+| `fusescope-collector` | 4322, 4319 | The gateway: the FuseScope agents' listener (mTLS and a token) and RUM, each only when turned on |
+| `fusescope-agent-otlp` | 4317, 4318 | OTLP from pods to the agent on their node (TLS and a token), with `fusescopeAgent.otlp.enabled` |
+| `fusescope-otel-collector` | 4317, 4318 | Plaintext OTLP for a SigNoz migration only, with `fusescopeCollector.otlp.insecure` |
+
+With none of the ingest paths turned on, the chart deploys no collector and the release
+receives no telemetry. See [OTLP](/sending-data/otlp/) and [Kubernetes](/sending-data/kubernetes/).
 
 ## Key values
 
@@ -104,8 +109,10 @@ With the release named `fusescope`, the chart creates these services:
 | `signoz.env` | see chart | Environment variables of the backend. |
 | `signoz.config` | `{}` | Contents of the [configuration file](/configuration/config-file/). |
 | `signoz.ingress.*` | disabled | Ingress for the UI and API. |
-| `otelCollector.ingress.*` | disabled | Ingress for OTLP/HTTP ingestion. |
-| `otelCollector.replicaCount` | `1` | Collector replicas. |
+| `fusescopeAgent.enabled` | `false` | The FuseScope agents, a DaemonSet: pod logs, node metrics, and with `fusescopeAgent.otlp.enabled` OTLP from pods. |
+| `fusescopeCollector.agentListener.enabled` | `false` | The gateway's listener for the agents. |
+| `fusescopeCollector.rum.enabled` | `false` | Real User Monitoring on the gateway. |
+| `fusescopeCollector.autoscaling.*` | disabled | Gateway replicas from an HPA; `fusescopeCollector.replicaCount` otherwise. |
 
 The `signoz.*` keys configure the FuseScope backend; they keep an
 [internal name](/configuration/config-file/#internal-names). The full list,
@@ -187,8 +194,8 @@ signoz:
 ```
 
 `global.external_url` is the URL users reach FuseScope on. Set the Alertmanager external
-URL too so links in alert notifications point to it. To accept OTLP from outside the
-cluster, see [OTLP ingress](/sending-data/otlp/#from-outside-the-cluster).
+URL too so links in alert notifications point to it. The chart exposes no OTLP endpoint
+outside the cluster; see [OTLP](/sending-data/otlp/#from-outside-the-cluster).
 
 Browsers send [Real User Monitoring](/frontend/real-user-monitoring/) data
 to `/rum/` on this same host, which the path `/` above already routes to the backend. See

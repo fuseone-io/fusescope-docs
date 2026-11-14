@@ -358,32 +358,33 @@ The application's **Source maps** tab has these commands filled in. See
 
 ## Self-hosted FuseScope
 
-The RUM gateway runs inside the FuseScope backend, on its HTTP port (8080), under
-`/rum/`. Users' browsers send data straight to it, so:
+RUM is received by the FuseScope Collector's gateway, not by the FuseScope backend. With the
+chart, turn it on with `fusescopeCollector.rum.enabled`: the gateway serves `/rum/v1/traces` and
+`/rum/v1/logs` on its own TLS listener (port 4319), with the applications and keys it receives
+from FuseScope as the ingest policy. Users' browsers send to it, so:
 
-- **Expose `/rum/` publicly.** The `endpoint` in the snippet must reach the backend's
-  `/rum/v1/traces` and `/rum/v1/logs` from the internet. The Helm chart's default
-  ingress path `/` already does; if you route only some paths, add `/rum`. See
-  [Expose FuseScope](/install/helm/#expose-fusescope).
-- **Let the gateway answer CORS.** Your ingress or proxy must pass `OPTIONS` requests
-  and the `Origin` header through and must not add CORS headers of its own. With
-  ingress-nginx, don't set `enable-cors` on this ingress, and raise
-  `proxy-body-size` (1 MB by default) to 4 MB.
-- **Trust the client IP behind a proxy.** The per-browser rate limit keys on the client
-  IP. Behind an ingress or load balancer every browser would share the proxy's IP, and
-  one limit. Set the chart's `trustForwardedFor` value to `true`, or the backend
-  environment variable `SIGNOZ_RUM_RATELIMIT_TRUST__FORWARDED__FOR=true`, so the
-  gateway reads the first `X-Forwarded-For` address. Only do this behind a proxy that
-  sets that header, since a browser could otherwise choose its own address.
-- **Point the gateway at your collector.** It forwards to
-  `http://localhost:4318` by default. Outside Helm, set
-  `SIGNOZ_RUM_COLLECTOR__ENDPOINT` to your collector's OTLP/HTTP address, such as
-  `http://otel-collector:4318`.
+- **Expose the two paths publicly.** `fusescopeCollector.ingress.enabled` adds an Ingress for
+  `/rum/v1/traces` and `/rum/v1/logs` only (`pathType: Exact`), which re-encrypts to the
+  gateway. Without hosts of its own it uses `signoz.ingress`'s hosts, so the snippet's
+  `endpoint`, the FuseScope URL, keeps working. With a host of its own, such as
+  `rum.example.com`, use that host as `endpoint`. The browser SDK at `/rum/v1/sdk/` stays on
+  FuseScope's own ingress.
+- **Serve the ingest policy.** The gateway accepts RUM only while it holds an ingest policy,
+  which FuseScope serves over TLS with a token: set `signoz.ingestPolicy.tokens.existingSecret`
+  and `signoz.ingestPolicy.tls`. The chart refuses `rum.enabled` without them.
+- **Let the gateway answer CORS.** Your ingress or proxy must pass `OPTIONS` requests and the
+  `Origin` header through and must not add CORS headers of its own. With ingress-nginx, don't
+  set `enable-cors`. The chart's Ingress already raises `proxy-body-size` to 4 MB, the gateway's
+  limit (`fusescopeCollector.rum.maxBodySize`).
+- **Trust the client IP behind a proxy.** The per-browser rate limit keys on the client IP. The
+  gateway reads `X-Forwarded-For` only from addresses in `fusescopeCollector.rum.trustedProxies`,
+  which with the chart's Ingress defaults to the private ranges. Make sure the real client IP
+  reaches the ingress controller, or every browser shares one limit.
 
-The gateway's settings are under `rum` in the
-[configuration file](/configuration/config-file/), such as
-`rum.max_body_size` and `rum.ratelimit.client.rate`. `rum.enabled: false` turns the
-gateway off. See [Install with Helm](/install/helm/) for the chart.
+The gateway's RUM settings, such as `fusescopeCollector.rum.maxBodySize` and
+`fusescopeCollector.rum.rateLimit`, are in the chart's values; the chart's README
+([Real User Monitoring](https://github.com/fuseone-io/fusescope-charts/tree/main/charts/fusescope#real-user-monitoring))
+explains each one.
 
 ## Related
 

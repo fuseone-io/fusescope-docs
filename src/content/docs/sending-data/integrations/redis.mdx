@@ -53,7 +53,9 @@ exporters:
   otlp/fusescope:
     endpoint: ${env:OTLP_DESTINATION_ENDPOINT}
     tls:
-      insecure: true
+      ca_file: /etc/fusescope-agent-ca/ca.crt
+    headers:
+      Authorization: "Bearer ${env:FUSESCOPE_AGENT_TOKEN}"
 
 service:
   pipelines:
@@ -67,7 +69,8 @@ service:
 |---|---|---|
 | `REDIS_ENDPOINT` | `localhost:6379` | Redis `host:port`, reachable from the collector. |
 | `REDIS_PASSWORD` | | The `requirepass` password. Leave empty when none is set. |
-| `OTLP_DESTINATION_ENDPOINT` | `fusescope-collector.example.com:4317` | FuseScope collector, OTLP gRPC. |
+| `OTLP_DESTINATION_ENDPOINT` | `fusescope-agent-otlp.fusescope.svc:4317` | The FuseScope agent on the node, OTLP gRPC over TLS. |
+| `FUSESCOPE_AGENT_TOKEN` | | The agents' OTLP token, from its Secret. |
 
 </TabItem>
 <TabItem label="Logs">
@@ -119,7 +122,9 @@ exporters:
   otlp/fusescope:
     endpoint: ${env:OTLP_DESTINATION_ENDPOINT}
     tls:
-      insecure: true
+      ca_file: /etc/fusescope-agent-ca/ca.crt
+    headers:
+      Authorization: "Bearer ${env:FUSESCOPE_AGENT_TOKEN}"
 
 service:
   pipelines:
@@ -132,7 +137,8 @@ service:
 | Variable | Example | Description |
 |---|---|---|
 | `REDIS_LOG_FILE` | `/var/log/redis/redis-server.log` | Redis log file. |
-| `OTLP_DESTINATION_ENDPOINT` | `fusescope-collector.example.com:4317` | FuseScope collector, OTLP gRPC. |
+| `OTLP_DESTINATION_ENDPOINT` | `fusescope-agent-otlp.fusescope.svc:4317` | The FuseScope agent on the node, OTLP gRPC over TLS. |
+| `FUSESCOPE_AGENT_TOKEN` | | The agents' OTLP token, from its Secret. |
 
 </TabItem>
 </Tabs>

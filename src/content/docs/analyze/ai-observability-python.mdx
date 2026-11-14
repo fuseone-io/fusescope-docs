@@ -148,27 +148,25 @@ The instrumentations use the standard OpenTelemetry exporter variables:
 OTEL_SERVICE_NAME=chat-api
 OTEL_RESOURCE_ATTRIBUTES=deployment.environment.name=production,service.version=1.4.2
 OTEL_TRACES_EXPORTER=otlp
-OTEL_EXPORTER_OTLP_ENDPOINT=http://fusescope-collector.example.com:4318
+OTEL_EXPORTER_OTLP_ENDPOINT=https://fusescope-agent-otlp.fusescope.svc:4318
 OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+OTEL_EXPORTER_OTLP_CERTIFICATE=/etc/fusescope-agent-ca/ca.crt
+OTEL_EXPORTER_OTLP_HEADERS=Authorization=Bearer%20<token>
 ```
 
-<Tabs>
-  <TabItem label="Direct to FuseScope">
-    From inside the Kubernetes cluster that runs FuseScope, use
-    `http://fusescope-otel-collector.fusescope.svc.cluster.local:4318`. From outside,
-    use the address you exposed, such as `https://otlp.example.com`; see
-    [From outside the cluster](/sending-data/otlp/#from-outside-the-cluster).
-    For gRPC, use port 4317 and `OTEL_EXPORTER_OTLP_PROTOCOL=grpc`.
-  </TabItem>
-  <TabItem label="Through a local collector">
-    Point the app at a collector on the same host or node, such as
-    `http://localhost:4318`, and let the collector forward to FuseScope. That is also
-    the place to drop or redact prompt content. See
-    [From another collector](/sending-data/otlp/#from-another-collector).
-  </TabItem>
-</Tabs>
+This sends to the FuseScope agent on the pod's node, inside the Kubernetes cluster that runs
+FuseScope, over TLS 1.3 with a bearer token (`%20` is the space after `Bearer`). For gRPC, use
+port 4317 and `OTEL_EXPORTER_OTLP_PROTOCOL=grpc`. [OTLP](/sending-data/otlp/) explains how to
+turn the agents' receiver on, the credentials to copy into your namespace, and how a collector you
+already run forwards to it; such a collector is also the place to drop or redact prompt content.
 
-Self-hosted FuseScope needs no ingestion key or token header.
+<Aside type="caution" title="Not from outside the cluster yet">
+  The FuseScope chart exposes no OTLP endpoint outside the cluster that runs FuseScope.
+  Applications elsewhere have no supported path to send to FuseScope yet.
+</Aside>
+
+Self-hosted FuseScope needs no cloud ingestion key, but the FuseScope agent requires its bearer
+token: requests without it are refused.
 
 <Aside>
   From the release after v0.153.0, the **Environment** variable of the AI Observability
@@ -222,8 +220,8 @@ A complete app with Option A. You need Python 3.10 or newer and an OpenAI API ke
    export OPENAI_API_KEY=sk-...
    export OTEL_SERVICE_NAME=chat-demo
    export OTEL_RESOURCE_ATTRIBUTES=deployment.environment.name=development
-   export OTEL_EXPORTER_OTLP_ENDPOINT=http://fusescope-collector.example.com:4318
-   export OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+   # The exporter variables of "Send to FuseScope" below: they work only in a pod
+   # of the Kubernetes cluster that runs FuseScope.
    export OTEL_METRICS_EXPORTER=none
    export OTEL_LOGS_EXPORTER=none
    ```

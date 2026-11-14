@@ -81,7 +81,9 @@ exporters:
   otlp/fusescope:
     endpoint: ${env:OTLP_DESTINATION_ENDPOINT}
     tls:
-      insecure: true
+      ca_file: /etc/fusescope-agent-ca/ca.crt
+    headers:
+      Authorization: "Bearer ${env:FUSESCOPE_AGENT_TOKEN}"
 
 service:
   pipelines:
@@ -96,7 +98,8 @@ service:
 | `POSTGRESQL_ENDPOINT` | `localhost:5432` | Server `host:port`, reachable from the collector. |
 | `POSTGRESQL_USERNAME` | `monitoring` | Monitoring user. |
 | `POSTGRESQL_PASSWORD` | | Its password. |
-| `OTLP_DESTINATION_ENDPOINT` | `fusescope-collector.example.com:4317` | FuseScope collector, OTLP gRPC. |
+| `OTLP_DESTINATION_ENDPOINT` | `fusescope-agent-otlp.fusescope.svc:4317` | The FuseScope agent on the node, OTLP gRPC over TLS. |
+| `FUSESCOPE_AGENT_TOKEN` | | The agents' OTLP token, from its Secret. |
 
 </TabItem>
 <TabItem label="Logs">
@@ -149,7 +152,9 @@ exporters:
   otlp/fusescope:
     endpoint: ${env:OTLP_DESTINATION_ENDPOINT}
     tls:
-      insecure: true
+      ca_file: /etc/fusescope-agent-ca/ca.crt
+    headers:
+      Authorization: "Bearer ${env:FUSESCOPE_AGENT_TOKEN}"
 
 service:
   pipelines:
@@ -162,7 +167,8 @@ service:
 | Variable | Example | Description |
 |---|---|---|
 | `POSTGRESQL_LOG_FILE` | `/var/log/postgresql/postgresql.log` | Server log file. |
-| `OTLP_DESTINATION_ENDPOINT` | `fusescope-collector.example.com:4317` | FuseScope collector, OTLP gRPC. |
+| `OTLP_DESTINATION_ENDPOINT` | `fusescope-agent-otlp.fusescope.svc:4317` | The FuseScope agent on the node, OTLP gRPC over TLS. |
+| `FUSESCOPE_AGENT_TOKEN` | | The agents' OTLP token, from its Secret. |
 
 </TabItem>
 </Tabs>
