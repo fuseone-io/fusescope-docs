@@ -37,8 +37,8 @@ fusescopeAgent:
 Each source has its own switch, all on by default: `fusescopeAgent.podLogs`,
 `fusescopeAgent.hostMetrics` and `fusescopeAgent.kubeletStats`. With `podLogs` or `hostMetrics`
 the agent runs as root, as nodes keep those files readable by root only; see
-the chart's README ([Agents](https://github.com/fuseone-io/fusescope-charts/tree/main/charts/fusescope#agents)) for its privileges and the Pod Security level it
-needs.
+[Security](/collector/security/#agents) for its privileges and the Pod Security level it needs.
+The [production setup](/collector/production-setup/) has the complete values.
 
 What the agents do not collect yet:
 

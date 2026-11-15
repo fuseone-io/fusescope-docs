@@ -33,9 +33,8 @@ themselves need `fusescopeAgent.enabled` and the gateway's agents' listener; see
 
 <Aside type="caution" title="Root on the node">
   Nodes keep pod log files readable by root only, so with `podLogs` the agent runs as uid 0,
-  locked down otherwise. The chart's README
-  ([Agents](https://github.com/fuseone-io/fusescope-charts/tree/main/charts/fusescope#agents))
-  explains its privileges and the Pod Security level its namespace needs.
+  locked down otherwise. [Security](/collector/security/#agents) explains its privileges and the
+  Pod Security level its namespace needs.
 </Aside>
 
 ## What they do not do

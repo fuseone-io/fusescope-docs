@@ -9,7 +9,7 @@ import { Aside } from "@astrojs/starlight/components";
 port and credentials to send to.
 
 FuseScope receives [OTLP](/reference/glossary/#otlp), the OpenTelemetry protocol, through the
-FuseScope Collector. Applications in the cluster send to the **agent on their own node**, which
+[FuseScope Collector](/collector/). Applications in the cluster send to the **agent on their own node**, which
 forwards to the gateway. That path requires TLS 1.3 and a token. The one exception is the
 temporary plaintext receiver for SigNoz migrations, which is off by default and has neither.
 No path is open by default.
@@ -47,9 +47,10 @@ kubectl -n fusescope create secret generic fusescope-agent-otlp-token \
   --from-literal=token=$(openssl rand -hex 32)
 ```
 
-The chart's README section [OTLP from pods to the agent](https://github.com/fuseone-io/fusescope-charts/tree/main/charts/fusescope#otlp-from-pods-to-the-agent)
-has every value, and explains what the token does and does not protect: the node-local route is
-not isolation, so TLS and the token are the security boundary.
+See [Production setup](/collector/production-setup/) for the complete values and
+[Security](/collector/security/#the-node-local-route-is-not-isolation) for what the token does and
+does not protect: the node-local route is not isolation, so TLS and the token are the security
+boundary.
 
 ## Copy the credentials into your namespaces
 
@@ -135,7 +136,7 @@ where an agent runs.
 ## From outside the cluster
 
 The chart exposes no OTLP endpoint outside the cluster. The only public path is RUM, for browsers
-and mobile apps ([Real User Monitoring](https://github.com/fuseone-io/fusescope-charts/tree/main/charts/fusescope#real-user-monitoring)). It refuses an Ingress, a `NodePort` or
+and mobile apps ([Public RUM edge](/collector/rum-edge/)). It refuses an Ingress, a `NodePort` or
 a `LoadBalancer` for the plaintext migration receiver.
 
 ## During a SigNoz migration
@@ -144,7 +145,7 @@ Emitters of a SigNoz installation that send plaintext OTLP to
 `fusescope-otel-collector:4317/4318` keep working only if you turn on
 `fusescopeCollector.otlp.insecure`. It is inside the cluster only, unauthenticated, and meant to
 be turned off once every emitter has moved to the path above.
-The chart's README ([OTLP collector](https://github.com/fuseone-io/fusescope-charts/tree/main/charts/fusescope#otlp-collector)) explains how to restrict it
+[Security](/collector/security/#plaintext-during-a-signoz-migration) explains how to restrict it
 and when to turn it off.
 
 <Aside type="caution">

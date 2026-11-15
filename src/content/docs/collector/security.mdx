@@ -1,0 +1,196 @@
+---
+title: Collector security
+description: How the FuseScope Collector protects telemetry in transit, where its credentials live and how to rotate them, what network policies do and do not guarantee, and the privileges of the gateway and the agents.
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+**Use this page when** you review an installation before production, or decide how to expose
+a path. Each rule below is enforced by the chart unless the page says otherwise: values that
+would break it fail at `helm install` with a message that names the rule.
+
+## Transport
+
+- **TLS 1.3 on every listener.** The agents' listener (4322), the agents' OTLP receiver
+  (4317/4318) and the RUM listener (4319) accept TLS 1.3 only. There is no plaintext fallback.
+- **TLS 1.2 for RUM only, where the client's TLS ends.** Stock Android 6 to 9 cannot do TLS 1.3.
+  Accept TLS 1.2, with ECDHE key exchange and AEAD suites only (AES-GCM and ChaCha20-Poly1305),
+  on the hop where the device's TLS connection terminates. Behind the chart's Ingress, that is
+  the ingress controller, and the gateway's RUM listener stays at TLS 1.3. Only when devices
+  reach the gateway's TLS directly, without a terminating proxy, set
+  `fusescopeCollector.rum.tlsMinVersion: "1.2"`. Modern clients still negotiate 1.3. Do not lower
+  any other listener ([Public RUM edge](/collector/rum-edge/#android-6-to-9)).
+- **mTLS between agents and the gateway.** Each agent presents a client certificate the
+  gateway's client CA must have signed, plus a token. Both are required.
+- **ClickHouse.** The gateway connects with ClickHouse's native protocol. It uses TLS when
+  `clickhouse.secure` (or `externalClickhouse.secure`) is true. For a ClickHouse outside the
+  cluster, set `secure: true` and `verify: true`: with `verify: false` the gateway encrypts but
+  does not check the server's certificate.
+- **OpAMP to the backend.** Without RUM, the gateway connects to FuseScope's in-cluster OpAMP
+  port (4320) in plaintext, because the backend serves no TLS there yet. It presents no token
+  there and receives only processor settings. With RUM on, it connects over TLS 1.3 with a token
+  to port 4321, where the ingest policy is served. The ingest token never travels on 4320.
+
+## Credentials
+
+- **Files, never values.** Every secret the collector uses is read from a Kubernetes Secret
+  mounted as a file: the agents' token, the SDK token, the ingest token, the ClickHouse password
+  and every private key. No secret goes in `values.yaml` or in an environment variable.
+- **Mounted as directories.** The chart mounts Secrets as directories, never with `subPath`,
+  so an updated Secret reaches the running pod.
+- **One token per purpose.** Keep these distinct:
+
+  | Token | Who presents it | Who checks it | Value |
+  |---|---|---|---|
+  | Agents' token | The agents | The gateway's agents' listener | `fusescopeCollector.agentListener.token` |
+  | SDK token | Pods' SDKs | The agents' OTLP receiver | `fusescopeAgent.otlp.token` |
+  | Ingest token | The gateway, with RUM | FuseScope's ingest policy listener | `signoz.ingestPolicy.tokens`, `fusescopeCollector.ingestToken` |
+
+  The chart refuses an SDK token that names the same Secret and key as the agents' token. It
+  compares only the reference, so it cannot detect the same token copied into another Secret.
+  Generate each one separately.
+- **Token format.** Use a header-safe alphabet, such as hex or base64url, and no trailing
+  newline. Create tokens with `--from-literal`, not from a file written by `echo` or
+  `openssl rand > file`, whose newline SDKs refuse to send in a header:
+
+  ```bash
+  kubectl -n fusescope create secret generic fusescope-agent-token \
+    --from-literal=token=$(openssl rand -hex 32)
+  ```
+
+### Certificates
+
+Each listener takes a `kubernetes.io/tls` Secret you provide (`existingSecret`), or a
+cert-manager Certificate the chart creates (`certManager.enabled`), never both.
+
+- **Prefer cert-manager with a CA issuer.** The Secret then carries the `ca.crt` the other
+  side verifies with. cert-manager renews before expiry (`renewBefore`, 360 h by default) with a
+  new key each time.
+- **Renewals need no restart.** The gateway and the agents reload renewed certificates from
+  their files. The agents' listener and the agents' OTLP receiver re-read theirs within an hour
+  (`reload_interval: 1h`), and the gateway re-reads the client CA bundle as soon as it changes.
+- **One client certificate per cluster.** The agents share one client certificate for the
+  release, not one per pod. Pods mount only the other side's CA bundle, never its private key.
+
+### Rotation
+
+| What | How | Impact |
+|---|---|---|
+| A certificate, from the same CA | cert-manager renews it; with `existingSecret`, update the Secret in place | None |
+| The agents' token | Update its Secret | The gateway and the agents read it again. Agents still holding the old token are refused until they have the new one, so expect a short gap. |
+| The SDK token | Update its Secret, then every copy in the application namespaces | Senders with the old token are refused until their copy is updated. |
+| The CA | Trust both CAs first, then move the certificates, then drop the old CA | None, if done in that order |
+
+To replace the CA:
+
+1. Put the old and the new CA in one bundle, in a Secret of its own. Point both sides at it:
+   `fusescopeCollector.agentListener.clientCA.existingSecret` and
+   `fusescopeAgent.gateway.ca.existingSecret`. Upgrade, and wait until every agent pod has rolled.
+2. Issue the listener's and the agents' certificates from the new CA.
+3. Remove the old CA from the bundle.
+
+## Network
+
+- **The gateway's agents' listener admits only the agents.**
+  `fusescopeCollector.agentListener.networkPolicy` (on by default) adds a NetworkPolicy so that
+  port 4322 accepts only this release's agent pods. For agents in another namespace, list them
+  in `networkPolicy.ingressFrom`.
+- **The agents' OTLP receiver can admit only listed peers.** Set
+  `fusescopeAgent.otlp.networkPolicy.ingressFrom`, for example to a `namespaceSelector` on the
+  application namespaces.
+- **NetworkPolicies add up.** A policy the chart renders admits only its listed peers, but any
+  other policy that selects the same pods can admit more sources. Review every policy in the
+  release's namespace, not only the chart's.
+- **A CNI that enforces NetworkPolicy is required.** Without one, policies are accepted and do
+  nothing.
+
+### The node-local route is not isolation
+
+Pods reach their node's agent through a Service with `internalTrafficPolicy: Local`. That
+**routes**; it does not isolate. Any pod can still try any agent's Pod IP directly, on any node,
+and a NetworkPolicy cannot express "same node". The security boundary is TLS 1.3 and the token:
+the agent serves no plaintext, and refuses a request without the token.
+
+The SDK token is shared by every pod that holds it. A holder can send telemetry with resource
+attributes of its choosing and use the agents' and the gateway's capacity. The agent adds the
+connecting pod's Kubernetes attributes, but attributes the SDK sets pass through. To limit the
+exposure:
+
+- Give the token only to the namespaces that need it.
+- Keep `ingressFrom` narrow.
+- Rotate the token.
+- Size the agents for a burst, not only the average ([Sizing](/collector/sizing/)).
+  `memory_limiter` refuses data under memory pressure, but it watches the Go heap only; in our
+  measurements it did not prevent an out-of-memory kill.
+
+## Privileges
+
+### Gateway
+
+The gateway runs as uid 65532, non-root, with a read-only root filesystem, no privilege
+escalation, every capability dropped, and no Kubernetes API token mounted. Its only writable
+path is its OpAMP state, on an `emptyDir`.
+
+### Agents
+
+- **Root only where nodes require it.** The agent runs as uid 0 only with `podLogs` or
+  `hostMetrics`, because nodes keep pod logs and parts of `/proc` readable by root only. With
+  kubelet stats or OTLP alone it runs as 65532, and the chart refuses uid 0 there.
+- **Locked down either way.** It is never privileged, cannot escalate privileges, drops every
+  capability, has a read-only root filesystem and the `RuntimeDefault` seccomp profile, and
+  shares no host namespace (no `hostNetwork`, `hostPID` or `hostIPC`). Host paths are mounted
+  read-only, except the log read offsets.
+- **Read-only access to the API.** Its ClusterRole only reads pods, namespaces, nodes and
+  replica sets, plus `nodes/stats` with kubelet stats.
+- **Pod Security levels.** With `podLogs` or `hostMetrics`, the agent needs root and host path
+  volumes, which the `baseline` and `restricted` levels forbid. Either label the release's
+  namespace `privileged`, or run the agents in a namespace of their own with that label, with a
+  gateway outside it (`fusescopeAgent.gateway`).
+- **Non-root where you can.** Uid 0 can read most of the node's files through the host root
+  mount. Where your nodes let a non-root user read pod logs, set
+  `fusescopeAgent.podSecurityContext.runAsUser`, `runAsGroup` and `runAsNonRoot: true`.
+
+## What FuseScope can change remotely
+
+The backend configures the gateway over OpAMP within an allow-list: log pipelines, span
+attribute mapping, LLM pricing and the ingest policy. A push that would change a receiver, an
+exporter, an extension or an endpoint is rejected. Listeners and destinations come from the
+chart's values alone.
+
+## Debug endpoints
+
+The collector's own metrics listen on `127.0.0.1:8888`, never on a pod or node address. No
+profiling (`pprof`) or `zpages` endpoint is enabled. To read an agent's metrics, use
+`kubectl port-forward`, which connects to the pod's loopback.
+
+## Plaintext during a SigNoz migration
+
+`fusescopeCollector.otlp.insecure: true` serves `otlp/insecure` on 4317 and 4318 **without TLS
+or a key**, so emitters of a SigNoz installation keep working while you move them. Any workload
+that reaches those ports can send, inject or forge telemetry. The chart limits it:
+
+- It refuses a `NodePort` or `LoadBalancer` Service and an Ingress for it: there is no external
+  route.
+- It requires the gateway's own metrics (`selfMetrics.enabled`), so the plaintext traffic is
+  counted.
+- With the agents' NetworkPolicy on, it requires `otlp.networkPolicy.ingressFrom`, the only
+  peers admitted on 4317 and 4318.
+
+Move each emitter to the agents' OTLP receiver, with TLS and a token. Turn the plaintext
+receiver off when `otelcol_receiver_accepted_*{receiver="otlp/insecure"}` shows no increase
+through a window that covers your emitters' longest reporting interval, and every emitter in
+your inventory is moved and verified. The counters are cumulative: the test is no increase, not
+a value of zero.
+
+## Images
+
+Pin the collector by digest, as the chart does by default, and verify its signature before you
+change the pin:
+
+```bash
+cosign verify ghcr.io/fuseone-io/fusescope-collector@sha256:<digest> \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  --certificate-identity https://github.com/fuseone-io/fusescope-collector-server/.github/workflows/release.yaml@refs/tags/v<version>
+```
+
+Each release's notes give its digest and this command filled in.
