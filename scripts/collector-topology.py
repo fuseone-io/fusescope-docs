@@ -194,7 +194,6 @@ for yy in (6.8, 8.4):
 flow([(5.0, 2.8), (7.6, 2.8), (7.6, 4.8), (8.6, 4.8)])
 flow([(5.0, 8.0), (7.6, 8.0), (7.6, 6.0), (8.6, 6.0)])
 flow([(11.0, 5.4), (12.7, 5.4)])
-flow([(9.8, 4.2), (9.8, 2.0)], color=VIOLET, dashed=True, z=0.4)
 flow([(10.4, 13.6), (10.4, 10.2)])
 flow([(11.3, 8.9), (11.3, 7.6), (10.4, 7.6), (10.4, 6.6)])
 
@@ -211,6 +210,15 @@ cylinder(13.6, 5.4, 0.85, 3, z0=0.3)
 shield(10.65, 8.9)
 device(9.6, 14.4, "laptop")
 device(11.6, 14.4, "phone")
+
+# OpAMP, drawn over the blocks as an arc through the air: the gateway dials the backend, and
+# configuration flows from the backend's screen down to the gateway
+oa, ob = iso(9.0, 0.3, 1.7), iso(10.3, 5.0, 3.45)
+oc = ((oa[0] + ob[0]) / 2, min(oa[1], ob[1]) - 70)
+od = f"M{oa[0]:.1f},{oa[1]:.1f} Q{oc[0]:.1f},{oc[1]:.1f} {ob[0]:.1f},{ob[1]:.1f}"
+add(f'<path d="{od}" fill="none" stroke="{VIOLET}" stroke-opacity="0.25" stroke-width="10" stroke-linecap="round"/>')
+add(f'<path d="{od}" fill="none" stroke="{VIOLET}" stroke-width="3.2" stroke-linecap="round" stroke-dasharray="8 7" marker-end="url(#arrowV)" filter="url(#glow)"/>')
+opamp_mid = (0.25 * oa[0] + 0.5 * oc[0] + 0.25 * ob[0], 0.25 * oa[1] + 0.5 * oc[1] + 0.25 * ob[1])
 
 # plate names, drawn last so no block covers them
 cl = iso(0, 11, 0)
@@ -231,13 +239,13 @@ callout(iso(9.6, 14.6, 0), (560, 1050), ["browsers and mobile apps", "RUM · /ru
 # flow labels, on empty parts of the plates
 callout(iso(3.0, 3.65, 0.62), (600, 205), ["OTLP · TLS 1.3 + token", "pods → the agent on their node"], size=13)
 q = iso(7.2, 9.4, 0.3); label(q[0], q[1] + 4, [":4322 · OTLP/gRPC", "mTLS + token"], size=13)
-callout(iso(9.8, 2.6, 0.4), (1300, 440), ["OpAMP", "processors + ingest policy"], color=VIOLET, size=13)
+callout(opamp_mid, (1300, 440), ["OpAMP", "processors + ingest policy"], color=VIOLET, size=13)
 
 # legend
 lx, ly = W - 468, 40
 add(f'<rect x="{lx}" y="{ly}" width="420" height="62" rx="9" fill="#0a1430" fill-opacity="0.9" stroke="#24467f"/>')
 add(f'<line x1="{lx+20}" y1="{ly+22}" x2="{lx+62}" y2="{ly+22}" stroke="{CYAN}" stroke-width="3.2" filter="url(#glow)"/>')
-add(f'<text x="{lx+74}" y="{ly+27}" fill="{TEXT}" font-size="14">telemetry, TLS and authentication on every hop</text>')
+add(f'<text x="{lx+74}" y="{ly+27}" fill="{TEXT}" font-size="14">telemetry; TLS to ClickHouse is optional</text>')
 add(f'<line x1="{lx+20}" y1="{ly+44}" x2="{lx+62}" y2="{ly+44}" stroke="{VIOLET}" stroke-width="3.2" stroke-dasharray="8 7"/>')
 add(f'<text x="{lx+74}" y="{ly+49}" fill="{TEXT}" font-size="14">configuration from FuseScope (allow-listed)</text>')
 add('</svg>')

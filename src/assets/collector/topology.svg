@@ -1204,8 +1204,6 @@
 <path d="M961.9,693.9 L1041.4,739.8" fill="none" stroke="#22d3ee" stroke-opacity="0.25" stroke-width="10.2" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M961.9,693.9 L1041.4,739.8" fill="none" stroke="#22d3ee" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowC)" filter="url(#glow)"/>
 <path d="M961.9,693.9 L1041.4,739.8" fill="none" stroke="#ecfeff" stroke-width="1.1" stroke-linecap="round" class="pulse"/>
-<path d="M961.9,626.4 L1064.8,567.0" fill="none" stroke="#a78bfa" stroke-opacity="0.25" stroke-width="10.2" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M961.9,626.4 L1064.8,567.0" fill="none" stroke="#a78bfa" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="8 7" marker-end="url(#arrowV)" filter="url(#glow)"/>
 <path d="M550.4,899.1 L709.4,807.3" fill="none" stroke="#22d3ee" stroke-opacity="0.25" stroke-width="10.2" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M550.4,899.1 L709.4,807.3" fill="none" stroke="#22d3ee" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowC)" filter="url(#glow)"/>
 <path d="M550.4,899.1 L709.4,807.3" fill="none" stroke="#ecfeff" stroke-width="1.1" stroke-linecap="round" class="pulse"/>
@@ -1283,6 +1281,8 @@
 <rect x="449.5" y="884.0" width="52" height="32" rx="3" fill="#0b1433" stroke="#22d3ee" stroke-width="1.6" filter="url(#glow)"/>
 <rect x="441.5" y="916.0" width="68" height="5" rx="2" fill="#0e7490"/>
 <rect x="558.1" y="934.0" width="22" height="38" rx="4" fill="#0b1433" stroke="#22d3ee" stroke-width="1.6" filter="url(#glow)"/>
+<path d="M1106.9,429.3 Q1027.4,359.3 947.9,496.8" fill="none" stroke="#a78bfa" stroke-opacity="0.25" stroke-width="10" stroke-linecap="round"/>
+<path d="M1106.9,429.3 Q1027.4,359.3 947.9,496.8" fill="none" stroke="#a78bfa" stroke-width="3.2" stroke-linecap="round" stroke-dasharray="8 7" marker-end="url(#arrowV)" filter="url(#glow)"/>
 <text x="195.6" y="619.0" class="plate">Kubernetes cluster</text>
 <text x="519.6" y="425.0" class="plate" text-anchor="end">node A</text>
 <text x="276.5" y="565.4" class="plate" text-anchor="end">node B</text>
@@ -1329,14 +1329,14 @@
 <rect x="524.2" y="687.0" width="145.8" height="48.0" rx="7" fill="#0a1430" fill-opacity="0.86" stroke="#24467f"/>
 <text x="597.1" y="706.0" text-anchor="middle" fill="#e2e8f0" font-weight="700" font-size="13">:4322 · OTLP/gRPC</text>
 <text x="597.1" y="724.0" text-anchor="middle" fill="#94a3b8" font-weight="500" font-size="11">mTLS + token</text>
-<line x1="1036.7" y1="583.2" x2="1300.0" y2="434.0" stroke="#3b5b94" stroke-width="1.2"/>
-<circle cx="1036.7" cy="583.2" r="3.5" fill="#7dd3fc"/>
+<line x1="1027.4" y1="411.2" x2="1300.0" y2="434.0" stroke="#3b5b94" stroke-width="1.2"/>
+<circle cx="1027.4" cy="411.2" r="3.5" fill="#7dd3fc"/>
 <rect x="1194.4" y="421.0" width="211.3" height="48.0" rx="7" fill="#0a1430" fill-opacity="0.86" stroke="#24467f"/>
 <text x="1300.0" y="440.0" text-anchor="middle" fill="#a78bfa" font-weight="700" font-size="13">OpAMP</text>
 <text x="1300.0" y="458.0" text-anchor="middle" fill="#94a3b8" font-weight="500" font-size="11">processors + ingest policy</text>
 <rect x="1132" y="40" width="420" height="62" rx="9" fill="#0a1430" fill-opacity="0.9" stroke="#24467f"/>
 <line x1="1152" y1="62" x2="1194" y2="62" stroke="#22d3ee" stroke-width="3.2" filter="url(#glow)"/>
-<text x="1206" y="67" fill="#e2e8f0" font-size="14">telemetry, TLS and authentication on every hop</text>
+<text x="1206" y="67" fill="#e2e8f0" font-size="14">telemetry; TLS to ClickHouse is optional</text>
 <line x1="1152" y1="84" x2="1194" y2="84" stroke="#a78bfa" stroke-width="3.2" stroke-dasharray="8 7"/>
 <text x="1206" y="89" fill="#e2e8f0" font-size="14">configuration from FuseScope (allow-listed)</text>
 </svg>
