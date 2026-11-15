@@ -29,35 +29,7 @@ remotely. The agent writes nothing and takes no remote configuration.
 
 ## Topology
 
-```text
-                     ┌──────────────────────────── Kubernetes cluster ─────────────────────────────┐
-                     │                                                                             │
-                     │   node A                         node B                                     │
-                     │   ┌────────────┐ ┌──────────┐    ┌────────────┐ ┌──────────┐               │
-                     │   │ app pod    │ │ app pod  │    │ app pod    │ │ app pod  │               │
-                     │   └─────┬──────┘ └────┬─────┘    └─────┬──────┘ └────┬─────┘               │
-                     │         │ OTLP, TLS 1.3 + token        │             │                     │
-                     │         ▼   (node-local Service)       ▼             ▼                     │
-                     │   ┌──────────────────────┐        ┌──────────────────────┐                 │
-                     │   │ agent (DaemonSet)    │        │ agent (DaemonSet)    │                 │
-                     │   │ + pod logs, kubelet, │        │ + pod logs, kubelet, │                 │
-                     │   │   host metrics       │        │   host metrics       │                 │
-                     │   └──────────┬───────────┘        └──────────┬───────────┘                 │
-                     │              │  OTLP/gRPC :4322, mTLS + token │                             │
-                     │              └───────────────┬────────────────┘                            │
-                     │                              ▼                                             │
- browsers, apps ──── │ ── ingress (TLS) ───►  ┌──────────────┐  native protocol  ┌────────────┐    │
- /rum/v1/* only      │   re-encrypts :4319    │   gateway    │ ────────────────► │ ClickHouse │    │
-                     │                        │ (Deployment) │                   └────────────┘    │
-                     │                        └──────┬───────┘                                    │
-                     │                               │ OpAMP: processors and the ingest policy    │
-                     │                               ▼                                            │
-                     │                        ┌──────────────┐                                    │
-                     │                        │  FuseScope   │                                    │
-                     │                        │  backend     │                                    │
-                     │                        └──────────────┘                                    │
-                     └─────────────────────────────────────────────────────────────────────────────┘
-```
+![Isometric diagram of a Kubernetes cluster. On node A and node B, application pods send OTLP over TLS 1.3 with a token to the FuseScope agent on their node. Both agents send to the gateway over OTLP/gRPC on port 4322 with mTLS and a token. The gateway writes to ClickHouse over the native protocol and receives processors and the ingest policy from the FuseScope backend over OpAMP. Outside the cluster, browsers and mobile apps send RUM to /rum/v1/* through an ingress, which re-encrypts to the gateway on port 4319.](../../../assets/collector/topology.svg)
 
 ## Paths into the collector
 
