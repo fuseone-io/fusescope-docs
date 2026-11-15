@@ -144,6 +144,17 @@ Secrets below exist and cert-manager serves the `internal-ca` issuer.
       connections fail and the SDK retries.
 - [ ] **CA and SDK token copied into every application namespace**, and into new namespaces as
       they appear. A pod cannot mount a Secret from another namespace.
+- [ ] **Every application namespace labelled for the agents' NetworkPolicy.** The values above
+      admit OTLP only from namespaces labelled `fusescope.io/otlp=true`
+      (`fusescopeAgent.otlp.networkPolicy.ingressFrom`); pods in any other namespace are refused
+      on 4317 and 4318:
+
+  ```bash
+  kubectl label namespace <app-namespace> fusescope.io/otlp=true
+  ```
+
+  Label new namespaces as they appear, or change `ingressFrom` to match the labels your
+  namespaces already carry.
 - [ ] **SDKs configured explicitly**, with the protocol, the endpoint, the CA and the token
       header:
 

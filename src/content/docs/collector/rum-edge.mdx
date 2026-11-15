@@ -77,7 +77,9 @@ What the chart renders:
    agents' listener, but leaves the RUM port open to any source in the cluster. NetworkPolicies
    add up, so another policy cannot narrow that. To admit only the ingress controller on 4319,
    set `agentListener.networkPolicy.enabled: false` and apply one complete policy of your own
-   for the gateway pods:
+   for the gateway pods. This example assumes the release `fusescope` and an ingress-nginx
+   controller in the namespace `ingress-nginx-public`; check your controller pods' labels with
+   `kubectl get pods -n ingress-nginx-public --show-labels` and use theirs:
 
    ```yaml
    apiVersion: networking.k8s.io/v1
@@ -88,20 +90,27 @@ What the chart renders:
    spec:
      podSelector:
        matchLabels:
+         app.kubernetes.io/name: fusescope
          app.kubernetes.io/instance: fusescope
          app.kubernetes.io/component: fusescope-collector
      policyTypes: [Ingress]
      ingress:
-       - from:      # the agents, on their listener
+       - from:      # this release's agents, in this namespace, on their listener
            - podSelector:
                matchLabels:
+                 app.kubernetes.io/name: fusescope
+                 app.kubernetes.io/instance: fusescope
                  app.kubernetes.io/component: fusescope-agent
          ports:
            - {port: otlp-agents, protocol: TCP}
-       - from:      # the public ingress controller, on RUM
+       - from:      # only the controller pods, in the controller's namespace, on RUM
            - namespaceSelector:
                matchLabels:
                  kubernetes.io/metadata.name: ingress-nginx-public
+             podSelector:     # same list item as namespaceSelector: both must match
+               matchLabels:
+                 app.kubernetes.io/name: ingress-nginx
+                 app.kubernetes.io/component: controller
          ports:
            - {port: rum, protocol: TCP}
        - ports:     # the kubelet's probes
