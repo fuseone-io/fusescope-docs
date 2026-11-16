@@ -24,7 +24,12 @@ The gateway holds each signal's data for **up to 10 seconds** before one `INSERT
 the service map joins a parent and a child span only within one insert. Its memory grows with
 throughput, the size of each record, and how far the Go runtime lets the heap grow before it
 collects. That last part depends on the limit itself, so the same load uses more memory under a
-larger limit. For that reason this page gives **the limits at which a replica held or refused
+larger limit.
+
+From chart 0.171.0 the chart sets `GOMEMLIMIT` to 80% of the container limit, and the gateway's
+`memory_limiter` runs with `limit_percentage: 80`, `spike_limit_percentage: 20` and
+`check_interval: 1s`. Under memory pressure it returns retryable refusals instead of letting the
+pod be killed. For that reason this page gives **the limits at which a replica held or refused
 data**, not a memory-per-record formula.
 
 CPU is rarely the constraint. Memory is.
@@ -43,11 +48,11 @@ resident memory of the gateway process during that window.
 | 5,000 spans/s | 0.05 | 539 MiB | held |
 | 10,000 spans/s | 0.10 | 485 MiB | held |
 | 15,000 spans/s | 0.14 | 710 MiB | held |
-| 20,000 spans/s | 0.20 | 813 MiB | **refused 170 spans/s** (memory limiter); accepted 18,859/s |
-| 25,000 spans/s | 0.24 | 832 MiB | **refused**; accepted 12,469/s |
-| 30,000 spans/s | 0.25 | 827 MiB | **refused**; accepted 13,629/s |
+| 20,000 spans/s | 0.20 | 813 MiB | **refused** 170/s at the gateway; accepted 18,859/s |
+| 25,000 spans/s | 0.24 | 832 MiB | **refused** 443/s at the gateway, 45/s at the agent; accepted 12,469/s |
+| 30,000 spans/s | 0.25 | 827 MiB | **refused** 335/s at the gateway, 62/s at the agent; accepted 13,629/s |
 | 5,000 log records/s | 0.06 | 386 MiB | held |
-| 10,000 log records/s | 0.12 | 416 MiB | held |
+| 10,000 log records/s | 0.13 | 416 MiB | held |
 | 20,000 log records/s | 0.26 | 435 MiB | held |
 | 30,000 log records/s | 0.39 | 571 MiB | held |
 | 10,000 metric points/s | 0.09 | 189 MiB | held |
@@ -64,7 +69,7 @@ the rest.
 |---|---:|---:|---|
 | 20,000 spans/s | 0.20 | 602 MiB | held |
 | 30,000 spans/s | 0.31 | 1,202 MiB | held |
-| 40,000 spans/s | 0.31 | 1,642 MiB | **refused 244 spans/s**; accepted 29,059/s |
+| 40,000 spans/s | 0.31 | 1,642 MiB | **refused** 244/s at the gateway, 28/s at the agent; accepted 29,059/s |
 | 20,000 log records/s | 0.28 | 428 MiB | held |
 | 30,000 log records/s | 0.41 | 473 MiB | held |
 | 40,000 log records/s | 0.54 | 460 MiB | held |
@@ -77,16 +82,16 @@ the rest.
 | 60,000 spans/s | 0.54 | 1,398 MiB | held |
 | 80,000 spans/s | 0.80 | 1,667 MiB | held |
 | 40,000 log records/s | 0.55 | 937 MiB | held |
-| 60,000 log records/s | 0.94 | 2,970 MiB | **refused 96 records/s** (0.2%) |
-| 80,000 log records/s | 1.43 | 1,562 MiB | held (78,216/s offered by the generator) |
-| 100,000 metric points/s | 1.22 | 1,761 MiB | held (98,194/s offered by the generator) |
+| 60,000 log records/s | 0.94 | 2,970 MiB | **refused** 96/s at the gateway, 119/s at the agent (0.2%); accepted 59,557/s |
+| 80,000 log records/s | 1.43 | 1,562 MiB | held; accepted 78,216/s |
+| 100,000 metric points/s | 1.22 | 1,761 MiB | held; accepted 98,194/s |
 
 The logs results at 4Gi are not monotonic: one 60,000 records/s step refused 0.2% while the
 80,000 step did not. Treat 40,000 log records/s as the measured bound without refusals at 4Gi.
 
 "Held" means no refusals at the agent or the gateway, and the gateway's confirmed ClickHouse
-inserts kept pace with what it accepted. Where the generator fell slightly short of the offered
-rate, the row says what it sent.
+inserts kept pace with what it accepted. Where the generator delivered slightly less than the
+offered rate, with no refusals, the row gives the accepted rate.
 
 ## Agents
 
@@ -124,7 +129,7 @@ is not refusing; then raise its limit to 1Gi.
   a measurement.
 - **Stay inside the tested range.** The last row is the most we measured on one replica. Past
   it, add replicas instead of memory.
-- **CPU** was about 0.009 to 0.010 cores per 1,000 spans/s, 0.012 to 0.018 per 1,000 log
+- **CPU** was about 0.009 to 0.011 cores per 1,000 spans/s, 0.012 to 0.018 per 1,000 log
   records/s and 0.009 to 0.012 per 1,000 metric points/s, including TLS from the agents and the
   ClickHouse inserts. At 1Gi, 75,000 metric points/s took 0.83 cores, so that row's CPU request
   is 500m.
@@ -176,8 +181,8 @@ From the gateway's own metrics, in FuseScope:
 - **Refusals:** `otelcol_receiver_refused_*`, which should stay flat.
 
 To extrapolate from your own peak RSS, keep the peak **under about two thirds of the limit**
-(a limit of about 1.5 × the peak): every step that held peaked at 69% of its limit or less, and
-every step that refused data peaked at 73% or more. With chart 0.171.0 a peak near the limit
+(a limit of about 1.5 × the peak): every step that held peaked at 69.3% of its limit or less, and
+every step that refused data peaked at 72.5% or more. With chart 0.171.0 a peak near the limit
 shows as refusals rather than restarts, so watch the refusal metrics as well as memory. This is
 an empirical margin, not a guarantee.
 
