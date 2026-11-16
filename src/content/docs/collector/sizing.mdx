@@ -9,12 +9,13 @@ import { Aside } from "@astrojs/starlight/components";
 replicas to run. Every number below was measured; the method is at the
 [end of the page](#how-it-was-measured), so you can repeat it with your own telemetry.
 
-<Aside type="danger" title="The default gateway memory limit is for light traffic">
-  The chart's default gateway limit is 1Gi. In our measurements one replica held 15,000 spans/s
-  and was **killed for running out of memory (OOMKilled) at 20,000 spans/s**. `memory_limiter`
-  did not prevent it: it watches the Go heap, not the container's memory, and checks once a
-  second. Until the chart sets a Go memory limit (`GOMEMLIMIT`), choose the limit from the
-  tables below, or run more replicas.
+<Aside type="caution" title="Use chart 0.171.0 or later">
+  From chart 0.171.0 the gateway and the agents run with a Go memory limit (`GOMEMLIMIT`) at
+  80% of their container limit, so the Go runtime collects before the limit and `memory_limiter`
+  refuses data in time. Above a replica's capacity, the gateway now **refuses the excess, and
+  senders retry it**, instead of being killed for running out of memory. With chart 0.170.1 and
+  earlier, a 1Gi gateway was OOMKilled at 20,000 spans/s. Refusals still mean the replica is too
+  small: choose the limit from the tables below, or run more replicas.
 </Aside>
 
 ## What uses memory
@@ -23,8 +24,8 @@ The gateway holds each signal's data for **up to 10 seconds** before one `INSERT
 the service map joins a parent and a child span only within one insert. Its memory grows with
 throughput, the size of each record, and how far the Go runtime lets the heap grow before it
 collects. That last part depends on the limit itself, so the same load uses more memory under a
-larger limit. For that reason this page gives **the limits at which a replica held or failed**,
-not a memory-per-record formula.
+larger limit. For that reason this page gives **the limits at which a replica held or refused
+data**, not a memory-per-record formula.
 
 CPU is rarely the constraint. Memory is.
 
@@ -38,60 +39,75 @@ resident memory of the gateway process during that window.
 
 | Load | Gateway CPU (cores) | Peak RSS | Result |
 |---|---:|---:|---|
-| 2,000 spans/s | 0.03 | 546 MiB | held |
-| 5,000 spans/s | 0.07 | 546 MiB | held |
-| 10,000 spans/s | 0.13 | 609 MiB | held |
-| 15,000 spans/s | 0.18 | 638 MiB | held |
-| 20,000 spans/s | | | **OOMKilled**, twice in a row |
-| 5,000 log records/s | 0.08 | 493 MiB | held |
-| 10,000 log records/s | 0.17 | 467 MiB | held |
-| 20,000 log records/s | 0.35 | 840 MiB | **refused 454 records/s** (memory limiter) |
-| 10,000 metric points/s | 0.12 | 290 MiB | held |
-| 25,000 metric points/s | 0.31 | 278 MiB | held |
-| 50,000 metric points/s | 0.66 | 547 MiB | held |
+| 2,000 spans/s | 0.02 | 499 MiB | held |
+| 5,000 spans/s | 0.05 | 539 MiB | held |
+| 10,000 spans/s | 0.10 | 485 MiB | held |
+| 15,000 spans/s | 0.14 | 710 MiB | held |
+| 20,000 spans/s | 0.20 | 813 MiB | **refused 170 spans/s** (memory limiter); accepted 18,859/s |
+| 25,000 spans/s | 0.24 | 832 MiB | **refused**; accepted 12,469/s |
+| 30,000 spans/s | 0.25 | 827 MiB | **refused**; accepted 13,629/s |
+| 5,000 log records/s | 0.06 | 386 MiB | held |
+| 10,000 log records/s | 0.12 | 416 MiB | held |
+| 20,000 log records/s | 0.26 | 435 MiB | held |
+| 30,000 log records/s | 0.39 | 571 MiB | held |
+| 10,000 metric points/s | 0.09 | 189 MiB | held |
+| 25,000 metric points/s | 0.23 | 195 MiB | held |
+| 50,000 metric points/s | 0.50 | 219 MiB | held |
+| 75,000 metric points/s | 0.83 | 247 MiB | held |
+
+No step restarted the gateway. Above its capacity it kept writing what it accepted and refused
+the rest.
 
 ### 2Gi
 
 | Load | Gateway CPU (cores) | Peak RSS | Result |
 |---|---:|---:|---|
-| 15,000 spans/s | 0.20 | 694 MiB | held |
-| 20,000 spans/s | 0.24 | 952 MiB | held |
-| 30,000 spans/s | 0.35 | 1,268 MiB | held |
-| 20,000 log records/s | 0.36 | 539 MiB | held |
-| 30,000 log records/s | 0.60 | 771 MiB | held |
+| 20,000 spans/s | 0.20 | 602 MiB | held |
+| 30,000 spans/s | 0.31 | 1,202 MiB | held |
+| 40,000 spans/s | 0.31 | 1,642 MiB | **refused 244 spans/s**; accepted 29,059/s |
+| 20,000 log records/s | 0.28 | 428 MiB | held |
+| 30,000 log records/s | 0.41 | 473 MiB | held |
+| 40,000 log records/s | 0.54 | 460 MiB | held |
 
 ### 4Gi
 
 | Load | Gateway CPU (cores) | Peak RSS | Result |
 |---|---:|---:|---|
-| 30,000 spans/s | 0.23 | 911 MiB | held |
-| 40,000 spans/s | 0.32 | 1,144 MiB | held |
-| 60,000 spans/s | 0.47 | 1,584 MiB | held |
-| 40,000 log records/s | 0.48 | 655 MiB | held |
-| 60,000 log records/s | 1.03 | 1,580 MiB | held |
-| 100,000 metric points/s | 0.95 | 612 MiB | held |
+| 40,000 spans/s | 0.36 | 1,297 MiB | held |
+| 60,000 spans/s | 0.54 | 1,398 MiB | held |
+| 80,000 spans/s | 0.80 | 1,667 MiB | held |
+| 40,000 log records/s | 0.55 | 937 MiB | held |
+| 60,000 log records/s | 0.94 | 2,970 MiB | **refused 96 records/s** (0.2%) |
+| 80,000 log records/s | 1.43 | 1,562 MiB | held (78,216/s offered by the generator) |
+| 100,000 metric points/s | 1.22 | 1,761 MiB | held (98,194/s offered by the generator) |
+
+The logs results at 4Gi are not monotonic: one 60,000 records/s step refused 0.2% while the
+80,000 step did not. Treat 40,000 log records/s as the measured bound without refusals at 4Gi.
 
 "Held" means no refusals at the agent or the gateway, and the gateway's confirmed ClickHouse
-inserts kept pace with what it accepted.
+inserts kept pace with what it accepted. Where the generator fell slightly short of the offered
+rate, the row says what it sent.
 
 ## Agents
 
 The agent runs on every node; its load is what that node's pods send it, plus the node's own pod
 logs and metrics when those are on. With its **default resources** (100m CPU and 128Mi
-requested, 512Mi limit), one agent held every load above, up to 60,000 spans/s, 60,000 log
-records/s or 100,000 metric points/s on its node, and was never restarted. Its peak RSS was 127
-to 434 MiB.
+requested, 512Mi limit), one agent carried every load above, up to 80,000 spans/s, 80,000 log
+records/s or 100,000 metric points/s on its node, and was never restarted. Its peak RSS was 104
+to 422 MiB; it refused data only in steps where the gateway refused too, and passed the
+backpressure on to the senders.
 
 | Load on one node | Agent CPU (cores) |
 |---|---:|
-| 10,000 spans/s | 0.06 |
-| 60,000 spans/s | 0.27 |
-| 10,000 log records/s | 0.10 |
-| 60,000 log records/s | 0.70 |
-| 100,000 metric points/s | 0.70 |
+| 10,000 spans/s | 0.05 |
+| 80,000 spans/s | 0.47 |
+| 10,000 log records/s | 0.07 |
+| 80,000 log records/s | 0.88 |
+| 100,000 metric points/s | 0.90 |
 
-Keep the default unless a node's agent runs above about 400 MiB in your own metrics; then raise
-its limit to 1Gi.
+Its peaks near 400 MiB came while the gateway refused data and the agent's queue filled. Keep
+the default unless a node's agent runs above about 400 MiB in your own metrics while the gateway
+is not refusing; then raise its limit to 1Gi.
 
 ## Recommended settings
 
@@ -99,19 +115,19 @@ its limit to 1Gi.
 
 | Throughput per replica, up to | Memory limit | Memory request | CPU request |
 |---|---:|---:|---:|
-| 15,000 spans/s, or 10,000 log records/s, or 50,000 metric points/s | 1Gi (the default) | 512Mi | 250m |
-| 30,000 spans/s, or 30,000 log records/s | 2Gi | 1Gi | 500m |
-| 60,000 spans/s, or 60,000 log records/s, or 100,000 metric points/s | 4Gi | 2Gi | 1 |
+| 15,000 spans/s, or 30,000 log records/s, or 75,000 metric points/s | 1Gi (the default) | 512Mi | 500m |
+| 30,000 spans/s, or 40,000 log records/s | 2Gi | 1Gi | 500m |
+| 80,000 spans/s, or 40,000 log records/s, or 100,000 metric points/s | 4Gi | 2Gi | 1 |
 
 - **Mixed traffic adds up.** Add each signal's share of its row: at 1Gi, 7,500 spans/s and
-  5,000 log records/s are each half of the row, together the whole row. This is a heuristic, not
+  15,000 log records/s are each half of the row, together the whole row. This is a heuristic, not
   a measurement.
 - **Stay inside the tested range.** The last row is the most we measured on one replica. Past
   it, add replicas instead of memory.
-- **CPU** was about 0.008 to 0.013 cores per 1,000 spans/s, 0.012 to 0.020 per 1,000 log
-  records/s and 0.010 to 0.013 per 1,000 metric points/s, including TLS from the agents and the
-  ClickHouse inserts. A tighter memory limit costs more CPU, because the Go runtime collects
-  more often.
+- **CPU** was about 0.009 to 0.010 cores per 1,000 spans/s, 0.012 to 0.018 per 1,000 log
+  records/s and 0.009 to 0.012 per 1,000 metric points/s, including TLS from the agents and the
+  ClickHouse inserts. At 1Gi, 75,000 metric points/s took 0.83 cores, so that row's CPU request
+  is 500m.
 
 ```yaml
 fusescopeCollector:
@@ -159,11 +175,11 @@ From the gateway's own metrics, in FuseScope:
 - **CPU:** the rate of `otelcol_process_cpu_seconds`.
 - **Refusals:** `otelcol_receiver_refused_*`, which should stay flat.
 
-To extrapolate from your own peak RSS, keep the limit at about **1.6 × the peak**: the tightest
-limits that held above sat at 1.6 to 1.7 times their peak RSS, and the one that refused data sat
-at 1.2. This
-is an empirical margin, not a guarantee: `memory_limiter` reacts to the Go heap once a second,
-and the OOM above happened with it on.
+To extrapolate from your own peak RSS, keep the peak **under about two thirds of the limit**
+(a limit of about 1.5 × the peak): every step that held peaked at 69% of its limit or less, and
+every step that refused data peaked at 73% or more. With chart 0.171.0 a peak near the limit
+shows as refusals rather than restarts, so watch the refusal metrics as well as memory. This is
+an empirical margin, not a guarantee.
 
 ## How it was measured
 
@@ -171,8 +187,10 @@ and the OOM above happened with it on.
   gateway's agents' listener (mTLS) → ClickHouse, as in production. For logs and metrics a relay
   in the generator pod sent batches of 512 records to the agent, as SDKs do; `telemetrygen`
   alone sends one record per request.
-- **Versions:** chart 0.170.1, which pins collector 0.6.4, with no override. One gateway
-  replica, one agent with its default resources.
+- **Versions:** chart 0.171.0, which pins collector 0.6.4, with no override; the chart sets
+  `GOMEMLIMIT` to 80% of each container's limit. One gateway replica, one agent with its default
+  resources. The earlier measurements on chart 0.170.1, including the OOM at 20,000 spans/s, are
+  in the repository's history.
 - **Independent steps:** before each step the gateway and the agent were restarted, and the step
   began once both were ready and the agent's queues were empty. Each step waited for the
   generator to run, warmed up 40 s, then measured 90 s, sampling every 5 s.
@@ -181,8 +199,7 @@ and the OOM above happened with it on.
 - **Records:** traces with 4 child spans per root and 8 attributes; logs with a body of about
   200 bytes and 8 attributes; metrics as gauge points with 8 attributes, over few series.
 
-The scripts, every step's raw results, the restarts and the evidence of the OOM are in the
-collector's repository, under
+The scripts, every step's raw results and the restarts are in the collector's repository, under
 [`test/sizing`](https://github.com/fuseone-io/fusescope-collector-server/tree/main/test/sizing).
 
 Your numbers will differ with record size, attribute count, CPU model and ClickHouse speed.
