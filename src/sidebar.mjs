@@ -141,6 +141,7 @@ export const sidebar = [
     label: "Respond",
     items: [
       { label: "Alert rules", slug: "alerts/alert-rules" },
+      { label: "Anomaly alerts", slug: "alerts/anomaly-alerts" },
       { label: "Notification channels", slug: "alerts/notification-channels" },
       { label: "Routing and planned downtime", slug: "alerts/routing-and-downtime" },
       { label: "Exceptions", slug: "apm/exceptions" },

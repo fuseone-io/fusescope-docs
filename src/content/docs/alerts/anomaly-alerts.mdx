@@ -1,0 +1,131 @@
+---
+title: Anomaly alerts
+description: Alert when a metric leaves its usual pattern instead of crossing a fixed line. How FuseScope predicts each point from earlier seasons, what the score means, the retention it needs, its limits and its errors.
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+An anomaly alert compares each point of a metric with what the same moment looked
+like in earlier seasons, and fires when it strays too far. Use it when "normal"
+changes with the time of day or week, so no fixed threshold fits, for example
+request rates that peak every afternoon.
+
+Anomaly alerts work on **metrics only**: a builder query on the Metrics data source.
+Logs, traces, exceptions, PromQL and ClickHouse queries are not supported.
+
+## Create one
+
+1. Click **New Alert** and choose **Anomaly based Alert**.
+2. Write the metric query. FuseScope adds the `anomaly` function to it.
+3. Set the condition: *Send notification when the observed value for* **A** *is*
+   **3** *deviations* **above** *the predicted data* **at least once** *using the*
+   **Standard** *algorithm with* **Hourly** *seasonality*.
+
+The rest (window, frequency, channels, message) is as in
+[Alert rules](/alerts/alert-rules/). The preview chart draws the predicted value and
+the band around it.
+
+| Setting | Values |
+|---|---|
+| Deviations (`target`) | 1 to 7. Default 3. |
+| Operator | **above** (`above`), **below** (`below`), **above/below** (`outside_bounds`) |
+| Match type | **at least once**, **all the times** |
+| Algorithm | **Standard** (`standard`) |
+| Seasonality | **Hourly**, **Daily** or **Weekly**. Default hourly. |
+
+## How the score works
+
+For each point in the evaluation window, FuseScope:
+
+1. Runs the same query over the **4 previous seasons**: the 4 previous hours, days
+   or weeks.
+2. Predicts the point as the **median** of those seasons at the same offset. A point
+   needs at least **2** seasons with data, otherwise it gets no prediction.
+3. Measures how spread the seasons are with the **median absolute deviation** (MAD)
+   of every season's distance from the prediction, scaled by 1.4826 so it reads like
+   a standard deviation. A median and MAD ignore a single odd season, such as last
+   week's incident.
+4. Scores the point as a **z-score**: `(value − predicted) / scale`.
+
+The rule compares the score with the target: **above** matches a score over
+`+target`, **below** one under `−target`, **above/below** one at or beyond either. The band on the
+chart is `predicted ± target × scale`. In notifications, `{{$value}}` is the score,
+not the metric value.
+
+Points with no score never fire: partial points, points with no prediction, and
+series with fewer than 10 baseline values. A brand-new series is not scored until it
+has history.
+
+### Seasons are in UTC
+
+Seasons are fixed lengths of 1 hour, 24 hours or 7 days, counted in UTC. When
+daylight saving time starts or ends, traffic that follows local time moves an hour
+against its baseline; expect a few days of skewed scores on daily and weekly rules.
+
+### Flat baselines
+
+When the baseline does not vary at all (the scale is zero), any change is infinitely
+unusual. FuseScope then gives the point a score of `0` if it equals the prediction and
+**±100** otherwise, so it fires for every target. Every score is capped at ±100.
+
+Alerts from such a series carry the annotation `anomaly_baseline: flat`, so you can
+tell a real deviation from a series that is usually constant, such as a counter
+stuck at zero. `anomaly_baseline` is reserved: a rule cannot set it.
+
+## Retention needed
+
+The baseline reaches back 4 seasons before the window, so the metric must be kept
+that long:
+
+| Seasonality | Minimum (2 seasons) | Recommended (4 seasons) |
+|---|---|---|
+| Hourly | 2 hours + window | 4 hours + window |
+| Daily | 2 days + window | 4 days + window |
+| Weekly | 2 weeks + window | 4 weeks + window |
+
+With less, points get no prediction and the rule stays silent.
+
+## Query rules
+
+A query with the `anomaly` function is refused when:
+
+- `anomaly` is not its **last** function, or appears in more than one query;
+- it has a **limit** or **having**, or `fillZero` or `timeShift` before `anomaly`
+  (filled zeros would read as a baseline);
+- it has more than one aggregation, or reads meter metrics;
+- the window is longer than **7 days**;
+- an explicit step does not divide the season (such as 7 minutes on hourly).
+
+The rule's selected query must be the one with `anomaly`. Anomaly rules use rule
+schema version `v1`; `v2alpha1` is refused.
+
+## Limits and errors
+
+One evaluation runs five queries: the window and its four seasons. These settings
+bound it, per FuseScope process:
+
+| Key | Default | Bounds | Environment variable |
+|---|---|---|---|
+| `anomaly.max_concurrent` | `4` | evaluations running at once | `SIGNOZ_ANOMALY_MAX__CONCURRENT` |
+| `anomaly.max_series` | `1000` | series in each of the five windows | `SIGNOZ_ANOMALY_MAX__SERIES` |
+| `anomaly.max_points` | `2000000` | points of the five windows together | `SIGNOZ_ANOMALY_MAX__POINTS` |
+
+| Status | When | What to do |
+|---|---|---|
+| **413** Payload Too Large | a window has more series than `max_series`, or the evaluation more points than `max_points` | filter or group by less, shorten the window, or use a coarser step |
+| **429** Too Many Requests | a preview finds every slot taken | retry shortly |
+
+Rules never get 429: they wait for a slot, for up to a minute or the rule's
+frequency, whichever is shorter. A rule past a 413 limit fails its evaluation.
+
+<Aside type="caution">
+  The limits are checked once ClickHouse has returned each window, so they bound the
+  response, not the memory or time a query takes to get there. To bound those, set
+  `telemetrystore.clickhouse.settings.max_execution_time` and `max_bytes_to_read` in
+  the [config file](/configuration/config-file/).
+</Aside>
+
+## Related
+
+- [Alert rules](/alerts/alert-rules/): the editor, windows and notification settings.
+- [Notification channels](/alerts/notification-channels/): where alerts go.

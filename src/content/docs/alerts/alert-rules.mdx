@@ -92,6 +92,7 @@ a **New Alert Rule** button instead of the table.
    | **Log-based Alert** | Logs, such as a count of `ERROR` lines | Query Builder, ClickHouse Query |
    | **Trace-based Alert** | Spans, such as error rate or p99 latency | Query Builder, ClickHouse Query |
    | **Exceptions-based Alert** | Recorded exceptions | Query Builder, ClickHouse Query (default) |
+   | **Anomaly based Alert** | A metric leaving its usual pattern. See [Anomaly alerts](/alerts/anomaly-alerts/) | Query Builder |
 
 2. The editor opens with three steps: [Define the query](#step-1-define-the-query),
    [Set alert conditions](#conditions) and
@@ -383,6 +384,8 @@ you what a rule will do before you switch it on, without sending anything.
 
 - [Set up your first alert](/guides/first-alert/): a rule and a Slack
   channel, step by step.
+- [Anomaly alerts](/alerts/anomaly-alerts/): fire when a metric leaves
+  its usual pattern.
 - [Notification channels](/alerts/notification-channels/): where
   alerts are sent.
 - [Routing and planned downtime](/alerts/routing-and-downtime/): route
