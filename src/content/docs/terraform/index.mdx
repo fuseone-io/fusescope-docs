@@ -149,8 +149,6 @@ The provider follows what the FuseScope backend accepts:
 
 - **Custom roles.** FuseScope has only the built-in Viewer, Editor and Admin roles, so
   there is no `fusescope_role` resource.
-- **Anomaly alert rules.** A `fusescope_rule` with `rule_type = "anomaly_rule"` is
-  rejected; use `threshold_rule` or `promql_rule`.
 - **Telegram channels.** The `telegram` channel config is in the schema but FuseScope
   does not accept it.
 

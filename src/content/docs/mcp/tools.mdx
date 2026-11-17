@@ -64,11 +64,11 @@ See [AI Observability](/analyze/ai-observability/).
 | `fusescope_list_alert_rules` | read | Configured rules, including disabled and OK ones. |
 | `fusescope_get_alert` | read | One rule's full definition. |
 | `fusescope_get_alert_history` | read | One rule's state changes over time. |
-| `fusescope_create_alert` | create | Create a threshold or PromQL rule. |
+| `fusescope_create_alert` | create | Create a threshold, PromQL or anomaly rule. |
 | `fusescope_update_alert` | update | Replace a rule. |
 | `fusescope_delete_alert` | delete | Delete a rule. |
 
-Anomaly rules are not offered, because FuseScope does not accept them.
+Anomaly rules use rule schema `v1`; see [Anomaly alerts](/alerts/anomaly-alerts/).
 
 ## Notification channels
 
